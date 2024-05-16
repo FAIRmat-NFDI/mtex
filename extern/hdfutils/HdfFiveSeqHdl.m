@@ -270,7 +270,7 @@ classdef HdfFiveSeqHdl
                 r = 'MYHDF5_SUCCESS';  % ##MK
             end
         end
-        function r = nexus_write(obj, dsnm, val, attrs)
+        function r = nexus_write(obj, dsnm, val, attrs, varargin)
             if ~isa(dsnm, "char") || length(dsnm) == 0
                 if obj.verbose
                     disp('Argument dsnm must not be an empty character array!');
@@ -304,9 +304,31 @@ classdef HdfFiveSeqHdl
                         if obj.verbose
                             disp('H5I.is_valid(dtyp)');
                         end
-                        % before H5T.set_size(dtyp, max_characters);
-                        H5T.set_cset(dtyp, 'H5T_CSET_UTF8');
-                        H5T.set_size(dtyp, 'H5T_VARIABLE');
+                        if nargin > 4
+                            tmp = split(varargin, '_');
+                            if strcmp(tmp{1}, 'fix')
+                                H5T.set_size(dtyp, max_characters);
+                            else
+                                H5T.set_size(dtyp, 'H5T_VARIABLE');
+                            end
+                            if strcmp(tmp{2}, 'nlp')
+                                H5T.set_strpad(dtyp, 'H5T_STR_NULLPAD');
+                            elseif strcmp(tmp{2}, 'spc')
+                                H5T.set_strpad(dtyp, 'H5T_STR_SPACEPAD');
+                            else
+                                H5T.set_strpad(dtyp, 'H5T_STR_NULLTERM');
+                            end
+                            if strcmp(tmp{3}, 'asc')
+                                H5T.set_cset(dtyp, 'H5T_CSET_ASCII');
+                            else
+                                H5T.set_cset(dtyp, 'H5T_CSET_UTF8');
+                            end
+                        else
+                            % default to align with h5py in Python
+                            H5T.set_size(dtyp, 'H5T_VARIABLE');
+                            H5T.set_strpad(dtyp, 'H5T_STR_NULLTERM');
+                            H5T.set_cset(dtyp, 'H5T_CSET_UTF8');
+                        end
                     else
                         r = 'MYHDF5_FAILED';
                     end
