@@ -10,11 +10,13 @@
 
 %% init
 clear; clc;
-mtexdir = ['/home/kaiobach/Research/paper_paper_paper/scidat_nomad_em/bb_analysis/analysis/harvest_examples/mtextoolbox/mtex'];
-configdir = ['/home/kaiobach/Research/paper_paper_paper/scidat_nomad_em/bb_analysis/analysis/harvest_examples'];
-inputdir = ['/media/kaiobach/production/paper_paper_paper/scidat_nomad_em/unpacked'];
-outputdir = ['/media/kaiobach/production/paper_paper_paper/scidat_nomad_em/mtex'];
-% odsdir = ['/home/kaiobach/Research/paper_paper_paper/scidat_nomad_em/bb_analysis/analysis/harvest_examples/mtextoolbox/odsreadwrite'];
+thatone = 'CHANGEME';
+mtexdir = [thatone '/mtextoolbox/mtex'];
+configdir = [thatone];
+thatone = 'CHANGEME';
+inputdir = [thatone '/unpacked'];
+outputdir = [thatone '/mtex'];
+% odsdir = ['../mtextoolbox/odsreadwrite'];
 addpath(mtexdir);
 addpath(configdir);
 addpath(inputdir);
@@ -92,7 +94,7 @@ for row_idx = 68:1:68  %n_rows
             ebsd_raw, ...
             ofpath, ...
             '/entry1/roi1/ebsd/indexing1');
-        ebsd_sqr_roi_hweb = squarify_map( ...
+        ebsd_sqr_roi_hweb = nexus_squarify_ebsd( ...
             ebsd_raw, ...
             'h5web_max_size', 2^14 - 1);
         status = nexus_write_ebsd_overview( ...
@@ -100,7 +102,7 @@ for row_idx = 68:1:68  %n_rows
             ofpath, ...
             '/entry1/roi1/ebsd/indexing1');
 
-        ebsd_sqr_ipf_hweb = squarify_map( ...
+        ebsd_sqr_ipf_hweb = nexus_squarify_ebsd( ...
             ebsd_raw, ...
             'h5web_max_size', 2^11 - 1);
         status = nexus_write_ebsd_phase_ipf( ...

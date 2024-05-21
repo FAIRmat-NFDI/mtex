@@ -14,18 +14,19 @@ if isprop(inp, 'scanUnit')
         scan_unit = lower(inp.scanUnit);
     end
 end
-% get roi extent
+% get roi extent assuming
+% x and y are scan point centre positions individually
+% exact details depend on the flight plan of the scan box from the
+% microscope isf it was an experiment
 xmin = min(inp.prop.x);
 xmax = max(inp.prop.x);
 ymin = min(inp.prop.y);
 ymax = max(inp.prop.y);
 
-sz = size(inp.unitCell);
-if sz(1) == 4
-    % 
-% get unit cell (uc) size
-dx0 = max(inp.unitCell(:,1)) - min(inp.unitCell(:,1));
-dy0 = max(inp.unitCell(:,2)) - min(inp.unitCell(:,2));
+% sz = size(inp.unitCell);
+% sz(1) == 4 for square grid and sz(1) == 6 for (flat-top?) hexagon grid
+dx0 = abs(median(diff(unique(inp.prop.x, 'stable'))));
+dy0 = abs(median(diff(unique(inp.prop.y, 'stable'))));  
 
 % estimate resulting size of the grid when staying close to original uc
 nx0 = ceil((xmax - xmin) / dx0);
