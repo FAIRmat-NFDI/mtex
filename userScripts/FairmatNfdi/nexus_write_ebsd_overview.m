@@ -1,17 +1,17 @@
-function status = nexus_write_ebsd_overview(ebsd_orig, fpath, parent)
+function status = nexus_write_ebsd_overview(ebsd_grd, fpath, parent)
 % Generate default plot for H5Web and write data to NeXus/HDF5 file
 
 % ebsd_obj
 % fpath: path and filename of NeXus/HDF5 results file
 % parent: parent HDF5 group below which to write
 
-grid = size(ebsd_orig.phase);
+grid = size(ebsd_grd.phase);
 scan_unit = 'n/a';
-if isprop(ebsd_orig, 'scanUnit')
-    if strcmp(ebsd_orig.scanUnit, 'um')
+if isprop(ebsd_grd, 'scanUnit')
+    if strcmp(ebsd_grd.scanUnit, 'um')
         scan_unit = 'µm'; 
     else
-        scan_unit = lower(ebsd_orig.scanUnit);
+        scan_unit = lower(ebsd_grd.scanUnit);
     end
 end
 
@@ -30,10 +30,10 @@ ret = h5w.nexus_write_group(grpnm, attr);
 dsnm = strcat(grpnm, '/descriptor');
 attr = io_attributes();
 which_descriptor = 'undefined';
-if isfield(ebsd_orig.prop, 'bc')
+if isfield(ebsd_grd.prop, 'bc')
     ret = h5w.nexus_write(dsnm, 'normalized_band_contrast', attr);
     which_descriptor = 'normalized_band_contrast';
-elseif isfield(ebsd_orig.prop, 'ci') || isfield(ebsd_orig.prop, 'confidenceindex')
+elseif isfield(ebsd_grd.prop, 'ci') || isfield(ebsd_grd.prop, 'confidenceindex')
     ret = h5w.nexus_write(dsnm, 'normalized_confidence_index', attr);
     which_descriptor = 'normalized_confidence_index';
 else
@@ -45,17 +45,17 @@ dsnm = strcat(grpnm, '/data');
 % the MTex-style implicit 2d arrays how they come and are used in @EBSD
 if strcmp(which_descriptor, 'normalized_band_contrast')
     nxs_roi_map_u8_f = uint8(uint32( ...
-        ebsd_orig.prop.bc / ...
-        max(max(ebsd_orig.prop.bc)) * 255.));
+        ebsd_grd.prop.bc / ...
+        max(max(ebsd_grd.prop.bc)) * 255.));
 elseif strcmp(which_descriptor, 'normalized_confidence_index')
-    if isfield(ebsd_orig.prop, 'ci')
+    if isfield(ebsd_grd.prop, 'ci')
         nxs_roi_map_u8_f = uint8(uint32( ...
-            ebsd_orig.prop.ci / ...
-            max(max(ebsd_orig.prop.ci)) * 255.));
+            ebsd_grd.prop.ci / ...
+            max(max(ebsd_grd.prop.ci)) * 255.));
     else
         nxs_roi_map_u8_f = uint8(uint32( ...
-            ebsd_orig.prop.confidenceindex / ...
-            max(max(ebsd_orig.prop.confidenceindex)) * 255.));
+            ebsd_grd.prop.confidenceindex / ...
+            max(max(ebsd_grd.prop.confidenceindex)) * 255.));
     end
 else
     error('Which descriptor for overview ROI must not be undefined!')
@@ -70,13 +70,13 @@ ret = h5w.nexus_write(dsnm, nxs_roi_map_u8_f', attr);
 
 % ... and dimension scale axis positions
 dsnm = strcat(grpnm, '/axis_y');
-nxs_bc_y = linspace(ebsd_orig.ymin, ebsd_orig.ymax, grid(1));
+nxs_bc_y = ebsd_grd.prop.y(:, 1)';
 attr = io_attributes();
-attr.add('units', scan_unit);  % TODO, convenience if larger than 1.0e or smaller than 1.e-3 auto-convert
+attr.add('units', scan_unit);
 attr.add('long_name', ['Calibrated coordinate along y-axis (', scan_unit, ')']);
 ret = h5w.nexus_write(dsnm, nxs_bc_y, attr);
 dsnm = strcat(grpnm, '/axis_x');
-nxs_bc_x = linspace(ebsd_orig.xmin, ebsd_orig.xmax, grid(2));
+nxs_bc_x = ebsd_grd.prop.x(1, :);
 attr = io_attributes();
 attr.add('units', scan_unit);
 attr.add('long_name', ['Calibrated coordinate along x-axis (', scan_unit, ')']);

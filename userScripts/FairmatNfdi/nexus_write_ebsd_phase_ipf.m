@@ -1,7 +1,7 @@
-function status = nexus_write_ebsd_phase_ipf(ebsd_orig, ebsd_grid, fpath, parent)
+function status = nexus_write_ebsd_phase_ipf(ebsd_orig, ebsd_grd, fpath, parent)
 % Generate default inverse pole figure plot (for each phase) for H5Web and write data to NeXus/HDF5 file
 
-% ebsd_orig, ebsd_grid
+% ebsd_orig, ebsd_grd
 % fpath: path and filename of NeXus/HDF5 results file
 % parent: parent HDF5 group below which to write
 
@@ -9,19 +9,19 @@ function status = nexus_write_ebsd_phase_ipf(ebsd_orig, ebsd_grid, fpath, parent
 % pixels which were not indexed to belong to the phase in question
 h5w = HdfFiveSeqHdl(fpath);
 
-n_phases = length(ebsd_grid.CSList);
-if n_phases ~= length(ebsd_grid.mineralList)
+n_phases = length(ebsd_grd.CSList);
+if n_phases ~= length(ebsd_grd.mineralList)
     status = logical(0);
     return;
 end
 
-grid = size(ebsd_grid);
+grid = size(ebsd_grd);
 scan_unit = 'n/a';
-if isprop(ebsd_grid, 'scanUnit')
-    if strcmp(ebsd_grid.scanUnit, 'um')
+if isprop(ebsd_grd, 'scanUnit')
+    if strcmp(ebsd_grd.scanUnit, 'um')
         scan_unit = 'µm'; 
     else
-        scan_unit = lower(ebsd_grid.scanUnit);
+        scan_unit = lower(ebsd_grd.scanUnit);
     end
 end
 
@@ -34,7 +34,7 @@ attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint64(n_count_orig_total), attr);
 
 phase_id = 0;
-for phase_idx = 1:1:length(ebsd_grid.mineralList)
+for phase_idx = 1:1:length(ebsd_grd.mineralList)
     % TODO: add a map for all those points not indexed
     
     grpnm = strcat(parent, ['/phase' num2str(phase_id)]);
@@ -43,7 +43,7 @@ for phase_idx = 1:1:length(ebsd_grid.mineralList)
     % how many scan points of that phase in original EBSD map
     if min(ebsd_orig.phaseMap) == -1
         n_count_orig = sum(sum(ebsd_orig.phase == (phase_id - 1)));
-    elseif min(ebsd_orig.phaseMap) == 0 || min(ebsd_grid.phaseMap) == 1
+    elseif min(ebsd_orig.phaseMap) == 0 || min(ebsd_grd.phaseMap) == 1
         n_count_orig = sum(sum(ebsd_orig.phase == phase_id));
     else
         error('ERROR: The phaseMap for this EBSD map uses an unexpected indexing!');
@@ -56,42 +56,42 @@ for phase_idx = 1:1:length(ebsd_grid.mineralList)
 
     % how many scan points of that phase in eventually downsampled H5Web
     % preview of that IPF
-    if min(ebsd_grid.phaseMap) == -1
-        n_count = sum(sum(ebsd_grid.phase == (phase_id - 1)));
-    elseif min(ebsd_grid.phaseMap) == 0 || min(ebsd_grid.phaseMap) == 1
-        n_count = sum(sum(ebsd_grid.phase == phase_id));
+    if min(ebsd_grd.phaseMap) == -1
+        n_count = sum(sum(ebsd_grd.phase == (phase_id - 1)));
+    elseif min(ebsd_grd.phaseMap) == 0 || min(ebsd_grd.phaseMap) == 1
+        n_count = sum(sum(ebsd_grd.phase == phase_id));
     else
         error('ERROR: The phaseMap for this EBSD map uses an unexpected indexing!');
     end
 
-    if ~strcmp(ebsd_grid.mineralList{phase_idx}, 'notIndexed') & n_count > 0
+    if ~strcmp(ebsd_grd.mineralList{phase_idx}, 'notIndexed') & n_count > 0
         % the null-phase, for MTex @EBSD.phase == 0 but confusingly @EBSD.phaseId == 1 !
         proj_vector = [vector3d.X, vector3d.Y, vector3d.Z];
         proj_name = ['x', 'y', 'z'];
-        phase_name = ebsd_grid.mineralList{phase_idx};
-        disp(['nexus_write_ebsd_ipf ' num2str(phase_idx) '/' num2str(length(ebsd_grid.mineralList)) ' ' phase_name ' phase_id ' num2str(phase_id)]);
+        phase_name = ebsd_grd.mineralList{phase_idx};
+        disp(['nexus_write_ebsd_ipf ' num2str(phase_idx) '/' num2str(length(ebsd_grd.mineralList)) ' ' phase_name ' phase_id ' num2str(phase_id)]);
         for proj_idx = 1:1:3
             clearvars ipf_key colors nx_ipf_map_u8_f nxs_ipf_y nxs_ipf_x phase_i_idx v low_level idx;
-            % ipf_hsv_key = ipfHSVKey(ebsd_grid(phase_name));
-            if min(ebsd_grid.phaseMap) == -1
-                ipf_key = ipfColorKey(ebsd_grid(ebsd_grid.phase == (phase_id - 1)));
+            % ipf_hsv_key = ipfHSVKey(ebsd_grd(phase_name));
+            if min(ebsd_grd.phaseMap) == -1
+                ipf_key = ipfColorKey(ebsd_grd(ebsd_grd.phase == (phase_id - 1)));
             else
-                ipf_key = ipfColorKey(ebsd_grid(ebsd_grid.phase == phase_id));
+                ipf_key = ipfColorKey(ebsd_grd(ebsd_grd.phase == phase_id));
             end
             ipf_key.inversePoleFigureDirection = proj_vector(proj_idx);
-            colors = ipf_key.orientation2color(ebsd_grid(phase_name).orientations);
+            colors = ipf_key.orientation2color(ebsd_grd(phase_name).orientations);
             % from normalized colors to RGB colors
             colors = uint8(uint32(colors * 255.));
             % base color black
             nxs_ipf_map_u8_f = uint8(uint32(zeros([3, grid(1) * grid(2)]) * 255.));
-            nxs_ipf_y = linspace(ebsd_grid.ymin, ebsd_grid.ymax, grid(1));
-            nxs_ipf_x = linspace(ebsd_grid.xmin, ebsd_grid.xmax, grid(2));
+            nxs_ipf_y = ebsd_grd.prop.y(:, 1)';
+            nxs_ipf_x = ebsd_grd.prop.x(1, :);
 
             % get array indices of all those pixels which were indexed as phase phase_idx
-            if min(ebsd_grid.phaseMap) == -1
-                phase_i_idx = uint32(ebsd_grid.id(ebsd_grid.phase == (phase_id - 1)));
+            if min(ebsd_grd.phaseMap) == -1
+                phase_i_idx = uint32(ebsd_grd.id(ebsd_grd.phase == (phase_id - 1)));
             else
-                phase_i_idx = uint32(ebsd_grid.id(ebsd_grid.phase == phase_id));
+                phase_i_idx = uint32(ebsd_grd.id(ebsd_grd.phase == phase_id));
             end
             nxs_ipf_map_u8_f(:, phase_i_idx) = colors(1:length(phase_i_idx), :)';  
 
@@ -147,7 +147,7 @@ for phase_idx = 1:1:length(ebsd_grid.mineralList)
 
             dsnm = strcat(grpnm, '/axis_y');
             attr = io_attributes();
-            attr.add('units', scan_unit);  % TODO, convenience if larger than 1.0e or smaller than 1.e-3 auto-convert
+            attr.add('units', scan_unit);
             attr.add('long_name', ['Calibrated coordinate along y-axis (' scan_unit ')']);
             ret = h5w.nexus_write(dsnm, nxs_ipf_y, attr);
             dsnm = strcat(grpnm, '/axis_x');
@@ -203,13 +203,11 @@ for phase_idx = 1:1:length(ebsd_grid.mineralList)
             dsnm = strcat(grpnm, '/axis_y');
             nxs_px_y = uint32(linspace(1, sz(1), sz(1)));
             attr = io_attributes();
-            attr.add('units', scan_unit);  % TODO, convenience if larger than 1.0e or smaller than 1.e-3 auto-convert
             attr.add('long_name', 'Pixel along y-axis');
             ret = h5w.nexus_write(dsnm, nxs_px_y, attr);
             dsnm = strcat(grpnm, '/axis_x');
             nxs_px_x = uint32(linspace(1, sz(2), sz(2)));
             attr = io_attributes();
-            attr.add('units', scan_unit);
             attr.add('long_name', 'Pixel along x-axis');
             ret = h5w.nexus_write(dsnm, nxs_px_x, attr);
         end
@@ -220,10 +218,9 @@ end
 
 dsnm = strcat(parent, '/indexing_rate');
 attr = io_attributes();
-attr.add('unit', '%');
 ret = h5w.nexus_write(dsnm, ...
     double(double(n_count_orig_indexed) / ...
-    double(n_count_orig_total)) * 100., attr);
+    double(n_count_orig_total)), attr);
 
 disp('NeXus/HDF5 exporting of phase-specific inverse pole figures was successful');
 status = logical(1);

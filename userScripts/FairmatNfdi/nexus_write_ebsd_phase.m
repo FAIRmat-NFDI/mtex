@@ -23,7 +23,7 @@ for phase_idx = 1:1:n_phases
     
     grpnm = strcat(parent, ['/phase' num2str(phase_id)]);
     attr = io_attributes();
-    attr.add('NX_class', 'NXem_ebsd_crystal_structure_model');
+    attr.add('NX_class', 'NXcrystal_structure');
     ret = h5w.nexus_write_group(grpnm, attr);
     attr = io_attributes();
 

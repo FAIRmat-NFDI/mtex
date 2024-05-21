@@ -10,42 +10,37 @@ function status = nexus_write_mtex_preferences(fpath, parent)
 
     grpnm = strcat(parent, '/mtex');
     attr = io_attributes();
-    attr.add('NX_class', 'NXms_mtex');
+    attr.add('NX_class', 'NXms_mtex_config');
     ret = h5w.nexus_write_group(grpnm, attr);
-    attr = io_attributes();
-    grpnm = strcat(parent, '/mtex/configuration');
-    attr = io_attributes();
-    attr.add('NX_class', 'NXobject');
-    ret = h5w.nexus_write_group(grpnm, attr);
-    attr = io_attributes();
+    
     % resetting attr and use it until again an HDF5 node with
     % attributes is required
 %% versions
-    grpnm = strcat(parent, '/mtex/configuration/program1'); % matlab
+    grpnm = strcat(parent, '/mtex/program1'); % matlab
     attr = io_attributes();
     attr.add('NX_class', 'NXprogram');
     ret = h5w.nexus_write_group(grpnm, attr);
+    
+    dsnm = strcat(grpnm, '/program');
     attr = io_attributes();
-    dsnm = strcat(grpnm, '/name');
+    attr.add('version', version);
     ret = h5w.nexus_write(dsnm, 'Matlab', attr);
-    dsnm = strcat(grpnm, '/version');
-    ret = h5w.nexus_write(dsnm, version, attr);
 
-    grpnm = strcat(parent, '/mtex/configuration/program2'); % mtex
+    grpnm = strcat(parent, '/mtex/program2'); % mtex
     attr = io_attributes();
     attr.add('NX_class', 'NXprogram');
     ret = h5w.nexus_write_group(grpnm, attr);
-    attr = io_attributes();
-    dsnm = strcat(grpnm, '/name');
-    ret = h5w.nexus_write(dsnm, 'MTex', attr);
-    dsnm = strcat(grpnm, '/version');
-    ret = h5w.nexus_write(dsnm, mtex_pref.version, attr);
 
+    dsnm = strcat(grpnm, '/program');
+    attr = io_attributes();
+    attr.add('version', mtex_pref.version);
+    ret = h5w.nexus_write(dsnm, 'MTex', attr);    
 %% conventions    
-    grpnm = strcat(parent, '/mtex/configuration/conventions');
+    grpnm = strcat(parent, '/mtex/conventions');
     attr = io_attributes();
     attr.add('NX_class', 'NXcollection');
     ret = h5w.nexus_write_group(grpnm, attr);
+
     attr = io_attributes();
     dsnm = strcat(grpnm, '/x_axis_direction');
     ret = h5w.nexus_write(dsnm, mtex_pref.xAxisDirection, attr);
@@ -60,14 +55,14 @@ function status = nexus_write_mtex_preferences(fpath, parent)
     dsnm = strcat(grpnm, '/b_axis_direction');
     ret = h5w.nexus_write(dsnm, mtex_pref.bAxisDirection, attr);
     dsnm = strcat(grpnm, '/euler_angle');
-    if strcmp(mtex_pref.EulerAngleConvention, 'bunge')
+    if strcmp(mtex_pref.EulerAngleConvention, 'Bunge')
         ret = h5w.nexus_write(dsnm, mtex_pref.EulerAngleConvention, attr);
     else
         ret = h5w.nexus_write(dsnm, 'undefined', attr);
     end
 
 %% plotting
-    grpnm = strcat(parent, '/mtex/configuration/plotting');
+    grpnm = strcat(parent, '/mtex/plotting');
     attr = io_attributes();
     attr.add('NX_class', 'NXcollection');
     ret = h5w.nexus_write_group(grpnm, attr);
@@ -118,9 +113,10 @@ function status = nexus_write_mtex_preferences(fpath, parent)
     else
         ret = h5w.nexus_write(dsnm, uint8(1), attr);
     end
+    % phaseColorOrder
 
 %% others
-    grpnm = strcat(parent, '/mtex/configuration/miscellaneous');
+    grpnm = strcat(parent, '/mtex/miscellaneous');
     attr.add('NX_class', 'NXcollection');
     ret = h5w.nexus_write_group(grpnm, attr);
     attr = io_attributes();
@@ -152,13 +148,11 @@ function status = nexus_write_mtex_preferences(fpath, parent)
     end 
     dsnm = strcat(grpnm, '/text_interpreter');
     ret = h5w.nexus_write(dsnm, mtex_pref.textInterpreter, attr);
-
-        % dsnm = strcat(grpnm, '/phase_color_order');
-    % attr = io_attributes();
-    % ret = h5w.nexus_write(dsnm, mtex_pref.CIFPath, attr);
+    dsnm = strcat(grpnm, '/voronoi_method');
+    ret = h5w.nexus_write(dsnm, mtex_pref.voronoiMethod, attr);
 
 %% numerics
-    grpnm = strcat(parent, '/mtex/configuration/numerics');
+    grpnm = strcat(parent, '/mtex/numerics');
     attr.add('NX_class', 'NXcollection');
     ret = h5w.nexus_write_group(grpnm, attr);
     attr = io_attributes();
@@ -166,14 +160,15 @@ function status = nexus_write_mtex_preferences(fpath, parent)
     ret = h5w.nexus_write(dsnm, double(eps), attr);
     dsnm = strcat(grpnm, '/fft_accuracy');
     ret = h5w.nexus_write(dsnm, double(mtex_pref.FFTAccuracy), attr);
+    dsnm = strcat(grpnm, '/max_sone_bandwidth');
+    ret = h5w.nexus_write(dsnm, double(mtex_pref.maxS1Bandwidth), attr);
     dsnm = strcat(grpnm, '/max_stwo_bandwidth');
     ret = h5w.nexus_write(dsnm, double(mtex_pref.maxS2Bandwidth), attr);
     dsnm = strcat(grpnm, '/max_sothree_bandwidth');
     ret = h5w.nexus_write(dsnm, double(mtex_pref.maxSO3Bandwidth), attr);
 
-
 %% system
-    grpnm = strcat(parent, '/mtex/configuration/system');
+    grpnm = strcat(parent, '/mtex/system');
     attr.add('NX_class', 'NXcollection');
     ret = h5w.nexus_write_group(grpnm, attr);
     attr = io_attributes();
@@ -193,11 +188,11 @@ function status = nexus_write_mtex_preferences(fpath, parent)
     else
         ret = h5w.nexus_write(dsnm, uint8(0), attr);
     end
-%% paths
- 
-        % switch off these annotations as I do not want share my local system configuration
+
+%% paths 
+    % switch off these annotations as I do not want share my local system configuration
     if 1 == 0
-        grpnm = strcat(parent, '/mtex/configuration/path');
+        grpnm = strcat(parent, '/mtex/path');
         attr.add('NX_class', 'NXcollection');
         ret = h5w.nexus_write_group(grpnm, attr);
         attr = io_attributes();

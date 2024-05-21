@@ -13,16 +13,6 @@ attr = io_attributes();
 attr.add('NX_class', 'NXentry');
 ret = h5w.nexus_write_group(grpnm, attr);
 
-grpnm = '/entry1/measurement';
-attr = io_attributes();
-attr.add('NX_class', 'NXem_msr');
-ret = h5w.nexus_write_group(grpnm, attr);
-
-grpnm = '/entry1/simulation';
-attr = io_attributes();
-attr.add('NX_class', 'NXem_sim');
-ret = h5w.nexus_write_group(grpnm, attr);
-
 grpnm = '/entry1/roi1';
 attr = io_attributes();
 attr.add('NX_class', 'NXroi');
@@ -38,9 +28,20 @@ attr = io_attributes();
 attr.add('NX_class', 'NXprocess');
 ret = h5w.nexus_write_group(grpnm, attr);
 
-% grpnm = '/entry1/roi1';
-% grpnm = '/entry1/roi1/ebsd/indexing1/odf*';
-% grpnm = '/entry1/roi1/ebsd/indexing1/pf*';
+% grpnm = '/entry1/roi1/ebsd/indexing1/odf';
+% attr = io_attributes();
+% attr.add('NX_class', 'NXms_odf_set');
+% ret = h5w.nexus_write_group(grpnm, attr);
+
+% grpnm = '/entry1/roi1/ebsd/indexing1/pf';
+% attr = io_attributes();
+% attr.add('NX_class', 'NXms_pf_set');
+% ret = h5w.nexus_write_group(grpnm, attr);
+
+% grpnm = '/entry1/roi1/ebsd/indexing1/microstructure1';
+% attr = io_attributes();
+% attr.add('NX_class', 'NXms_recon');
+% ret = h5w.nexus_write_group(grpnm, attr);
 
 status = logical(1);
 

@@ -1,15 +1,29 @@
-function ebsd = loadEBSD_crc(fname,varargin)
+function ebsd = loadEBSD_crc(cprFile, crcFile, varargin)
 % interface for Oxford Channel-5 crc and cpr EBSD data files
 % 
-
-try
-  assertExt(fname,{'.cpr','.crc'})
+% try
+  %  if nargin > 4
+  %     for i = 1:1:nargin
+  %         if strcmp('fpath_cpr', varargin{i})
+  %             fpath_cpr = varargin{i+1};
+  %         elseif strcmp('fpath_crc', varargin{i})
+  %             fpath_crc = varargin{i+1};
+  %         end
+  %     end
+  %     assertExt(fpath_cpr, {'cpr'});
+  %     assertExt(fpath_crc, {'crc'});
+  %     cprFile = fpath_cpr;
+  %     crcFile = fpath_crc;
+  %     disp(cprFile);
+  %     disp(crcFile);
+  % else
+  %     assertExt(fname,{'.cpr','.crc'})
+  %     [path,file] = fileparts(fname);
+  %     cprFile = fullfile(path,[file '.cpr']);
+  %     crcFile = fullfile(path,[file '.crc']);
+  % end
   
-  [path,file] = fileparts(fname);
-  cprFile = fullfile(path,[file '.cpr']);
-  crcFile = fullfile(path,[file '.crc']);
-  
-  cpr = localCPRParser(cprFile);
+  cpr = localCPRParser(fullfile(cprFile));
   
   CS  = get_option(varargin,'CS',getCS(cpr));
   param = getJobParam(cpr);
@@ -19,7 +33,7 @@ try
     return
   end
 
-  loader  = localCRCLoader(crcFile,param);
+  loader  = localCRCLoader(fullfile(crcFile), param);
 
   q       = loader.getRotations();
   phases  = loader.getColumnData('Phase');
@@ -27,9 +41,9 @@ try
   
   ebsd = EBSD(q,phases,CS,options,'unitCell',param.unitCell);
   ebsd.opt.cprInfo = cpr;
-catch %#ok<CTCH>
-  interfaceError(fname);
-end
+% catch %#ok<CTCH>
+%   interfaceError(fname);
+% end
 
 % change reference frame
 if check_option(varargin,'convertSpatial2EulerReferenceFrame')
