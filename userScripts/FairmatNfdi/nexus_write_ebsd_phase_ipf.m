@@ -175,7 +175,7 @@ for phase_idx = 1:1:length(ebsd_grd.mineralList)
             % f = gcf;
             png_fnm = ['temporary.png'];
             exportgraphics(gcf, png_fnm, 'Resolution', 300);
-            close gcf
+            close all hidden;  %gcf;
             % ... framegrab this image to get the pixel color values (no alpha)
             im = imread(png_fnm);
             delete(png_fnm); % remove the intermediately created figure
