@@ -1,5 +1,5 @@
 function SO3F = conv(sF1,sF2,varargin)
-% convolution with a function or a kernel on SO(3)
+% convolution with a function or a kernel on the sphere
 %
 % Syntax
 %   SO3F = conv(sF1,sF2)
@@ -14,7 +14,7 @@ function SO3F = conv(sF1,sF2,varargin)
 %  SO3F - @SO3FunHarmonic
 %
 % See also
-% S2FunHarmonic/conv S2Kernel/conv SO3Fun/conv SO3FunHarmonic/conv
+% S2FunHarmonic/conv S2Kernel/conv SO3FunHarmonic/conv
 
 if isnumeric(sF1)
   SO3F = conv(sF2,sF1,varargin{:});

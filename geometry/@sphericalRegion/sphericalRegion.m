@@ -30,7 +30,11 @@ classdef sphericalRegion
     antipodal = false  % used for check_inside
   end
 
-  
+  properties (Dependent = true)
+    how2plot
+  end
+
+
   methods
         
     function sR = sphericalRegion(varargin)
@@ -90,6 +94,14 @@ classdef sphericalRegion
       
     end
             
+    function h2p = get.how2plot(sR)
+      h2p = sR.N.plottingConvention;
+    end
+
+    function sR = set.how2plot(sR,how2plot)
+      sR.N.plottingConvention = how2plot;
+    end
+
     function th = thetaMin(sR)
       
       th = thetaRange(sR);
@@ -153,7 +165,7 @@ classdef sphericalRegion
       
       if nargin == 2
         
-        theta = linspace(0,pi,10000);
+        theta = linspace(0,pi,10001);
         
         srho = size(rho);
         [rho,theta] = meshgrid(rho,theta);

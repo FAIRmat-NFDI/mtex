@@ -1,16 +1,6 @@
 function sF = conv(sF, psi, varargin)
-% spherical convolution of sF with a radial function psi 
-%
-% There are two S2Funs $f: \mathbb S^2 /_{s_1} \to \mathbb{C}$
-% $g: \mathbb S^2 /_{s_2} \to \mathbb{C}$ given, where $s_1$ and $s_2$ 
-% denotes the symmetries.
-% Then the convolution $f*g: {}_{s_2} \backslash SO(3) /_{s_1} \to
-% \mathbb{C}$ is defined by
-%
-% $$(f * g)(R) = \frac1{4\pi} \int_{S^2} f(R^{-1}\xi) \cdot g(\xi) \, d\xi$$
-%
-% with $vol(S^2) = \int_{S^2} 1 \, d\xi = 4\pi$. Note that $s_1$ is the
-% right symmetry of $f*g$ and $s_2$ is the left symmetry.
+% spherical convolution of sF with a radial function or another
+% sperical function psi
 %
 % Syntax
 %   sF = conv(sF, psi)
@@ -20,7 +10,7 @@ function sF = conv(sF, psi, varargin)
 % Input
 %  sF, sF1, sF1 - @S2FunHarmonic
 %  psi - @S2Kernel
-%  A   - list of Legendre coeficients
+%  A   - list of Legendre coefficients
 %
 % Output
 %  sF   - @S2FunHarmonic
@@ -32,7 +22,7 @@ function sF = conv(sF, psi, varargin)
 
 % The convolution is defined like above. But in MTEX the convolution of two
 % S2Funs is mostly calculated by
-%                    inv(4*pi*conv(SO3F1,conj(SO3F2))).
+%                    inv(4*pi*conv(sF1,conj(sF2))).
 %
 
 
@@ -47,9 +37,9 @@ if isa(psi,'S2Fun')
   
   if isa(psi,'S2FunHarmonic')
     sF2 = psi;
-    bw = get_option(varargin,'bandwidth',min(sF.bandwidth,sF2.bandwidth));
+    bw = min(get_option(varargin,'bandwidth',NaN),min(sF.bandwidth,sF2.bandwidth));
   else
-    bw = get_option(varargin,'bandwidth',sF.bandwidth);
+    bw = min(get_option(varargin,'bandwidth',NaN),sF.bandwidth);
     sF2 = S2FunHarmonic.quadrature(psi,'bandwidth',bw);
   end
   

@@ -24,7 +24,7 @@ methods
       truncate(sF);
       return
     elseif isa(fhat,'S2Fun')
-      sF = S2FunHarmonic.quadrature(fhat);
+      sF = S2FunHarmonic.quadrature(fhat, varargin{:});
       return
     elseif isa(fhat,'S2Kernel')
       psi = fhat;
@@ -67,8 +67,10 @@ methods
   end
 
   function out = get.antipodal(sF)
+    sF = reshape(sF,numel(sF));
     sF = truncate(sF);
-    out = all(norm(sF - sF.even) < 1e-5*norm(sF));
+    normF = sum(abs(sF.fhat-sF.even.fhat).^2);
+    out = all(sqrt(normF) < 1e-5*norm(sF));
   end
   
   function sF = set.antipodal(sF,value)

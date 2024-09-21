@@ -30,7 +30,7 @@ if check_option(varargin,'symmetrised') && ~check_option(varargin,'skipSymmetris
             
   elseif length(m) < 100 || check_option(varargin,{'labeled','label'}) 
     
-    % plot only unqiue points
+    % plot only unique points
     [m,l] = symmetrise(m,'unique','noAntipodal',varargin{:}); % symmetrise without repetition
     
     if check_option(varargin,'label')
@@ -50,14 +50,8 @@ if check_option(varargin,'symmetrised') && ~check_option(varargin,'skipSymmetris
   varargin = [varargin,{'skipSymmetrise','noAntipodal'}]; 
 end
 
-if numel(varargin) > 0 && (isnumeric(varargin{1}) || isa(varargin{1},'crystalShape'))
-  varargin = [varargin(1),m.CS.plotOptions,varargin(2:end)];
-else
-  varargin = [m.CS.plotOptions,varargin];
-end
-
 % plot them all with the same color
-[varargout{1:nargout}] = scatter@vector3d(m,varargin{:},m.CS);
+[varargout{1:nargout}] = scatter@vector3d(m,varargin{:},m.CS,m.CS.how2plot);
 
 end
 

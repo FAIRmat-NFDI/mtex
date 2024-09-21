@@ -35,6 +35,13 @@ if isa(rot,'quadratureSO3Grid') && strcmp(rot.scheme,'ClenshawCurtis')
   return
 end
 
+% Do direct computation for small number of orientations
+if length(rot)<10 || (length(rot)<50 && SO3F.bandwidth>200)
+  % varargin{end+1} = 'direct';
+  f = directEval(SO3F,rot,varargin{:});
+  return
+end
+
 persistent keepPlanNFFT;
 
 % kill plan
@@ -91,8 +98,12 @@ if isempty(plan)
     fftw_size = 2*ceil(sigma/2*NN);
     fftw_size2 = 2*ceil(sigma/2*N2);
   % initialize nfft plan
-  plan = nfftmex('init_guru',{3,N2,NN,NN,M,fftw_size2,fftw_size,fftw_size,m,nfft_flag,fftw_flag});
-
+  if check_option(varargin,'direct')
+    plan = nfftmex('init_3d',N2,NN,NN,M);
+  else
+    plan = nfftmex('init_guru',{3,N2,NN,NN,M,fftw_size2,fftw_size,fftw_size,m,nfft_flag,fftw_flag});
+  end
+  
   % set rotations as nodes in plan
   nfftmex('set_x',plan,abg);
 
@@ -107,23 +118,29 @@ if check_option(varargin,'createPlan')
   return
 end
 
+% If SO3F is real valued we have the symmetry properties (*) and (**) for
+% the Fourier coefficients. We will use this to speed up computation.
+if SO3F.isReal
+  flags = 2^0+2^1+2^2+2^4;
+else
+  flags = 2^0+2^1+2^4;
+end
+
 f = zeros([length(rot) size(SO3F)]);
 for k = 1:length(SO3F)
 
-  % If SO3F is real valued we have the symmetry properties (*) and (**) for 
-  % the Fourier coefficients. We will use this to speed up computation.
-  if SO3F.isReal
-    flags = 2^0+2^1+2^2+2^4;
-  else
-    flags = 2^0+2^1+2^4;
-  end
-  ghat = wignerTrafo(SO3F(k),flags,'bandwidth',N);
+  ghat = wignerTrafo(SO3F.subSet(k),flags,'bandwidth',N);
 
   % set Fourier coefficients
   nfftmex('set_f_hat',plan,ghat(:));
 
-  % fast Fourier transform
-  nfftmex('trafo',plan);
+  if check_option(varargin,'direct')
+    % direct Fourier transform
+    nfftmex('trafo_direct',plan);
+  else
+    % Fast Fourier transform
+    nfftmex('trafo',plan);
+  end
 
   % get function values from plan
   if SO3F.isReal
@@ -143,5 +160,33 @@ else
 end
 
 if isscalar(SO3F), f = reshape(f,s); end
+
+end
+
+
+
+function f = directEval(SO3F,rot,varargin)
+
+N = SO3F.bandwidth;
+abg = Euler(rot,'Matthies')';
+if SO3F.isReal
+  for k=1:length(SO3F)
+    ghat = wignerTrafo(SO3F.subSet(k),2^0+2^2+2^4,'bandwidth',N);
+    for i=1:length(rot)
+      f(i,k) = sum(ghat.*exp(-1i*abg(2,i)*(-N:N)-1i*abg(3,i)*(-N:N)'-1i*abg(1,i)*reshape(0:N,1,1,[])),"all");
+    end
+  end
+  f = 2*real(f);
+else
+  for k=1:length(SO3F)
+    ghat = wignerTrafo(SO3F.subSet(k),2^0+2^4,'bandwidth',N);
+    for i=1:length(rot)
+      f(i,k) = sum(ghat.*exp(-1i*abg(2,i)*(-N:N)-1i*abg(3,i)*(-N:N)'-1i*abg(1,i)*reshape(-N:N,1,1,[])),"all");
+    end
+  end
+end
+  
+  
+if isscalar(SO3F), f = reshape(f,size(rot)); end
 
 end
