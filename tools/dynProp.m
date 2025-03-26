@@ -181,7 +181,7 @@ classdef dynProp
               
         c  = cprintf(full(d),'-Lc',fn,'-L',' ','-d','   ','-ic',true);
       else
-        c  = cprintf(fn(:)','-L',' <strong>Properties</strong>: ','-d',', ','-ic',true);
+        c  = cprintf(fn(:)','-L',char(strong(" Properties") + ": "),'-d',', ','-ic',true);
       end  
     
       function out = prop2List(prop)
@@ -192,6 +192,8 @@ classdef dynProp
             out{k} = char(prop(k),'Euler');
           elseif isa(prop,'vector3d')
             out{k} = ['(' xnum2str(prop(k).xyz,'delimiter',',') ')'];
+          elseif isa(prop,'SO3Fun')
+            out{k} = xnum2str(mean(prop(k)));
           elseif isnumeric(prop) && isscalar(prop)
             out{k} = prop(k,:);
           elseif isnumeric(prop)

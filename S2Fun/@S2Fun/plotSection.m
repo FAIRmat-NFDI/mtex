@@ -22,6 +22,7 @@ function h = plotSection(sF,sec,varargin)
 %
 
 [mtexFig,isNew] = newMtexFigure(varargin{:});
+pC = getClass(varargin,'plottingConvention',sF.how2plot);
  
 % extract polar angle of section
 eta = pi/2; omega = linspace(0,2*pi,361);
@@ -60,6 +61,8 @@ for j = 1:length(sF)
     
     h{j} = surface(x,y,z,[d,d],'parent',mtexFig.gca,'edgecolor','none','facecolor','interp');
     
+  elseif check_option(varargin,'polarplot')
+    h{j} = polarplot(omega,d(1:end-1,j));
   else
     x = d(:, j) .* S2.x;
     y = d(:, j) .* S2.y;
@@ -67,10 +70,19 @@ for j = 1:length(sF)
     
     h{j} = plot3(x,y,z,'parent',mtexFig.gca);
   end
-  view(mtexFig.gca,sec.xyz);
-  mtexFig.gca.DataAspectRatio = [1 1 1];
-  axis(mtexFig.gca,'off');
+
+  if angle(pC.outOfScreen,sec,'antipodal','noSymmetry')>1*degree
+    pC.outOfScreen = sec;
+  end
+
+  if isa(mtexFig.gca,'matlab.graphics.axis.Axes')
+    mtexFig.gca.DataAspectRatio = [1 1 1];
+    axis(mtexFig.gca,'off');
+  end
+  pC.setView(mtexFig.gca);
+  
   optiondraw(h{j},varargin{:});
+  
 end
 
 if isNew, mtexFig.drawNow('figSize',getMTEXpref('figSize'),varargin{:}); end

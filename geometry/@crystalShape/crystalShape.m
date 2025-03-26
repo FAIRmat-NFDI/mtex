@@ -155,6 +155,11 @@ classdef crystalShape
       E = unique(sort(E,2),'rows');
     end
 
+
+    function cS = reshape(cS,varargin)
+      % do nothing
+    end
+
   end
 
   methods (Static = true)

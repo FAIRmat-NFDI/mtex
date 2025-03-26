@@ -11,7 +11,7 @@
 % for this while importing the data into MTEX. This section explains in
 % detail how to do this.
 %
-%% On Sreen Orientation of the EBSD Map
+%% On Screen Orientation of the EBSD Map
 %
 % Many people are concerned when the images produced by MTEX are not
 % aligned exactly as they are in their commercial software. It is indeed
@@ -65,16 +65,14 @@ plot(ebsd('olivine'),ebsd('olivine').orientations,'coordinates','on')
 % as it plots the x-axis be default to east and the z-axis into the plane.
 % This is only a plotting convention and can be set in MTEX by
 
-plotx2east
-plotzIntoPlane
+ebsd.how2plot.east = xvector;
+ebsd.how2plot.outOfScreen = -zvector;
 
 plot(ebsd('olivine'),ebsd('olivine').orientations,'coordinates','on')
 
 %%
-% Other plotting conventions are |plotx2north|, |plotx2west|, |plotx2south|
-% and |plotzOutOfPlane|. Note that these options only alter the orientation
-% of the EBSD map and the pole figures on the screen but does not change
-% any data.
+% Note that these options only alter the orientation of the EBSD map and
+% the pole figures on the screen but does not change any data.
 %
 %% Verify the reference system
 % One way of verifying the reference systems is to visualize crystal shapes
@@ -87,12 +85,13 @@ grains = calcGrains(ebsd('indexed'));
 cS = crystalShape.olivine;
 
 % select only large grains
-largeGrains = grains(grains.grainSize>500)
+largeGrains = grains(grains.numPixel>500)
 
 % and plot the crystal shapes
 hold on
-plot(largeGrains,cS)
+plot(largeGrains,cS,'colored')
 hold off
+legend off
 
 %%
 % It may also be helpful to inspect pole figures 
@@ -118,13 +117,14 @@ ebsd_rot = rotate(ebsd,rot,'keepEuler');
 grains = calcGrains(ebsd_rot('indexed'));
 
 % select only large grains
-largeGrains = grains(grains.grainSize>500);
+largeGrains = grains(grains.numPixel>500);
 
 plot(ebsd_rot('olivine'),ebsd_rot('olivine').orientations,'coordinates','on')
 
 % and plot the crystal shapes
 hold on
-plot(largeGrains,cS)
+plot(largeGrains,cS,'colored')
+legend off
 hold off
 
 
@@ -138,14 +138,15 @@ ebsd_rot = rotate(ebsd,rot,'keepXY');
 grains = calcGrains(ebsd_rot('indexed'));
 
 % select only large grains
-largeGrains = grains(grains.grainSize>500);
+largeGrains = grains(grains.numPixel>500);
 
 
 plot(ebsd_rot('olivine'),ebsd_rot('olivine').orientations,'coordinates','on')
 
 % and plot the crystal shapes
 hold on
-plot(largeGrains,cS)
+plot(largeGrains,cS,'colored')
+legend off
 hold off
 
 
@@ -155,9 +156,9 @@ hold off
 % reference frame, or to  change the external reference frame from one to
 % the other, e.g. if one wants to concatenate several ebsd data sets where
 % the mounting was not done in perfect coincidence. In these cases the data
-% has to be rotated or shifted by the commands <EBSD.rotate.html rotate>
-% and <EBSD.shift.html shift>. The following commands rotate both reference
-% frames of the entire data set by 5 degree about the z-axis.
+% has to be rotated or shifted by the commands <EBSD.rotate.html |rotate|>
+% and <EBSD.shift.html |shift|>. The following commands rotate both
+% reference frames of the entire data set by 5 degree about the z-axis.
 
 % define a rotation
 rot = rotation.byAxisAngle(zvector,5*degree);
@@ -169,13 +170,14 @@ ebsd_rot = rotate(ebsd,rot);
 grains = calcGrains(ebsd_rot('indexed'));
 
 % select only large grains
-largeGrains = grains(grains.grainSize>500);
+largeGrains = grains(grains.numPixel>500);
 
 
 plot(ebsd_rot('olivine'),ebsd_rot('olivine').orientations,'coordinates','on')
 
 % and plot the crystal shapes
 hold on
-plot(largeGrains,cS)
+plot(largeGrains,cS,'colored')
+legend off
 hold off
 

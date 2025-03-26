@@ -1,11 +1,11 @@
-classdef grain3d < phaseList & dynProp
+classdef grain3d < phaseList & dynProp 
   % class representing 3 dimensional grains
 
   properties  % with as many rows as data
     id = []
     I_GF            % incidence matrix grains x face 
                     % for -1 face normals are pointing inside
-    grainSize = []  % number of measurements per grain
+    numPixel = []  % number of measurements per grain
   end
 
   properties
@@ -19,6 +19,8 @@ classdef grain3d < phaseList & dynProp
     meanOrientation
     numFaces  % number of boundary faces per grain
     extent
+    how2plot % plotting convention
+    grainSize % depreciated for numPixel
   end
 
   methods
@@ -36,7 +38,7 @@ classdef grain3d < phaseList & dynProp
       if nargin>=4 && ~isempty(ori)
         grains.prop.meanRotation = ori;
       else
-        grains.prop.meanRotation = rotation.nan(length(F),1);        
+        grains.prop.meanRotation = rotation.nan(length(grains.id),1);        
       end
 
       if nargin>=5
@@ -57,7 +59,7 @@ classdef grain3d < phaseList & dynProp
         grains.phaseMap = 1:length(grains.CSList);
       end
 
-      grains.grainSize = ones(length(F),1);
+      grains.numPixel = ones(length(grains.id),1);
 
       % compute neighboring grains to a boundary segment
       grainId = zeros(size(I_GF,2),2);
@@ -85,7 +87,12 @@ classdef grain3d < phaseList & dynProp
     end
 
     function V = get.V(grains)
-      error('implement this!')
+      if iscell(grains.F)
+        ind = unique([grains.F{:}]);
+      else
+        ind = unique(grains.F(:));
+      end
+      V = grains.allV(ind);
     end
 
     function V = get.allV(grains)
@@ -94,6 +101,14 @@ classdef grain3d < phaseList & dynProp
    
     function grains = set.allV(grains,V)
       grains.boundary.allV = V;
+    end
+
+    function pC = get.how2plot(grains)
+      pC = grains.allV.how2plot;
+    end
+
+    function grains = set.how2plot(grains,pC)
+      grains.allV.how2plot = pC;
     end
 
     function F = get.F(grains)
@@ -105,15 +120,48 @@ classdef grain3d < phaseList & dynProp
         ori = orientation;
       else
         ori = orientation(grains.prop.meanRotation,grains.CS);
+        ori.SS.how2plot = grains.how2plot;
         
         % set not indexed orientations to nan
         if ~all(grains.isIndexed), ori(~grains.isIndexed) = NaN; end
       end
     end
 
+    function grains = set.meanOrientation(grains,ori)
+      if ~isempty(grains)
+      
+        if isnumeric(ori) && all(isnan(ori(:)))
+          grains.prop.meanRotation = rotation.nan(size(grains.prop.meanRotation));
+        else
+          % update rotation
+          grains.prop.meanRotation = rotation(ori);
+      
+          % update phase
+          grains.CS = ori.CS;
+        end
+
+        grains = grains.update;
+      end
+    end
+
     function num = get.numFaces(grains)
       num = sum(logical(grains.I_GF),2);
     end
+
+    function n = get.grainSize(grains)
+      warning('grains.grainSize is depreciated. Please use grains.numPixel instead');
+      n = grains.numPixel;
+    end
+
+    function grains = set.grainSize(grains,n)
+      warning('grains.grainSize is depreciated. Please use grains.numPixel instead');
+      grains.numPixel = n;
+    end
+
+    function grains = update(grains)
+      grains.boundary = grains.boundary.update(grains);
+    end
+
 
   end
 

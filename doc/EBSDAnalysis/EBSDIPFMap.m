@@ -25,21 +25,18 @@ plot(cS,'colored')
 % rotated crystal. This is done by the following commands
 
 % 1. reconstruct the grains
-[grains,ebsd.grainId] = calcGrains(ebsd('indexed'));
+[grains,ebsd.grainId] = calcGrains(ebsd('indexed'),'minPixel',5);
 
-% 2. remove all very small grains
-ebsd(grains(grains.grainSize < 5)) = [];
+% 2. smooth the grain boundaries a bit
+grains = smooth(grains,10);
 
-% 3. redo grain reconstruction
-[grains,ebsd.grainId] = calcGrains(ebsd('indexed'));
-
-% 4. plot the grain boundaries
+% 3. plot the grain boundaries
 plot(grains.boundary,'lineWidth',1.5,'micronbar','off')
 
-% 5. select only very large grains
-big_grains = grains(grains.grainSize > 150);
+% 4. select only very large grains
+big_grains = grains(grains.numPixel > 150);
 
-% 6.  plot the crystals
+% 5.  plot the crystals
 hold on
 plot(big_grains('olivine'),0.8*cS,'linewidth',2,'colored')
 hold off
@@ -106,7 +103,7 @@ plotIPDF(big_grains('olivine').meanOrientation,colors,vector3d.Z,...
 %%
 % Instead of colorizing which crystal axis is pointing out of the specimen
 % surface we may also colorizing which crystal axis is pointing towards the
-% rolling or folliation direction or any other specimen fixed direction.
+% rolling or foliation direction or any other specimen fixed direction.
 % This reference direction is stored as the property
 % |inversePoleFigureDirection| in the color key.
 

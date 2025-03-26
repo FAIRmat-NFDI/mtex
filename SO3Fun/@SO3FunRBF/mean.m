@@ -1,8 +1,9 @@
-function value = mean(SO3F, varargin)
+function value = mean(SO3F, dim, varargin)
 % calculates the mean value for an SO3FunRBF
 %
 % Syntax
 %   value = mean(SO3F)
+%   value = mean(SO3F, dim)
 %
 % Input
 %  SO3F - @SO3FunRBF
@@ -11,9 +12,21 @@ function value = mean(SO3F, varargin)
 %  value - double
 %
 
-value = sum(SO3F.weights(:)) * SO3F.psi.A(1) + SO3F.c0;
-if isalmostreal(value)
-  value = real(value);
+value = SO3F.c0;
+
+if nargin == 1
+  
+  if ~isempty(SO3F.weights)
+    value = value + reshape(sum(SO3F.weights,1) * SO3F.psi.A(1),size(SO3F));
+  end
+  if isalmostreal(value), value = real(value); end
+
+else
+  
+  SO3F.weights = full(mean(SO3F.weights,dim+1,varargin{:}));
+  SO3F.c0 = mean(value,dim,varargin{:});
+  value = SO3F;
+  
 end
 
 end

@@ -15,7 +15,9 @@ if MATLABverLessThan('8.6')
     ' is outdated and not longer supported by MTEX. The oldest Matlab ',...
     'version MTEX has been tested on is Matlab 2016b (vers. 8.6).']);
 end
-    
+
+warning('off','MATLAB:contour:ConstantData')
+ 
 % path to this function to be considered as the root of the MTEX
 % installation
 local_path = fileparts(mfilename('fullpath'));
@@ -63,6 +65,8 @@ if ~isdeployed
     builddocsearchdb(fullfile(local_path,'doc','html'));
   end
 end
+
+check_mex('fast')
 
 % finish
 if isempty(lasterr) % everything fine

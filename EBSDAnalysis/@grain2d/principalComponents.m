@@ -1,13 +1,12 @@
 function [a,b] = principalComponents(grains,varargin)
-% returns the principalcomponents of grain polygon, without Holes
-% in this version omega is no longer supported, use a.rho instead.
+% principal axes of a list of grains ignoring holes
 %
 % Input
 %  grains - @grain2d
 %
 % Output
-%  a     - length largest axis @vector3d
-%  b     - length smallest axis @vector3d
+%  a     - largest axis @vector3d
+%  b     - smallest axis @vector3d
 %
 % Options
 %  area - scale a,b such that the corresponding ellipse has the same area as the grain (default)
@@ -44,7 +43,7 @@ if isscalar(grains) % 3d algorithm (more nice :))
     % compute eigen values and vectors
     [eVec, eVal] = eig3(Vg * Vg);
     
-    % halfaxes are square roots of the eigenvalues
+    % half-axes are square roots of the eigenvalues
     a(k) = sqrt(eVal(3)) * eVec(3);
     b(k) = sqrt(eVal(2)) * eVec(2);
     

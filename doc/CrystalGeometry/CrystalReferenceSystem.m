@@ -33,7 +33,7 @@ cs = crystalSymmetry('triclinic',[1,2.2,3.1],[80*degree,85*degree,95*degree])
 % $\vec b$ and $\vec z$ parallel to $\vec c$ is a canonical choice.
 %
 % As for such symmetries this is also the default in MTEX there is no need
-% to specify the alignment seperately.
+% to specify the alignment separately.
 %
 %% Trigonal and hexagonal materials
 %
@@ -52,6 +52,7 @@ annotate(cs_x2a.aAxis,'MarkerFaceColor','r','label','a','backgroundColor','w')
 annotate(cs_x2a.bAxis,'MarkerFaceColor','r','label','b','backgroundColor','w')
 annotate(-vector3d.Y,'MarkerFaceColor','green','label','-y','backgroundColor','w')
 annotate(-vector3d.X,'MarkerFaceColor','green','label','-x','backgroundColor','w')
+
 %%
 % In contrast the following command aligns the $\vec y$ axes to the $\vec
 % a$ axes and the $\vec z$ axes to the $\vec c$ axes.
@@ -67,12 +68,13 @@ annotate(-vector3d.X,'MarkerFaceColor','green','label','-x','backgroundColor','w
 % The only difference between the above two plots is the position of the
 % $\vec x$ and $\vec y$ axes. The reason is that visualizations relative to
 % the crystal reference system, e.g., inverse pole figures, are in MTEX
-% aligned on the screen according to the b-axis.
+% aligned on the screen according to the a- or b-axis.
 %
-% This on-screen alignment can be easily modified by
+% This on-screen alignment can be modified individually for each crystal
+% symmetry by
 
 % change on screen alignment
-plota2east
+cs_y2a.how2plot.east = cs_y2a.bAxis
 
 % redo last plot
 plot(cs_y2a,'figSize','small')
@@ -80,9 +82,6 @@ annotate(cs_y2a.aAxis,'MarkerFaceColor','r','label','a','backgroundColor','w')
 annotate(cs_y2a.bAxis,'MarkerFaceColor','r','label','b','backgroundColor','w')
 annotate(-vector3d.Y,'MarkerFaceColor','green','label','-y','backgroundColor','w')
 annotate(-vector3d.X,'MarkerFaceColor','green','label','-x','backgroundColor','w')
-
-% set old default back
-plotb2east
 
 %%
 % It should be stressed that the alignment between the Euclidean crystal
@@ -95,9 +94,9 @@ cS_x2a = crystalShape.quartz(cs_x2a);
 
 close all
 figure(1)
-plot(cS_x2a,'figSize','small')
+plot(cS_x2a,'figSize','small','colored')
 hold on
-arrow3d(0.5*[xvector,yvector,zvector],'labeled')
+arrow3d(0.6*[xvector,yvector,zvector],'labeled')
 hold off
 
 %%
@@ -105,11 +104,10 @@ hold off
 cS_y2a = crystalShape.quartz(cs_y2a);
 
 figure(2)
-plot(cS_y2a,'figSize','small')
+plot(cS_y2a,'figSize','small','colored')
 hold on
-arrow3d(0.5*[xvector,yvector,zvector],'labeled')
+arrow3d(0.6*[xvector,yvector,zvector],'labeled')
 hold off
-
 
 %%
 % Most important is the difference if Euler angles are used to describe
@@ -144,7 +142,6 @@ angle(ori_x2a, ori_y2a) ./ degree
 % into the reference frame |cs_x2a|
 
 ori_x2a.transformReferenceFrame(cs_y2a)
-
 
 %% Triclinic and monoclinic symmetries
 %

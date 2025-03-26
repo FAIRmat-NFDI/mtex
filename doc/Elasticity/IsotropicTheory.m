@@ -31,7 +31,7 @@ C = stiffnessTensor(...
 %
 % An isotropic Albite material we assume here to consist of randomly
 % oriented grains forming an uniform (isotropic) texture. In this case the
-% Voigt and Reuss avarages provide upper and lower bounds for the elastic
+% Voigt and Reuss averages provide upper and lower bounds for the elastic
 % properties of the material. 
 
 [C_iso_Voigt,C_iso_Reuss,C_iso_Hill] = mean(C,uniformODF(C.CS))
@@ -51,9 +51,9 @@ nu = C_iso_Voigt.PoissonRatio
 
 %% From the elastic moduli to the elastic tensors
 %
-% Furthermore, any two of them entirely describe the linear elastic behaviour
-% of the material. In particular, we may recover the isotropic stiffness
-% tensor from the bulk and shear moduli alone:
+% Furthermore, any two of them entirely describe the linear elastic
+% behavior of the material. In particular, we may recover the isotropic
+% stiffness tensor from the bulk and shear moduli alone:
 
 % the matrix entries
 C11 = K+(4/3)*G ; C12=C11-2*G; C44=(C11-C12)/2;
@@ -81,24 +81,24 @@ inv(complianceTensor(...
  [   0.0     0.0    0.0    0.0     0.0    S44]],cs))
 
 %% Formulas between the elastic moduli
-% As a consequence, Youngs modulus and the Poisson ratio can be
+% As a consequence, Young's modulus and the Poisson ratio can be
 % computed directly from the bulk and shear modulus (and vice versa)
 
 % formulae for the Poisson ratio
 (E/G-2)/2
 (3*K-E)/(6*K)
 
-% formulae for the Youngs modulus
+% formulae for the Young's modulus
 2*G*(1+nu)
 3*K*(1-2*nu)
 
 %% Lame constants
 %
-% The second way to represent the elastic behaviour of an isotropic medium
+% The second way to represent the elastic behavior of an isotropic medium
 % is by means of the Lame constants
 
 lambda = nu/(1-2*nu) /(1+nu) * E;
-mu =G;
+mu = G;
 
 %%
 % In terms of the Lame constants the stiffness tensor is given by
@@ -135,7 +135,7 @@ sigma = stressTensor(2 * mu * eps + lambda * trace(eps) * tensor.eye)
 %
 %% 
 % The upper and lower Hashin-Shtrikman bounds for the bulk and shear
-% moduli are found as a solution of an optimzation problem. Lets first set
+% moduli are found as a solution of an optimization problem. Lets first set
 % up the search domain
 
 % define a 2 dimensional domain of bulk and shear moduli
@@ -147,12 +147,10 @@ Go = linspace(GMin,GMax,300);
 
 %% 
 % Next the initial stiffness tensor is updated such that the residual
-% stiffness tensor |R| remains either possitve or negative definite.
+% stiffness tensor |R| remains either positive or negative definite.
 % 
 
-tic
 [khs, ghs, def] = HashinShtrikmanModulus(C,K0Mesh,G0Mesh);
-toc
 
 subplot(1,2,1)
 imagesc(Go,Ko,khs)

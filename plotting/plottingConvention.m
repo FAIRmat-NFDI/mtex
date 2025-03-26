@@ -11,7 +11,7 @@ classdef plottingConvention < matlab.mixin.Copyable
 %
 %   % changing the plotting convention for a dataset
 %   % to be used in all future plotting commands
-%   ebsd.plottingConvention = pC
+%   ebsd.how2plot = pC
 %
 % Input
 %  outOfScreen - @vector3d 
@@ -19,11 +19,12 @@ classdef plottingConvention < matlab.mixin.Copyable
 %
 % Output
 %  pC - @plottingConvention
+%
   
   properties
     rot = rotation.id % screen coordinates to reference coordinates
   end
-  
+
   properties (Dependent=true)
     east   % axis that point east (default = x)
     west   % axis that point west (default = -x)
@@ -34,17 +35,19 @@ classdef plottingConvention < matlab.mixin.Copyable
     viewOpt  % translates screen orientation in MATLAB options
   end
 
+  properties (Hidden=true)
+    lastSet = []
+  end
+
   methods
 
-    function pC = plottingConvention(outOfScreen,east)
-      
+    function pC = plottingConvention(outOfScreen,east)      
       if nargin >= 1, pC.outOfScreen = outOfScreen; end
-      if nargin >= 2, pC.east = east; end
-
+      if nargin >= 2, pC.east = east; end      
     end
         
     function display(pC,varargin)
-      displayClass(pC,inputname(1),varargin{:});
+      displayClass(pC,inputname(1),'moreInfo',char(pC,'compact'),varargin{:});
     
       if ~check_option(varargin,'skipHeader'), disp(' '); end
 
@@ -64,6 +67,26 @@ classdef plottingConvention < matlab.mixin.Copyable
 
     end
 
+    function c = char(pC,varargin)
+
+      arrows = '←→↑↓'; xyz = 'xyz';
+
+      [ud,north] = find(pC.north == [1;-1] .* [xvector,yvector,zvector]);
+      c = [xyz(north) arrows(ud+2)];
+
+      
+      [lr,east] = find(pC.east == [1;-1] .* [xvector,yvector,zvector]);
+
+      if isempty(ud) || isempty(lr)
+        c = 'xyz';
+      elseif lr == 1
+        c = [c,arrows(2),xyz(east)];
+      else
+        c = [xyz(east),arrows(1),fliplr(c)]; 
+      end
+
+    end
+
     function setView(pC,ax)
 
       if nargin == 1, ax = gca; end
@@ -74,7 +97,7 @@ classdef plottingConvention < matlab.mixin.Copyable
        
         sP.updateBounds;
 
-        warning('Can not change plotting convention in sphercical projections after plotting!');
+        warning('Can not change plotting convention in spherical projections after plotting!');
 
       elseif isa(ax,'matlab.graphics.axis.PolarAxes')
         
@@ -102,16 +125,16 @@ classdef plottingConvention < matlab.mixin.Copyable
         
         ax.CameraUpVector = pC.north.xyz;
         view(ax,pC.outOfScreen.xyz);
-        
-
+        ax.CameraUpVector = pC.north.xyz;
+        ax.CameraViewAngleMode = 'auto';
       else % map plot
 
         %ax.CameraPosition = ax.CameraTarget + 1000*pC.outOfScreen.xyz;
 
         ax.CameraUpVector = pC.north.xyz;
         view(ax,pC.outOfScreen.xyz);
-        
-
+        ax.CameraUpVector = pC.north.xyz;
+        ax.CameraViewAngleMode = 'auto';
       end
       
     end
@@ -125,56 +148,66 @@ classdef plottingConvention < matlab.mixin.Copyable
     function v = get.outOfScreen(pC), v = pC.rot * vector3d.Z; end
     function set.outOfScreen(pC,n)
       try
-        pC.rot = rotation.map(pC.outOfScreen,n,pC.east,pC.east) * pC.rot;
+        pC.rot = rotation.map(pC.outOfScreen,n,pC.lastSet,pC.lastSet) * pC.rot;
       catch
         pC.rot = rotation.map(pC.outOfScreen,n) * pC.rot;
       end
+      pC.lastSet = n;
     end
 
     function v = get.intoScreen(pC), v = -pC.rot * vector3d.Z; end
     function set.intoScreen(pC,n)
       try
-        pC.rot = rotation.map(pC.outOfScreen,-n,pC.east,pC.east) * pC.rot;
+        pC.rot = rotation.map(pC.outOfScreen,-n,pC.lastSet,pC.lastSet) * pC.rot;
       catch
         pC.rot = rotation.map(pC.outOfScreen,-n) * pC.rot;
       end
+      pC.lastSet = n;
     end
 
 
     function v = get.east(pC), v = pC.rot * vector3d.X; end
     function set.east(pC,e)
       try
-        pC.rot = rotation.map(pC.east,e,pC.outOfScreen,pC.outOfScreen) * pC.rot; 
+        pC.rot = rotation.map(pC.east,e,pC.lastSet,pC.lastSet) * pC.rot; 
       catch ME
         pC.rot = rotation.map(pC.east,e) * pC.rot;
       end
+      pC.lastSet = e;
     end
 
     function v = get.west(pC), v = -pC.rot * vector3d.X; end
     function set.west(pC,w)
       try
-        pC.rot = rotation.map(pC.east,-w,pC.outOfScreen,pC.outOfScreen) * pC.rot; 
+        pC.rot = rotation.map(pC.east,-w,pC.lastSet,pC.lastSet) * pC.rot; 
       catch
         pC.rot = rotation.map(pC.east,-w) * pC.rot; 
       end
+      pC.lastSet = w;
     end
 
     function v = get.north(pC), v = pC.rot * vector3d.Y; end
     function set.north(pC,v)
       try
-        pC.rot = rotation.map(pC.north,v,pC.outOfScreen,pC.outOfScreen) * pC.rot; 
+        pC.rot = rotation.map(pC.north,v,pC.lastSet,pC.lastSet) * pC.rot; 
       catch
         pC.rot = rotation.map(pC.north,v) * pC.rot; 
       end
+      pC.lastSet = v;
     end
     
     function v = get.south(pC), v = -pC.rot * vector3d.Y; end
     function set.south(pC,v)
       try
-        pC.rot = rotation.map(pC.north,-v,pC.outOfScreen,pC.outOfScreen) * pC.rot;
+        pC.rot = rotation.map(pC.north,-v,pC.lastSet,pC.lastSet) * pC.rot;
       catch ME
         pC.rot = rotation.map(pC.north,-v) * pC.rot;
-      end      
+      end
+      pC.lastSet = v;
+    end
+
+    function makeDefault(pC)
+      plottingConvention.default(pC);
     end
 
     function plot(pC, varargin)
@@ -219,9 +252,19 @@ classdef plottingConvention < matlab.mixin.Copyable
       plot(grainsR,grainsR.meanOrientation,'micronbar','off');
       pC.outOfScreen = grainsR.N; pC.setView(gca)
     end
+    
+    function pC = default(pC)
+      persistent pCdefault
+      if nargin == 1
+        pCdefault =  pC;
+      else
+        if isempty(pCdefault), pCdefault = plottingConvention; end
+        pC = pCdefault;
+      end
+    end
 
-    function pC = default
-      pC = getMTEXpref('xyzPlotting');
+    function pC = default3D
+      pC = plottingConvention(vector3d(-10,-5,2),vector3d(1,-2,0));
     end
 
   end

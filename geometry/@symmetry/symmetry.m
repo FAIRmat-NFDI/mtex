@@ -18,7 +18,7 @@ classdef symmetry < matlab.mixin.Copyable
   
   properties
     opt = struct
-    how2plot = plottingConvention
+    how2plot
   end
 
   properties (Dependent = true)
@@ -49,7 +49,7 @@ classdef symmetry < matlab.mixin.Copyable
       s.id = id;
       if ~isempty(rot), s.rot = rot; end
       
-      isPerpZ = isnull(dot(rot.axis,zvector)) & ~isnull(rot.angle);
+      isPerpZ = isnull(dot(rot.axis,zvector),1e-4) & ~isnull(rot.angle,1e-4);
 
       if any(isPerpZ(:))
         s.multiplicityPerpZ = round(2*pi/min(abs(angle(rot(isPerpZ)))));
@@ -57,7 +57,7 @@ classdef symmetry < matlab.mixin.Copyable
         s.multiplicityPerpZ = 1;
       end
 
-
+      s.how2plot = plottingConvention;
 
     end
     
@@ -98,25 +98,6 @@ classdef symmetry < matlab.mixin.Copyable
       out = lt(cs2,cs1);
     end
     
-    function fhat = WignerD(cs,L)
-      if isfield(cs.opt,'fhat') && length(cs.opt.fhat)>=deg2dim(L+1)
-        fhat = cs.opt.fhat(1:deg2dim(L+1));
-      else
-        CS = cs.properGroup;
-        c = ones(1,numSym(CS))/numSym(CS);
-        if L<200
-          SO3F = SO3FunHarmonic.quadrature(CS.rot,c,'bandwidth',L,'nfsoft');
-        else
-          ori = orientation(CS.rot,CS);
-          SO3F = SO3FunHarmonic.quadrature(ori,c,'bandwidth',L,'directComputation','skipSymmetrise');
-        end
-        fhat = SO3F.fhat;
-        fhat(abs(fhat)<1e-5) = 0;
-        fhat = sparse(fhat);
-        cs.opt.fhat = fhat;
-      end
-    end
-
   end
 
   methods (Access = protected, Static = true)

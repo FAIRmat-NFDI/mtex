@@ -10,7 +10,7 @@
 % 
 % $$\mathrm{KAM}_{i,j} = \frac{1}{|N(i,j)|}\sum_{(k,l) \in N(i,j)} \omega(o_{i,j}, o_{k,l}) $$
 % 
-% Here $|N(i,j)|$ denotes the number of all neighboring pixels
+% Here $\lvert N(i,j)\rvert$ denotes the number of all neighboring pixels
 % taking into account and $\omega(o_{i,j}, o_{k,l})$ the disorientation
 % angle between the orientation $o_{ij}$ in the center and the neighboring
 % orientation $(o_{k,l})$. The specific choice of the set $N(i,j)$ of
@@ -25,7 +25,7 @@
 % In the case of square and hexagonal grids the order of neighbors is
 % illustrated below
 
-plotSquareNeighbours; nextAxis; plotHexNeighbours
+plotSquareNeighbours; nextAxis(1,2); plotHexNeighbours
 
 %% A Deformed Ferrite Specimen
 %
@@ -35,11 +35,7 @@ plotSquareNeighbours; nextAxis; plotHexNeighbours
 
 mtexdata ferrite
 
-[grains,ebsd.grainId] = calcGrains(ebsd('indexed'));
-% remove one-three pixel grains
-ebsd(grains(grains.grainSize <= 3)) = [];
-[grains,ebsd.grainId] = calcGrains(ebsd('indexed'));
-
+[grains,ebsd.grainId] = calcGrains(ebsd('indexed'),'minPixel',3);
 grains = smooth(grains,5);
 
 plot(ebsd('indexed'),ebsd('indexed').orientations)
@@ -80,10 +76,10 @@ hold off
 % been reconstructed and the property |ebsd.grainId| has been set (as we
 % did above) only misorientations within the same grain are considered. As
 % a consequence the resulting KAM map is dominated by the orientation
-% gradients at the subgrain boundaries.
+% gradients at the sub-grain boundaries.
 %
 % Specifying a reasonable small threshold angle $\delta=2.5^{\circ}$ the
-% subgrain boundaries can be effectively removed from the KAM.
+% sub-grain boundaries can be effectively removed from the KAM.
 
 plot(ebsd,ebsd.KAM('threshold',2.5*degree) ./ degree,'micronbar','off')
 setColorRange([0,2])
@@ -107,7 +103,7 @@ plot(grains.boundary,'lineWidth',1.5)
 hold off
 
 %% 
-% Although this reduced noise it also smooths away local dislocation
+% Although this reduces noise it also smooths away local dislocation
 % structures. A much more effective way to reduce the effect of measurement
 % errors to the kernel average misorientation is to denoise the EBSD map
 % first and compute than the KAM from the first order neighbors. 
@@ -129,7 +125,7 @@ plot(grains.boundary,'lineWidth',1.5)
 hold off
 
 %%
-% We observe that the KAM is not longer related to subgrain boundaries and
+% We observe that the KAM is not longer related to sub-grain boundaries and
 % nicely reveals local dislocation structures of the deformed material.
 %
 %% Some helper functions
@@ -146,7 +142,7 @@ N = [4 3 2 3 4;...
   4 3 2 3 4];
 
 cs = crystalSymmetry;
-ebsd = EBSDsquare([],rotation.nan(5,5),N,0:4,{cs,cs,cs,cs,cs},[10 10]);
+ebsd = EBSDsquare([],rotation.nan(5,5),N,0:4,{cs,cs,cs,cs,cs},'dxy',[10 10]);
 plot(ebsd,'EdgeColor','black','micronbar','off','figSize','small')
 legend off
 

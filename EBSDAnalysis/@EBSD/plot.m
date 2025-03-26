@@ -25,13 +25,13 @@ function [h,mP] = plot(ebsd,varargin)
 %   plot(ebsd,ebsd.orientation,'region',[xmin, xmax, ymin, ymax])
 %
 % Input
-%  ebsd - @EBSD
+%  ebsd  - @EBSD
 %  color - length(ebsd) x 3 vector of RGB values
 %
 % Options
-%  micronbar - 'on'/'off'
+%  micronbar   - 'on'/'off'
 %  DisplayName - add a legend entry
-%  region - [xmin, xmax, ymin, ymax] plotting region
+%  region      - [xmin, xmax, ymin, ymax] plotting region
 %  
 % Flags
 %  points   - plot dots instead of unitcells
@@ -42,7 +42,7 @@ function [h,mP] = plot(ebsd,varargin)
 %   mtexdata forsterite
 %   plot(ebsd)
 %
-%   % colorize accoding to orientations
+%   % colorize according to orientations
 %   plot(ebsd('Forsterite'),ebsd('Forsterite').orientations)
 %
 %   % colorize according to MAD
@@ -51,25 +51,29 @@ function [h,mP] = plot(ebsd,varargin)
 % See also
 % EBSDSpatialPlots
 
-%
+% ignore empty EBSD sets
 if isempty(ebsd), return; end
 
 % create a new plot
 mtexFig = newMtexFigure('datacursormode',{@tooltip,ebsd},varargin{:});
-[mP,isNew] = newMapPlot('scanUnit',ebsd.scanUnit,'parent',mtexFig.gca,varargin{:});
+[mP,isNew] = newMapPlot('scanUnit',ebsd.scanUnit,...
+  'parent',mtexFig.gca,varargin{:},ebsd.how2plot);
 
 % transform orientations to color
 if nargin>1 && isa(varargin{1},'orientation')
-    
+
   oM = ipfColorKey(varargin{1});
+  oM.inversePoleFigureDirection = ...
+    get_option(varargin,{'inversePoleFigureDirection','ipfd'},zvector);
+
   varargin{1} = oM.orientation2color(varargin{1});
   
-  if ~getMTEXpref('generatingHelpMode')
+  if ~getMTEXpref('generatingHelpMode') && ~check_option(varargin,'inversePoleFigureDirection')
     disp('  I''m going to colorize the orientation data with the ');
-    disp('  standard MTEX ipf colorkey. To view the colorkey do:');
+    disp('  standard MTEX colorkey. To view the colorkey do:');
     disp(' ');
-    disp('  ipfKey = ipfColorKey(ori_variable_name)')
-    disp('  plot(ipfKey)')
+    disp('  colorKey = ipfColorKey(ori_variable_name)')
+    disp('  plot(colorKey)')
   end
 end
 
@@ -94,7 +98,7 @@ elseif nargin>1 && isa(varargin{1},'crystalShape')
   
 else % phase plot
 
-  if ebsd.isSinglePhase
+  if ebsd.isSinglePhase && ~check_option(varargin,'faceColor')
     
     str = inputname(1);
     if isempty(str), str = "ebsd"; end
@@ -103,9 +107,12 @@ else % phase plot
       "This might not what you are looking for. " + ...
       "In order to colorize the map according to the orientations you should do" + ...
       newline + newline + ...
-      "<strong>plot(" + str + "," + str + ".orientations)</strong>" + newline);
+      strong("plot(" + str + "," + str + ".orientations)") + newline);
   end
 
+  warning('off','MATLAB:legend:PlotEmpty');
+  l = legend(mP.ax,'-DynamicLegend','location','NorthEast');
+  warning('on','MATLAB:legend:PlotEmpty');
 
   for k=1:numel(ebsd.phaseMap)
       
@@ -118,7 +125,7 @@ else % phase plot
     elseif check_option(varargin,{'color','faceColor'})
       color = 'none';
     elseif ~isa(ebsd.CSList{k},'symmetry') 
-      % do not plot notindexed phase if no color is given
+      % do not plot notIndexed phase if no color is given
       continue;
     elseif ~isempty(ebsd.CSList{k}.color)
       color = ebsd.CSList{k}.color;
@@ -126,14 +133,18 @@ else % phase plot
       color = ebsd.subSet(ind).color;
     end
     
+    if any(strcmp(ebsd.mineralList{k},l.String))
+      entry = {};
+    else
+      entry = {'DisplayName',ebsd.mineralList{k}};
+    end
+    
     h(k) = plotUnitCells(ebsd.subSet(ind), color,...
-      'parent', mP.ax, 'DisplayName',ebsd.mineralList{k},varargin{:}); %#ok<AGROW>
+      'parent', mP.ax,entry{:},varargin{:}); %#ok<AGROW>
   
   end
   
-  warning('off','MATLAB:legend:PlotEmpty');
-  legend('-DynamicLegend','location','NorthEast');
-  warning('on','MATLAB:legend:PlotEmpty');
+  
   
   set(gcf,'name','phase plot');
   
@@ -145,7 +156,7 @@ end
 
 mP.how2plot.setView(mP.ax);
 
-try axis(mP.ax,'tight'); end
+try axis(mP.ax,'tight'); end %#ok<TRYNC>
 %set(mP.ax,'zlim',[0,1.1]);
 mP.extent(1) = min(mP.extent(1),min(ebsd.pos.x(:)));
 mP.extent(2) = max(mP.extent(2),max(ebsd.pos.x(:)));
@@ -187,7 +198,7 @@ if ~isempty(id)
   if ebsd.isIndexed(id)
     txt{5} = ['Euler = ' char(ebsd.rotations(id),'nodegree')];
   end
-  try
+  try %#ok<TRYNC>
     txt{end+1} = ['grainId = ' xnum2str(ebsd.grainId(id))];
   end
   if ~isempty(value)

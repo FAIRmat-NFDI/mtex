@@ -26,15 +26,14 @@ function [h,mP] = plot(grains,varargin)
 % --------------------- compute color coding ------------------------
 
 % ensure we do not plot perpendicular to the slice
-
-pC = grains.plottingConvention.copy;
+pC = grains.how2plot.copy;
 if isnull(dot(pC.outOfScreen,grains.N)), pC.outOfScreen = grains.N; end
 
 % create a new plot
 %mtexFig = newMtexFigure('datacursormode',{@tooltip,grains},varargin{:});
 mtexFig = newMtexFigure(varargin{:});
 [mP,isNew] = newMapPlot('scanUnit',grains.scanUnit,'parent',mtexFig.gca,...
-  pC, varargin{:});
+  varargin{:}, pC);
 
 if isempty(grains)
   if nargout==1, h = [];end
@@ -43,11 +42,14 @@ end
 
 % transform orientations to color
 if nargin>1 && isa(varargin{1},'orientation')
-  
+
   oM = ipfColorKey(varargin{1});
+  oM.inversePoleFigureDirection = ...
+    get_option(varargin,{'inversePoleFigureDirection','ipfd'},zvector);
+
   varargin{1} = oM.orientation2color(varargin{1});
   
-  if ~getMTEXpref('generatingHelpMode')
+  if ~getMTEXpref('generatingHelpMode') && ~check_option(varargin,'inversePoleFigureDirection')
     disp('  I''m going to colorize the orientation data with the ');
     disp('  standard MTEX colorkey. To view the colorkey do:');
     disp(' ');
@@ -73,7 +75,7 @@ if nargin>1 && isnumeric(varargin{1})
 
   legendNames = get_option(varargin,'displayName');
   
-    % if many legend names are given - seperate grains by color / value
+    % if many legend names are given - separate grains by color / value
   if iscell(legendNames) && max(property)<50
   
     varargin = delete_option(varargin,'displayName',1);
@@ -82,7 +84,7 @@ if nargin>1 && isnumeric(varargin{1})
     h = gobjects(max(property));
     for k = 1:max(property)
       h{k} = plotFaces(grains.poly(property==k), grains.allV, ind2color(k),...
-        'parent', mP.ax,varargin{:},'DisplayName',legendNames{k}); %#ok<AGROW>
+        'parent', mP.ax,varargin{:},'DisplayName',legendNames{k});
       
       % reactivate legend information
       h{k}.Annotation.LegendInformation.IconDisplayStyle = 'on';
@@ -111,7 +113,8 @@ elseif nargin>1 && isa(varargin{1},'crystalShape')
   
   scaling = sqrt(grains.area);
   cS = scaling .* rotate(varargin{1},grains.meanOrientation); 
-  pos = grains.centroid + 1.1 * max(abs(dot(cS.V,grains.N))).' * grains.N;
+  pos = grains.centroid + ...
+    1.1 * max(abs(dot(cS.V,grains.N))).' * grains.N * sign(dot(grains.N,pC.outOfScreen));
     h = plot(pos + cS,'parent', mP.ax,varargin{:});
   
   plotBoundary = false;
@@ -286,8 +289,7 @@ for k = 1:length(txt)
 end
 disp(' ');
 
-setappdata(gca,'idSelected',idSelected);
-setappdata(gca,'handleSelected',handleSelected);
+setAllAppdata(gca,'idSelected',idSelected,'handleSelected',handleSelected);
 
 end
 
@@ -331,8 +333,8 @@ if size(d,1) == 1, d = repmat(d,numel(poly),1); end
 
 if check_option(varargin,'region')
   region = get_option(varargin,'region');
-  ind = cellfun(@(p) any(V(p,1)>=region(1) & V(p,1)<=region(2) & ...
-    V(p,2)>=region(3) & V(p,2)<=region(4)),poly);
+  ind = cellfun(@(p) any(V.x(p)>=region(1) & V.x(p)<=region(2) & ...
+    V.y(p)>=region(3) & V.y(p)<=region(4)),poly);
   
   d = d(ind,:);
   poly = poly(ind);

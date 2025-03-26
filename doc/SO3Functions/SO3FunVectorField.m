@@ -154,9 +154,8 @@ mtexColorbar
 % The fact that the curl of a vector field is zero is actually equivalent
 % to the fact that the vector field is the gradient of some potential
 % field, which can be computed by the command
-% <SO3VectorField.antiderivate.html |antiderivative(g)|> and coincides exactly
-% with the original ODF |odf|.
-% 
+% <SO3VectorField.antiderivate.html |antiderivative(g)|> and coincides
+% exactly with the original ODF |odf|.
 
 odf2 = g.antiderivative
 
@@ -227,7 +226,7 @@ y = vector3d.byPolar(sin(3*nodes.angle), nodes.phi2+pi/2);
 
 %%
 % Now the actual command to get |SO3VF1| of type |SO3VectorFieldHarmonic|
-SO3VF1 = SO3VectorFieldHarmonic.approximation(nodes, y,'bandwidth',16)
+SO3VF1 = SO3VectorFieldHarmonic.approximate(nodes, y,'bandwidth',16)
 
 %%
 % *Definition via function handle*

@@ -1,12 +1,11 @@
 %% Boundary Plots
 %
-%
 %%
 % Here we describe how to visualize grain boundary properties, e.g.,
 % misorientation angle, misorientation axes. Therefore lets start by
 % importing some EBSD data and reconstructing the grain structure.
 
-close all; plotx2east
+close all;
 
 % import the data
 mtexdata forsterite
@@ -14,13 +13,8 @@ mtexdata forsterite
 % restrict it to a sub-region of interest.
 ebsd = ebsd(inpolygon(ebsd,[5 2 10 5]*10^3));
 
-[grains,ebsd.grainId] = calcGrains(ebsd('indexed'));
-
-% remove very small grains
-ebsd(grains(grains.grainSize<=5)) = [];
-
-% and recompute grains
-[grains,ebsd.grainId] = calcGrains(ebsd('indexed'));
+% reconstruct grains
+[grains,ebsd.grainId] = calcGrains(ebsd('indexed'),'minPixel',5);
 
 % smooth the grains a bit
 grains = smooth(grains,4);
@@ -32,7 +26,7 @@ grains = smooth(grains,4);
 gB = grains.boundary
 
 %%
-% We may use the <grainBoundary.plot.html plot> command to visualize the
+% We may use the <grainBoundary.plot.html |plot|> command to visualize the
 % grain boundaries in the map
 
 % plot phases and grain boundaries
@@ -165,7 +159,8 @@ colorKey = PatalaColorKey(gB_Fo);
 hold on
 plot(gB_Fo,'linewidth',7)
 hold on
-plot(gB_Fo,colorKey.orientation2color(gB_Fo.misorientation),'linewidth',4)
+color = colorKey.orientation2color(gB_Fo.misorientation);
+plot(gB_Fo,squeeze(color),'linewidth',4)
 hold off
 
 %%
@@ -200,8 +195,9 @@ plot(grains,grains.meanOrientation,'FaceAlpha',0.4)
 
 % define the color key and colorize the grain boundaries
 colorKey = PatalaColorKey(gB)
+color = colorKey.orientation2color(gB.misorientation);
 hold on
-plot(gB,colorKey.orientation2color(gB.misorientation),'linewidth',4,'smooth')
+plot(gB,squeeze(color),'linewidth',4,'smooth')
 hold off
 
 %%

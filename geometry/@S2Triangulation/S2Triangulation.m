@@ -1,10 +1,9 @@
 classdef S2Triangulation
-% a class represeneting a triangulation on the sphere
+% a class representing a spherical triangulation
   
   properties
     vertices = vector3d % 
     edges    = vector3d %
-    
     T         % list of triangles
     midPoints % midPoint of each triangle
     A_V       % adjacency matrix of the vertices
@@ -13,6 +12,10 @@ classdef S2Triangulation
     antipodal = false;
   end
   
+  properties (Dependent = true)
+    how2plot
+  end
+
   methods
     
     function sT = S2Triangulation(n)      
@@ -87,9 +90,17 @@ classdef S2Triangulation
       sT.midPoints =  rotate(sT.midPoints,rot);
       
     end
-    
+
+    function pC = get.how2plot(sT)
+      pC = sT.vertices.how2plot;
+    end
+
+    function sT = set.how2plot(sT,pC)
+      sT.vertices.how2plot = pC;
+    end
+
   end
-  
+
   methods (Static = true)
     
     function demo

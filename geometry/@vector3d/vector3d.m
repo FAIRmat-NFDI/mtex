@@ -1,6 +1,6 @@
 classdef vector3d < dynOption
 %
-% The class vector3d describes three dimensional vectors, given by
+% The class |vector3d| describes three dimensional vectors, given by
 % their coordinates x, y, z and allows to calculate with them as
 % comfortable as with real numbers.
 %
@@ -42,15 +42,16 @@ classdef vector3d < dynOption
     z = []; % z coordinate
     antipodal = false;
     isNormalized = false;
-    plottingConvention = plottingConvention
+    how2plot
   end
     
   properties (Dependent = true)
     theta   % polar angle
     rho     % azimuth angle
     resolution % mean distance between the points on the sphere
+    plottingConvention
   end
-  
+
   methods
     
     function v = vector3d(varargin)
@@ -63,6 +64,9 @@ classdef vector3d < dynOption
         v.z = varargin{3};
       
       elseif nargin == 0
+
+        v.how2plot = plottingConvention.default;
+
       elseif nargin <= 2
         if isa(varargin{1},'vector3d') % copy-constructor
           
@@ -72,6 +76,7 @@ classdef vector3d < dynOption
           v.antipodal = varargin{1}.antipodal;
           v.isNormalized = varargin{1}.isNormalized;
           v.opt = varargin{1}.opt;
+          v.how2plot = varargin{1}.how2plot;
           return
           
         elseif isa(varargin{1},'float')
@@ -87,6 +92,7 @@ classdef vector3d < dynOption
             v.y = xyz(2,:);
             v.z = xyz(3,:);
           end
+          v.how2plot = plottingConvention.default;
         else
           error('wrong type of argument');
         end       
@@ -150,7 +156,7 @@ classdef vector3d < dynOption
         % normalize
        if check_option(varargin,'normalize'), v = normalize(v); end
        
-       v.plottingConvention = getClass(varargin,'plottingConvention',v.plottingConvention);
+       v.how2plot = getClass(varargin,'plottingConvention',plottingConvention.default);
 
       end
     end
@@ -174,6 +180,16 @@ classdef vector3d < dynOption
         theta = acos(v.z./v.norm);
       end
     end
+
+    % ------- to be removed ------
+    function pC = get.plottingConvention(v)
+      pC = v.how2plot;
+    end
+
+    function v = set.plottingConvention(v,pC)
+      v.how2plot = pC;
+    end
+    % -------------------------------
     
     function xyz = xyz(v)
       xyz = [v.x(:),v.y(:),v.z(:)];      

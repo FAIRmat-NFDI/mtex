@@ -1,4 +1,16 @@
 function h = surf(sF,varargin)
+% surface plot of a spherical function
+%
+% Syntax
+%   surf(sF)
+%   surf(sF,'resolution',2*degree)
+%
+% Input
+%  sF - @S2Fun
+%
+% Options
+%  resolution - resolution of the plotting grid in degree
+%
 
 % rescale the function to be with 0.5 and 2
 if isscalar(sF) && sF.isReal

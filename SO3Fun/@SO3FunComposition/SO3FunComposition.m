@@ -108,7 +108,7 @@ methods
   end
   
   function w = get.weights(S3F)
-    w = cellfun(@(x) mean(x,'all'), S3F.components);
+    w = cellfun(@(x) mean(x), S3F.components);
   end
 
   function out = get.antipodal(S3F)
@@ -137,6 +137,12 @@ methods
   function SO3F = set.SLeft(SO3F,SS)
     for k=1:length(SO3F.components)
      SO3F.components{k}.SLeft = SS;
+   end
+  end
+
+  function S3F = set.antipodal(S3F,val)
+    for k=1:length(S3F.components)
+        S3F.components{k}.antipodal = val;
    end
   end
 

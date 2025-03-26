@@ -20,20 +20,14 @@
 % import the data
 mtexdata twins
 
-% consider only indexed data
-ebsd = ebsd('indexed');
-
 % reconstruct the grain structure
-[grains,ebsd.grainId,ebsd.mis2mean] = calcGrains(ebsd,'angle',10*degree);
-
-% remove some very small grains
-ebsd(grains(grains.grainSize<5)) = [];
-
-% redo grain segmentation
-[grains,ebsd.grainId] = calcGrains(ebsd,'angle',10*degree);
+[grains,ebsd.grainId] = calcGrains(ebsd('indexed'),'angle',10*degree,'minPixel',5);
 
 % smooth grain boundaries
 grains = smooth(grains,5);
+
+% consider only indexed data
+ebsd = ebsd('indexed');
 
 % plot the orientation map
 ipfKey = ipfColorKey(ebsd.CS.properGroup);
@@ -41,7 +35,7 @@ plot(ebsd,ipfKey.orientation2color(ebsd.orientations))
 
 % and on top the grain boundaries
 hold on
-plot(grains.boundary,'linewidth',2)
+plot(grains.boundary,'linewidth',2,'linecolor','white')
 hold off
 
 %%
@@ -50,12 +44,10 @@ hold off
 % clearly visible. To do so we colorize the orientation data with respect
 % to their misorientation to the grain mean orientation
 
-% the @axisAngleColorKey colorizes misorientation according to their axis
-% and angle
+% the axisAngleColorKey colorizes misorientation according to their axis and angle
 colorKey = axisAngleColorKey;
 
-% we need to set the reference orientations are the mean orientation of
-% each grain
+% we set the reference orientations as the mean orientation of each grain
 colorKey.oriRef = grains(ebsd.grainId).meanOrientation;
 
 % lets plot the result
@@ -66,8 +58,8 @@ hold off
 
 %%
 % We clearly observe some deformation gradients withing the grains which
-% are superposed by random noise. 
-
+% are superposed by random noise.
+%
 %% The Mean Filter
 %
 % The simplest filter to apply to orientation data is the @meanFilter which

@@ -14,6 +14,7 @@ function h = text(v,varargin)
 %
 % Options
 %  textColor - rgb or color name
+%  textAboveMarker - display the text above the marker
 %
 % See also
 
@@ -50,11 +51,11 @@ fs = getMTEXpref('FontSize');
 varargin = delete_option(varargin,'parent',1);
 
 if check_option(varargin,'textAboveMarker')
-  aboveBelow = -5;
+  aboveBelow = -1;
 elseif check_option(varargin,'autoAlignText')
   aboveBelow = 0;
 else % textBelowMarker
-  aboveBelow = 5;
+  aboveBelow = 1;
 end
 
 for j = 1:numel(sP)
@@ -78,15 +79,13 @@ for j = 1:numel(sP)
 
   if length(v)>1 && isscalar(strings), strings = repmat(strings,length(v),1); end
   
-
-  
   % print labels  
   for i = 1:length(strings)
     
     if isnan(x(i)), continue; end
     
     s = strings{i};
-    if ~ischar(s), s = char(s,interpreter);end
+    if ~ischar(s) && ~isstring(s), s = char(s,interpreter);end
 
     if strcmpi(interpreter,'LaTeX') && ~isempty(regexp(s,'[\\\^_]','ONCE'))
       s = ['$' s '$']; %#ok<AGROW>
@@ -96,9 +95,11 @@ for j = 1:numel(sP)
       
       xy = [x(i),y(i)];
             
-      if xy(2) > mean(sP(j).bounds([2 4])) + 0.1 + aboveBelow
-        tag = {'UserData',xy,'tag','setAboveMarker'}; 
-      else        
+      if aboveBelow == -1 || (aboveBelow == 0 && ...
+          xor(sP(j).ax=="reverse",...
+          xy(2) > mean(sP(j).bounds([2 4])) + 0.1))
+        tag = {'UserData',xy,'tag','setAboveMarker'};
+      else
         tag = {'UserData',xy,'tag','setBelowMarker'}; 
       end
     else

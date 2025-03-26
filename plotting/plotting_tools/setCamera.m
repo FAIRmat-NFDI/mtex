@@ -1,5 +1,12 @@
 function setCamera(varargin)
 % set Camera according to xAxis and zAxis position
+%
+% Syntax
+%   setCamera(ax, how2plot)
+%   setCamera
+%
+
+
 
 % get current xaxis and zaxis directions
 if nargin > 0 && ~isempty(varargin{1}) && ...
@@ -9,10 +16,8 @@ else
   ax = gca;
 end
 
-how2plot = getClass(varargin,'plottingConvention',getMTEXpref('xyzPlotting'));
+how2plot = getClass(varargin,'plottingConvention',plottingConvention.default);
 
 how2plot.setView(ax);
 
 end
-
-

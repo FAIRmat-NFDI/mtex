@@ -2,7 +2,7 @@ function display(SO3F,varargin)
 % standard output
 
 if check_option(varargin,'skipHeader')
-  disp('  <strong>harmonic component</strong>');
+  disp(strong("  harmonic component"));
 else
   displayClass(SO3F,inputname(1),[],'moreInfo',symChar(SO3F),varargin{:});
   if SO3F.antipodal, disp('  antipodal: true'); end
@@ -11,7 +11,13 @@ else
 end
 
 disp(['  bandwidth: ' num2str(SO3F.bandwidth)]);
-disp(['  weight: ' xnum2str(mean(SO3F.subSet(1)))]);
+
+if isscalar(SO3F) 
+  disp(['  weight: ' xnum2str(mean(SO3F))]);
+elseif length(SO3F)<4
+  disp(['  weights: [' xnum2str(mean(SO3F)),']']);
+end
+
 disp(' ');
 
 end

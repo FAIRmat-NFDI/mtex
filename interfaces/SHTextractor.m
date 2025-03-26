@@ -1,6 +1,6 @@
 function sF = SHTextractor(file)
 % Extract the corresponding S2FunHarmonic of an SHT file.
-% examples of SHT files can be finded at 
+% examples of SHT files can be found at 
 % https://github.com/EMsoft-org/SHTdatabase/tree/master/EBSD
 %
 % Syntax
@@ -30,11 +30,14 @@ end
 
 try
   % Get Symmetry
-  cs = crystalSymmetry('SpaceId',sym.SpaceId,sym.LatticeParameters(1:3),sym.LatticeParameters(4:6)*degree,'mineral',sym.Mineral);
+  cs = crystalSymmetry('SpaceId',sym.SpaceId,sym.LatticeParameters(1:3),...
+    sym.LatticeParameters(4:6)*degree,'mineral',sym.Mineral,'x||a');
   % Construct Function
   sF = S2FunHarmonicSym(fhat,cs,'skipSymmetrise');
 catch
   sF = S2FunHarmonic(fhat);
 end
+
+sF.isReal = true;
 
 end

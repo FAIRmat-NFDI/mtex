@@ -41,7 +41,7 @@ end
 if ~check_option(varargin,'keepXY')
 
   % remove any grid
-  ebsd = EBSD(ebsd);
+  if isa(ebsd,'EBSDHex'), ebsd = EBSD(ebsd); end
 
   % the center of rotation
   center = get_option(varargin,'center',vector3d(0,0,0));
@@ -55,4 +55,11 @@ if ~check_option(varargin,'keepXY')
 
   % rotate the unitcell
   ebsd.unitCell = rot .* ebsd.unitCell;
+
+  % remove numerical errors
+  ebsd.N = ebsd.N.round2zero;
+
+  ebsd.pos = ebsd.pos.round2zero;
+  ebsd.unitCell = ebsd.unitCell.round2zero;
+  
 end

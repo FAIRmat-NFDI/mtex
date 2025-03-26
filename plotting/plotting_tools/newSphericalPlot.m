@@ -6,7 +6,12 @@ function [sP, isNew] = newSphericalPlot(v,varargin)
 % 3: new multiplot
 
 % get plotting convention
-how2plot = getClass(varargin,'plottingConvention',getMTEXpref('xyzPlotting'));
+try
+  how2plot = v.how2plot;
+catch ME
+  how2plot = plottingConvention.default;
+end
+how2plot = copy(getClass(varargin,'plottingConvention',how2plot));
 
 % case 1: predefined axis
 % -----------------------
@@ -86,7 +91,7 @@ if isNew || ~isappdata(mtexFig.currentAxes,'sphericalPlot')
   mtexFig.drawNow(varargin{:});
   isNew = true;
           
-elseif check_option(varargin,'add2all') % add to or overide existing axes
+elseif check_option(varargin,'add2all') % add to or override existing axes
     
   for i = 1:numel(mtexFig.children)
     
@@ -108,11 +113,10 @@ function sR = getPlotRegion(sR,how2plot,varargin)
 
 % default values from the vectors to plot
 if isa(sR,'vector3d')
-  sR = sR.region(varargin{:});
+  sR = getClass(varargin,'sphericalRegion',sR.region(varargin{:}));
 elseif ~isa(sR,'sphericalRegion')
-  sR = getClass(varargin,'sphericalRegion',sphericalRegion);  
+  sR = getClass(varargin,'sphericalRegion',sphericalRegion);
 end
-
 
 % check for simple options
 if check_option(varargin,'complete')
@@ -125,7 +129,7 @@ elseif check_option(varargin,'lower')
 end
 
 % extract antipodal
-sR.antipodal = check_option(varargin,'antipodal');
+sR.antipodal = sR.antipodal || check_option(varargin,'antipodal');
 
 % for antipodal symmetry reduce to halfsphere
 if sR.antipodal && sR.isUpper(how2plot) && sR.isLower(how2plot) &&...

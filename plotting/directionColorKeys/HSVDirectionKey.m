@@ -1,7 +1,7 @@
 classdef HSVDirectionKey < directionColorKey
   % converts crystal or specimen directions to rgb values
   %
-  % The priciple idea is to take the fundamental sector, apply white to the
+  % The principle idea is to take the fundamental sector, apply white to the
   % center and red, blue and green to the vertices. This works well if all
   % the edges of the fundamental sector are reflections, i.e. for for m, mm2,
   % mmm, 3m, 4mm, 4/mmm, 6mm, -62m, 6/mmm, -43m, m-3m.
@@ -83,7 +83,7 @@ classdef HSVDirectionKey < directionColorKey
         % compute angle of the points "sh" relative to the center point "center"
         % this should be between 0 and 1
         if isa(dM.sym,'crystalSymmetry')
-          ref = vector3d(dM.sym.aAxisRec);
+          ref = vector3d(dM.sym.how2plot.east);
         else
           ref = xvector;
         end
@@ -101,7 +101,7 @@ classdef HSVDirectionKey < directionColorKey
       radius = radius*(1+dM.alpha)-dM.alpha;
       
       % compute the color vector on the sphere
-      v = vector3d('rho',rho,'theta',radius.*pi);
+      v = vector3d.byPolar(radius .* pi, rho);
 
       % post processing of the color vector
       % by default we have white at the z, black at the -z, red
@@ -165,8 +165,8 @@ classdef HSVDirectionKey < directionColorKey
           oM.refl = -rotate(oM.sR.N,rotation.byAxisAngle(oM.sym.rot(2).axis,90*degree));
         case 6                                                   % 121
           oM.refl = rotate(oM.sR.N,rotation.byAxisAngle(-oM.sym.rot(2).axis,90*degree));
-        case {5}, oM.refl = rotate(oM.sR.N(2),-90*degree);       % 2/m11
-        case {8}, oM.refl = rotate(oM.sR.N(2),90*degree); %      % 12/m1
+        case {5}, oM.refl = axis2quat(oM.sR.N(1),-90*degree)*oM.sR.N(2); % 2/m11
+        case {8}, oM.refl = axis2quat(oM.sR.N(1),90*degree)*oM.sR.N(2); % 12/m1
         case {11,12}, oM.refl = rotate(oM.sR.N(2),-90*degree); % 222
         case 17, oM.refl = -rotate(sum(oM.sR.N),90*degree);      % 3        
         case 18, oM.refl = -rotate(sum(oM.sR.N(2:3)),90*degree); % -3
@@ -188,10 +188,16 @@ classdef HSVDirectionKey < directionColorKey
         case {42,43}, oM.refl = oM.sR.N(end-2) - oM.sR.N(end-1);      % 432, m-3            
       end
       
-      % reduce fundamental sector by reflectors for black-white colorcoding
+      % reduce fundamental sector by reflectors for black-white color coding
       oM.sR.N = [oM.sR.N(:);oM.refl(:)];
       oM.sR.alpha = [oM.sR.alpha(:);zeros(length(oM.refl),1)];
-      oM.whiteCenter = oM.sR.center;
+
+      if isa(oM.sym,'crystalSymmetry')
+        oM.whiteCenter = Miller(oM.sR.center,oM.sym);
+      else
+        oM.whiteCenter = oM.sR.center;
+      end
+        
       
     end    
   end

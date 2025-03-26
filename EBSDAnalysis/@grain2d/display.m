@@ -1,7 +1,7 @@
 function  display(grains,varargin)
 % standard output
 
-displayClass(grains,inputname(1));
+displayClass(grains,inputname(1),'moreInfo',char(grains.how2plot,'compact'));
 
 disp(' ')
 %disp(char(dynOption(grains)));
@@ -20,7 +20,7 @@ for ip = 1:numel(grains.phaseMap)
   matrix{ip,2} = int2str(nnz(ind));
   
   % grains
-  matrix{ip,3} = int2str(sum(grains.grainSize(ind)));
+  matrix{ip,3} = int2str(sum(grains.numPixel(ind)));
   
   % abort in special cases
   if isempty(grains.CSList{ip})
@@ -69,5 +69,5 @@ if isempty(grains), return; end
 
 % show properties
 disp(char(dynProp(grains.prop),...
-  'Id',grains.id,'Phase',grains.phase,'Pixels',grains.grainSize))
+  'Id',grains.id,'Phase',grains.phase,'Pixels',grains.numPixel))
 disp(' ')

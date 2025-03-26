@@ -23,7 +23,7 @@ nGrid(isinf(nGrid)) = 1;
   linspace(ext(3),ext(4),nGrid(2)),...
   linspace(ext(5),ext(6),nGrid(3)));
 
-pos = vector3d(x,y,z);
+pos = vector3d(x,y,z,ebsd.how2plot);
 sGrid = size(x);
 
 % if original unit cell was to much different
@@ -33,7 +33,7 @@ if length(ebsd.unitCell) ~= 4 || 1.5*max(norm(ebsd.unitCell)) < max(norm(uc))
   ebsd = interp(ebsd,pos);
 
   ebsdGrid = EBSDsquare(pos,reshape(ebsd.rotations,sGrid),...
-    ebsd.phaseId(:), ebsd.phaseMap,ebsd.CSList,dxyz,'options',ebsd.prop,'opt',ebsd.opt);
+    ebsd.phaseId(:), ebsd.phaseMap,ebsd.CSList,'prop',ebsd.prop,'opt',ebsd.opt);
   
   return
   
@@ -70,6 +70,6 @@ prop.oldId = nan(sGrid);
 prop.oldId(newId) = ebsd.id;
 
 ebsdGrid = EBSDsquare(pos,rotation(quaternion(a,b,c,d)),phaseId(:),...
-  ebsd.phaseMap,ebsd.CSList,dxyz,'options',prop,'opt',ebsd.opt);
+  ebsd.phaseMap,ebsd.CSList,'prop',prop,'opt',ebsd.opt);
 
 end

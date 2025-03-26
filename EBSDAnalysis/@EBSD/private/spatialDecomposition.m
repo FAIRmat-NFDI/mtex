@@ -23,10 +23,18 @@ if check_option(varargin,'unitCell')
     D{k} = faces(k,:);
   end
   
+elseif check_option(varargin,'quick')
+  
+  [~,~,~,~,I_ED1,I_ED2] = jcvoronoi_mex(X);
+    
+  V = []; F = [];
+  I_FD = sparse(I_ED1,I_ED2,1);
+  return
+
 else
-  
+
   dummyCoordinates = calcBoundary(X,unitCell,varargin{:});
-  
+    
   method = get_flag(varargin,{'jcvoronoi','qhull','matlab'}, getMTEXpref('voronoiMethod'));
 
   switch lower(method)
@@ -38,8 +46,9 @@ else
       E=[E1,E2];
     
       clear Vx Vy E1 E2
-      delta = dxy/1e4;
-      [V,~,ic] = unique(round(V/delta)*delta,'rows');
+      delta = dxy/1e3;
+      [~,ia,ic] = unique(round((V - V(1,:))/delta)*delta,'rows');
+      V = V(ia,:);      
 
       F = sort(ic(E),2);
       I_FD = sparse(I_ED1(I_ED2<=numX),I_ED2(I_ED2<=numX),1,size(F,1),numX);
@@ -66,13 +75,12 @@ else
   % coordinates - not the dummy coordinates
   D = D(1:size(X,1));
 
-  % remove empty lines from D
-  % D = D(cellfun(@(x) ~isempty(x),D));
-  
   % merge points that coincide
-  [V,~,ic] = uniquetol(V,1e-5,'ByRows',true,'DataScale',1);
-  %D = cellfun(@(x) ic(x).',D,'UniformOutput',false);
-
+  delta = dxy/1e3;
+  ind = find(isfinite(V(:,1)),1);
+  [~,ia,ic] = unique(round((V - V(ind,:))/delta)*delta,'rows');
+  V = V(ia,:);
+  
   % remove duplicated points in D
   %D = cellfun(@(x) x(diff([x,x(1)])~=0),D,'UniformOutput',false);
 
@@ -246,8 +254,7 @@ dxy = max(norm(unitCell(1)-unitCell));
 delta = dxy/1e1;
 dummyCoordinates = unique(round(dummyCoordinates/delta)*delta,'first','rows');
 
-% remove those points which are inside the b
-
+% remove those points which are inside the bounding box
 id = inpolygon(dummyCoordinates(:,1),dummyCoordinates(:,2),boundingX(:,1),boundingX(:,2));
 
 dummyCoordinates(id,:) = [];

@@ -6,15 +6,15 @@
 % orientation which we then call grains. Note that there is no canonical
 % definition of what is a grain. The grain reconstruction method that is
 % default in MTEX is based on the definition of high angle grain boundaries
-% which are assumed at the Mittelsenkrechten between neighbouring
-% measurements whenever their misorientation angle exceeds a certain
-% threshold. According to this point of view grains are regions surrounded
-% by grain boundaries. 
+% which are assumed at the bisector between neighboring measurements
+% whenever their misorientation angle exceeds a certain threshold.
+% According to this point of view grains are regions surrounded by grain
+% boundaries.
 %
 % In order to illustrate the grain reconstruction process we consider the
 % following sample data set
 
-close all; plotx2east
+close all
 
 % import the data
 mtexdata forsterite
@@ -143,7 +143,7 @@ notIndexed = grains('notIndexed')
 
 % plot the not indexed regions colorcoded according the the quotient between
 % number of measurements and number of boundary segments
-plot(notIndexed,log(notIndexed.grainSize ./ notIndexed.boundarySize))
+plot(notIndexed,log(notIndexed.numPixel ./ notIndexed.boundarySize))
 mtexColorbar
 
 %%
@@ -153,7 +153,7 @@ mtexColorbar
 % quotient.
 
 % the "not indexed grains" we want to remove
-toRemove = notIndexed(notIndexed.grainSize ./ notIndexed.boundarySize<0.8);
+toRemove = notIndexed(notIndexed.numPixel ./ notIndexed.boundarySize<0.8);
 
 % now we remove the corresponding EBSD measurements
 ebsd(toRemove) = [];

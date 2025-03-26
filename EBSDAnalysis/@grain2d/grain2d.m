@@ -29,7 +29,7 @@ classdef grain2d < phaseList & dynProp
   %  boundary      - @grainBoundary
   %  innerBoundary - @grainBoundary
   %  triplePoints  - @triplePoints
-  %  grainSize     - number if pixels belonging to the grain
+  %  numPixel     - number if pixels belonging to the grain
   %  GOS           - grain orientation spread
   %  meanOrientation - average grain orientation (<GrainOrientationParameters.html only single phase>)
   %
@@ -40,7 +40,7 @@ classdef grain2d < phaseList & dynProp
   properties
     poly={}    % cell list of polygons forming the grains
     id=[]      % id of each grain    
-    grainSize = [] % number of measurements per grain
+    numPixel = [] % number of measurements per grain
   end
   
   properties (Hidden = true)
@@ -62,12 +62,13 @@ classdef grain2d < phaseList & dynProp
     x                % x coordinates of the vertices of the grains
     y                % y coordinates of the vertices of the grains
     triplePoints     % triple points
+    grainSize        % depreciated for numPixel
   end
   
   properties (Dependent = true, Access = protected)
     idV        % active vertices
     rot2Plane  % rotation to xy plane
-    plottingConvention % plotting convention
+    how2plot   % plotting convention
     N          % normal direction of the pseudo3d data    
   end
   
@@ -120,7 +121,7 @@ classdef grain2d < phaseList & dynProp
         grains.phaseMap = 1:length(grains.CSList);
       end
 
-      grains.grainSize = ones(size(poly));
+      grains.numPixel = ones(size(poly));
       
       if isa(V,'grainBoundary') % grain boundary already given
         grains.boundary = V;
@@ -171,13 +172,26 @@ classdef grain2d < phaseList & dynProp
 
     end
     
+    function n = get.grainSize(grains)
+      warning('grains.grainSize is depreciated. Please use grains.numPixel instead');
+      n = grains.numPixel;
+    end
+
+    function grains = set.grainSize(grains,n)
+      warning('grains.grainSize is depreciated. Please use grains.numPixel instead');
+      grains.numPixel = n;
+    end
+
     function V = get.allV(grains)
       V = grains.boundary.allV;
     end
 
     function V = get.V(grains)
-      error('implement this!')
-      V = grains.boundary.V;
+      
+      poly = grains.poly; %#ok<PROP>
+      iV = unique(cat(2,poly{:})); %#ok<PROP>
+      V = grains.boundary.allV(iV);
+
     end
 
     function N = get.N(grains)
@@ -215,12 +229,12 @@ classdef grain2d < phaseList & dynProp
       rot = rotation.map(grains.N,vector3d.Z);
     end
 
-    function pC = get.plottingConvention(grains)
-      pC = grains.allV.plottingConvention;
+    function pC = get.how2plot(grains)
+      pC = grains.allV.how2plot;
     end
 
-    function grains = set.plottingConvention(grains,pC)
-      grains.allV.plottingConvention = pC;
+    function grains = set.how2plot(grains,pC)
+      grains.allV.how2plot = pC;
     end
 
 
@@ -233,6 +247,7 @@ classdef grain2d < phaseList & dynProp
         ori = orientation;
       else
         ori = orientation(grains.prop.meanRotation,grains.CS);
+        ori.SS.how2plot = grains.how2plot;
         
         % set not indexed orientations to nan
         if ~all(grains.isIndexed), ori(~grains.isIndexed) = NaN; end

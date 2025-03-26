@@ -1,5 +1,5 @@
-function varargout = plot(grains,varargin)
-% colorize 3 dimensional grains, or more precise their faces
+function h = plot(grains,varargin)
+% plot 3-dimensional grains, or more precise their faces
 %
 % Only outer faces, the inner grains have the color gray [0.5 0.5 0.5].
 %
@@ -17,6 +17,17 @@ function varargout = plot(grains,varargin)
 % grain2d/plot grain3Boundary/plot
 
 
+% create a new plot
+%mtexFig = newMtexFigure('datacursormode',{@tooltip,grains},varargin{:});
+mtexFig = newMtexFigure(varargin{:});
+[mP,isNew] = newMapPlot('scanUnit','um','parent',mtexFig.gca,...
+  varargin{:}, grains.how2plot);
+
+if isempty(grains)
+  if nargout==1, h = [];end
+  return;
+end
+
 gB = grains.boundary;
 V = gB.allV;
 F = gB.F;
@@ -25,7 +36,19 @@ if nargin>1 && isa(varargin{1},'orientation')
   % color by orientation
 
   oM = ipfColorKey(varargin{1});
+  oM.inversePoleFigureDirection = ...
+    get_option(varargin,{'inversePoleFigureDirection','ipfd'},zvector);
+  
   grainColor = oM.orientation2color(varargin{1});
+  
+  if ~getMTEXpref('generatingHelpMode') && ~check_option(varargin,'inversePoleFigureDirection')
+    disp('  I''m going to colorize the orientation data with the ');
+    disp('  standard MTEX colorkey. To view the colorkey do:');
+    disp(' ');
+    disp('  colorKey = ipfColorKey(ori_variable_name)')
+    disp('  plot(colorKey)')
+  end
+
   varargin(1) = [];
 
   faceColor = 0.5 .* ones(size(F,1),3);
@@ -48,12 +71,12 @@ elseif nargin>1 && isnumeric(varargin{1})
   isouter = sum(grains.I_GF ,1)';
   faceColor(isouter==1,:) = grainColor(gB.grainId(isouter==1,1),:);
   faceColor(isouter==-1,:) = grainColor(gB.grainId(isouter==-1,2),:);
-
-  if (numel(grainColor) == length(grains));  colorbar; end
-
+  
 elseif check_option(varargin,'FaceColor')
-  faceColor = repmat(str2rgb(get_option(varargin, 'FaceColor')), size(F,1),1);
+
+  faceColor = str2rgb(get_option(varargin, 'FaceColor'));
   varargin = delete_option(varargin, 'FaceColor',1);
+
 else
   % color by phase
 
@@ -66,32 +89,33 @@ else
 
 end
 
-% to prevent errors from empty varargin, but not to check every iteration
-if isempty(varargin); varargin = set_option(varargin,'LineStyle','-'); end
+pObj.Vertices = V.xyz;
+pObj.parent = mP.ax;
 
-if iscell(F)
-  h = zeros(size(F,1),1);
-  for iF = 1:numel(F)
-  nodes = V(F{iF}).xyz;
-  h(iF) = patch(nodes(:, 1), nodes(:, 2), nodes(:, 3), faceColor(iF,:), varargin{:});
-  end
-
-else  % speedup for triangulated meshes
-
-  if size(faceColor,2) == 1     % color by value
-    h = patch('Faces', F(:,:), 'Vertices', V.xyz, 'FaceVertexCData', faceColor, 'FaceColor','flat', varargin{:});
-    colorbar
-  else                        	% color by rgb triplet
-    [C,~,ic] = unique(faceColor,'rows');
-    h = zeros(size(C,1),1);
-    for i = 1:size(C,1)
-      ind = (ic == i);
-      h(i) = patch('Faces', F(ind,:), 'Vertices', V.xyz, 'FaceColor', C(i,:), varargin{:});
-    end
-  end
+if size(faceColor,1) == size(F,1)
+  pObj.FaceColor = 'flat';
+  pObj.FaceVertexCData = faceColor;
+else
+  pObj.FaceColor = faceColor;
 end
 
-  if nargout>0
-    varargout = {h};
+% extract faces
+if iscell(F)
+  pObj.Faces = nan(length(F),max(cellfun(@numel,F)));
+  for iF = 1:numel(F)
+    pObj.Faces(iF,1:length(F{iF})) = F{iF};
   end
+else
+  pObj.Faces = F;
+end
+
+% do plot
+h = optiondraw(patch(pObj),varargin{:});
+
+pause(0.1)
+
+fcw
+
+if nargout==0, clear h; end
+
 end

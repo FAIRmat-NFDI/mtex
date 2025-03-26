@@ -15,7 +15,7 @@ function  sR = fundamentalSector(sym,varargin)
 %  sR - @sphericalRegion
 %
 % Options
-%  antipodal - include [[VectorsAxes.html,antipodal symmetry]]
+%  antipodal - include <VectorsAxes.html antipodal symmetry>
 %
 
 % maybe there is nothing to do
@@ -24,9 +24,9 @@ if check_option(varargin,'complete')
   return
 end
 
-how2plot = getClass(varargin,'plottingConvention',sym.how2plot);
-if isempty(how2plot)
-  how2plot = getMTEXpref('xyzPlotting');
+pC = getClass(varargin,'plottingConvention',sym.how2plot);
+if isempty(pC)
+  pC = plottingConvention.default;
 end
 
 % antipodal symmetry is nothing else then adding inversion to the symmetry
@@ -36,8 +36,8 @@ if check_option(varargin,'antipodal'), sym = sym.Laue; end
 % a first very simple rule for the fundamental region
 
 % if we have an inversion or some symmetry operation no parallel to z
-if any(angle(how2plot.outOfScreen,symmetrise(how2plot.outOfScreen,sym))>pi/2+1e-4)
-  N = how2plot.outOfScreen; % then we can map everything on the upper hemisphere
+if any(angle(pC.outOfScreen,symmetrise(pC.outOfScreen,sym))>pi/2+1e-4)
+  N = pC.outOfScreen; % then we can map everything on the upper hemisphere
 else
   N = vector3d;
 end
@@ -76,24 +76,31 @@ switch sym.id
 
   case 1 % 1
   case 2 % -1
-    N = how2plot.outOfScreen;
+    N = pC.outOfScreen;
   case {3,6,9} % 211, 121, 112
-    if isnull(dot(getMinAxes(sym.rot),zvector))
-      N = zvector;
+    if isnull(dot(getMinAxes(sym.rot),pC.outOfScreen))
+      N = pC.outOfScreen ;
     end
   case 4
     N = -getMinAxes(sym.rot);
   case {7,10} % m11, 1m1, mm1
     N = getMinAxes(sym.rot);
   case {5,8} % 2/m11 12/m1
-    N = [zvector,getMinAxes(sym.rot)];
+    N = [pC.outOfScreen,getMinAxes(sym.rot)];
+    ind = isnull(dot(N,pC.outOfScreen)) & ...  
+      mod(angle(pC.east,N,pC.outOfScreen)+5*degree,2*pi) > 180*degree;       
+    N(ind) = -N(ind);
   case 11
   case 12 % 222
   case {13,14,15} % 2mm, m2m, mm2
     N = sym.rot(sym.rot.i).axis; % take mirror planes
-    ind = angle(N,vector3d(sym.aAxis))< 45*degree;
+    ind = isnull(dot(N,pC.outOfScreen)) & ...  
+      mod(angle(pC.east,N,pC.outOfScreen)+5*degree,2*pi) > 180*degree;
     N(ind) = -N(ind);
   case 16 % mmm
+    ind = isnull(dot(N,pC.outOfScreen)) & ...  
+      mod(angle(pC.east,N,pC.outOfScreen)+5*degree,2*pi) > 180*degree;
+    N(ind) = -N(ind);
   case 17 % 3
   case 18 % -3
   case {19,20,21} % 321, 3m1, -3m1
@@ -119,10 +126,10 @@ end
 
 % this will be restricted later anyway
 if check_option(varargin,{'upper','lower','maxTheta','minTheta'})
-  N(isnull(angle(N,how2plot.outOfScreen,'antipodal'))) = [];
+  N(isnull(angle(N,pC.outOfScreen,'antipodal'))) = [];
 end
 
-N.plottingConvention = how2plot;
+N.how2plot = pC;
 sR = sphericalRegion(N,zeros(size(N)),varargin{:});
 
 % determine the fundamental sector for misorientation axes with fixed

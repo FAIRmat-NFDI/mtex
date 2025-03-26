@@ -7,7 +7,9 @@ end
 
 properties (Dependent=true)
   bandwidth  % maximum harmonic degree / bandwidth
-  antipodal  %
+  antipodal  % f(x) = f(x + pi)
+  even       % f(x) = f(-x)
+  odd		 % f(x) = -f(-x) 
   isReal
 end
 
@@ -20,6 +22,10 @@ methods
     if nargin == 0, return; end
     if isa(fhat,'S1FunHarmonic')       
       sF.fhat = fhat.fhat;
+      return
+    end
+    if isa(fhat,'S1Fun') || isa(fhat,'function_handle')
+      sF = S1FunHarmonic.quadrature(fhat,varargin{:});
       return
     end
     
@@ -65,7 +71,7 @@ methods
     end
   end
   
-  function out = get.antipodal(sF)
+  function out = get.even(sF)
     if sF.bandwidth == 0
       out = true;
       return
@@ -77,12 +83,31 @@ methods
     % test whether fhat is symmetric fhat_n = conj(fhat_-n)
   end
   
-  function sF = set.antipodal(sF,value)
-    %if value, sF = sF.even; end
+  function sF = set.even(sF,value)
     if ~value, return; end
     s = size(sF);
     sF = reshape(sF,prod(s));
     sF.fhat = 0.5*(sF.fhat+flip(sF.fhat,1));
+    sF = reshape(sF,s);
+  end
+
+  function out = get.odd(sF)
+    if sF.bandwidth == 0 && norm(sF.fhat)==0
+      out = true;
+      return
+    end
+    sF = reshape(sF,numel(sF));
+    dd = sum( abs(sF.fhat + flip(sF.fhat,1)).^2,1);
+    nF = norm(sF)';
+    out = all(sqrt(dd(nF>0)) ./ nF((nF>0)) <1e-4);
+    % test whether fhat is symmetric fhat_n = conj(fhat_-n)
+  end
+  
+  function sF = set.odd(sF,value)
+    if ~value, return; end
+    s = size(sF);
+    sF = reshape(sF,prod(s));
+    sF.fhat = 0.5*(sF.fhat - flip(sF.fhat,1));
     sF = reshape(sF,s);
   end
 
@@ -106,6 +131,31 @@ methods
     sF = reshape(sF,s);
   end
 
+  function out = get.antipodal(sF)
+    if sF.bandwidth == 0
+      out = true;
+      return
+    end
+    sF = reshape(sF,numel(sF));
+    n = sF.bandwidth;
+    ind = mod(n+1,2)+1:2:2*n+1;
+    dd = sum( abs(sF.fhat(ind,:)).^2,1);
+    nF = norm(sF)';
+    out = all(sqrt(dd(nF>0)) ./ nF((nF>0)) <1e-4);
+    % test whether fhat is symmetric fhat_n = conj(fhat_-n)
+  end
+  
+  function sF = set.antipodal(sF,value)
+    if ~value, return; end
+    s = size(sF);
+    sF = reshape(sF,prod(s));
+    n = sF.bandwidth;
+    ind = mod(n+1,2)+1:2:2*n+1;
+    sF.fhat(ind,:) = 0;
+    sF = reshape(sF,s);
+  end
+
+
   function d = size(sF, varargin)
     d = size(sF.fhat);
     d = d(2:end);
@@ -124,8 +174,10 @@ methods
 end
 
 methods (Static = true)
-%   sF = approximation(v, y, varargin);
-  sF = quadrature(f, varargin);
+  S1F = interpolate(nodes, values, varargin);
+  S1F = approximate(f, varargin);
+  S1F = quadrature(f, varargin);
+  S1F = adjoint(nodes,values,varargin);
 end
 
 end

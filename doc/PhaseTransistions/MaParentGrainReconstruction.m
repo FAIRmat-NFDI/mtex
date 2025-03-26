@@ -13,17 +13,10 @@
 % We shall use the following sample data set.
 
 % load the data
-mtexdata martensite 
-plotx2east
+mtexdata martensite
 
 % grain reconstruction
-[grains,ebsd.grainId] = calcGrains(ebsd('indexed'), 'angle', 3*degree);
-
-% remove small grains
-ebsd(grains(grains.grainSize < 3)) = [];
-
-% reidentify grains with small grains removed:
-[grains,ebsd.grainId] = calcGrains(ebsd('indexed'),'angle',3*degree);
+[grains,ebsd.grainId] = calcGrains(ebsd('indexed'), 'angle', 3*degree, 'minPixel',2);
 grains = smooth(grains,5);
 
 % plot the data and the grain boundaries
@@ -49,12 +42,11 @@ job = parentGrainReconstructor(ebsd,grains);
 % be specified explicitly by defining an initial guess for the parent to
 % child orientation relationship first and passing it as a third argument to
 % |<parentGrainReconstructor.parentGrainReconstructor.html
-% parentGrainReconstructor>|. Here we define this initial guess seperately
+% parentGrainReconstructor>|. Here we define this initial guess separately
 % as the Kurdjumov Sachs orientation relationship
 
 % initial guess for the parent to child orientation relationship
 job.p2c = orientation.KurdjumovSachs(job.csParent, job.csChild)
-%job.p2c = orientation.NishiyamaWassermann(job.csParent, job.csChild)
 
 %%
 % The output of the variable |job| tells us the amount of parent and child
@@ -98,16 +90,16 @@ histogram(job.calcGBFit./degree,'BinMethod','sqrt')
 hold off
 
 %%
-% We may explicitely compute the misfit for all child to child
+% We may explicitly compute the misfit for all child to child
 % boundaries using the command <parentGrainReconstructor.calcGBFit.html
 % |calcGBFit|>. Beside the list |fit| it returns also the list of grain
-% pairs for which these fits have been computed. Using th command
+% pairs for which these fits have been computed. Using the command
 % <grainBoundary.selectByGrainId.html |selectByGrainId|> we can find the
 % corresponding boundary segments and colorize them according to this
 % misfit. In the code below we go one step further and adjust the
 % transparency as a function of the misfit.
 
-% compute the misfit for all child to child grain neighbours
+% compute the misfit for all child to child grain neighbors
 [fit,c2cPairs] = job.calcGBFit;
 
 % select grain boundary segments by grain ids
@@ -118,14 +110,14 @@ plot(ebsd('Iron bcc'),ebsd('Iron bcc').orientations,'figSize','large','faceAlpha
 
 % and on top of it the boundaries colorized by the misfit
 hold on;
-% scale fit between 0 and 1 - required for edgeAlpha
+% scale fit between 0 and 1 - required for |edgeAlpha|
 plot(gB, 'edgeAlpha', (fit(pairId) ./ degree - 2.5)./2 ,'linewidth',2);
 hold off
 
 %% Variant Graph based parent grain reconstruction
 %
 % Next we set up the variant graph where the nodes are the potential parent
-% orientations of each child grain and the edges describe neighbouring
+% orientations of each child grain and the edges describe neighboring
 % grains that have compatible potential parent orientations. This graph is
 % computed by the function <parentGrainReconstructor.calcVariantGraph.html
 % |calcVariantGraph|>. The edge weights are computed from the misfit
@@ -134,12 +126,12 @@ hold off
 % at which the probability is exactly 50 percent and the standard deviation
 % |'tolerance'|.
 
-job.calcVariantGraph('threshold',2.5*degree,'tolerance',2.5*degree)
+job.calcVariantGraph('threshold',3.5*degree,'tolerance',2.5*degree)
 
 %%
 % For large maps it can be useful to perform the segmentation in a two step
 % process, where in the in the first step similarly oriented variants are
-% reconstructed as one variants and only seperated in a second step. This
+% reconstructed as one variants and only separated in a second step. This
 % can be accomplished by the commands
 % 
 %   job.calcVariantGraph('threshold',2.5*degree,'tolerance',2.5*degree,'mergeSimilar')
@@ -154,7 +146,7 @@ job.calcVariantGraph('threshold',2.5*degree,'tolerance',2.5*degree)
 job.clusterVariantGraph('includeSimilar')
 
 %%
-% As a result a table of votes |job.votes| is generated. More specificaly,
+% As a result a table of votes |job.votes| is generated. More specifically,
 % |job.votes.prob| is a matrix that contains in row |job.votes.prob(i,:)|
 % the probabilities of the i-th child grain to have a specific parent
 % orientation. Accordingly, we can plot the probability of the best fit for
@@ -196,7 +188,7 @@ job.selectInteractive
 % from the surrounding already reconstructed parent grains. 
 
 % compute the votes
-job.calcGBVotes('p2c','reconsiderAll')
+job.calcGBVotes('p2c','reconsiderAll','threshold',3*degree,'tolerance',1.5*degree)
 
 % assign parent orientations according to the votes
 job.calcParentFromVote
@@ -259,7 +251,7 @@ hold off
 
 %%
 % We can also directly identify the child grains belonging to the selected
-% parent grains. Remeber that the initial grains are stored in
+% parent grains. Remember that the initial grains are stored in
 % |job.grainsPrior| and that the vector |job.mergeId| stores for every
 % initial grain the |id| of the corresponding parent grain. Combining these
 % two information we do
@@ -289,7 +281,7 @@ childOri = job.ebsdPrior(childGrains).orientations;
 % the orientation of parent grain 279
 parentOri = grainSelected.meanOrientation;
 
-% lets compute the variant and packeIds
+% compute variantIds and packeIds
 [variantId, packetId] = calcVariantId(parentOri,childOri,job.p2c);
 
 % colorize child orientations by packetId
@@ -319,7 +311,7 @@ parentEBSD = job.calcParentEBSD;
 plot(parentEBSD('Iron fcc'),parentEBSD('Iron fcc').orientations,'figSize','large')
 
 %%
-% We obtain even a measure |parentEBSD.fit| for the corespondence between
+% We obtain even a measure |parentEBSD.fit| for the correspondence between
 % the parent orientation reconstructed from the single pixel and the parent
 % orientation of the grain. Lets visualize this fit
 
@@ -335,18 +327,17 @@ plot(job.grains.boundary,'lineWidth',2)
 hold off
 
 
-%% Denoise the parent map
-%
-% Finaly we may apply filtering to the parent map to fill non indexed or
+%% Fill the parent map
+% Finally, we may apply filtering to the parent map to fill non indexed or
 % not reconstructed pixels. To this end we first run grain reconstruction
 % on the parent map
 
 [parentGrains, parentEBSD.grainId] = calcGrains(parentEBSD('indexed'),'angle',3*degree);
 
 % remove very small grains
-parentEBSD(parentGrains(parentGrains.grainSize<10)) = [];
+parentEBSD(parentGrains(parentGrains.numPixel<10)) = [];
 
-% redo grain reconstrucion
+% redo grain reconstruction
 [parentGrains, parentEBSD.grainId] = calcGrains(parentEBSD('indexed'),'angle',3*degree);
 parentGrains = smooth(parentGrains,10);
 

@@ -1,5 +1,5 @@
 function f = eval(SO3F,rot,varargin)
-% pointwise evaluation 
+% point-wise evaluation 
 %
 % Description
 % Evaluates the orientation dependent function $f$ on a given set of points using a
@@ -8,14 +8,21 @@ function f = eval(SO3F,rot,varargin)
 % NFFT at the end.
 %
 % Syntax
-%   f = eval(F,rot)
+%   f = eval(SO3F,rot)
 %
 % Input
-%   F - @SO3FunHarmonic
-%   rot - @rotation (evaluation nodes)
+%  SO3F - @SO3FunHarmonic
+%  rot - @rotation (evaluation nodes)
 %
 % Output
-%   f - double
+%  f - double [numrot x size(SO3F)]
+%
+% Options
+%  bandwidth - cut bandwidth of the harmonic series in evaluation process
+%
+% Flags
+%  nfsoft - use Nonequispace Fast Fourier Transform of the NFFT3 Toolbox (expensive precomputations)
+%  noNFFT - do direct evaluation of the harmonic series for every orientation (Works for very high bandwidth if the nfft runs out of memory, but gets expensive for many orientations. Hence number of orientations should be less than 100)
 %
 % See also
 % SO3FunHarmonic/evalNFSOFT SO3FunHarmonic/evalEquispacedFFT SO3FunHarmonic/evalSectionsEquispacedFFT
@@ -36,8 +43,10 @@ if isa(rot,'quadratureSO3Grid') && strcmp(rot.scheme,'ClenshawCurtis')
 end
 
 % Do direct computation for small number of orientations
-if length(rot)<10 || (length(rot)<50 && SO3F.bandwidth>200)
-  % varargin{end+1} = 'direct';
+maxBW = 3*getMTEXpref('maxSO3Bandwidth');
+if SO3F.bandwidth<maxBW && (length(rot)<50 || check_option(varargin,'noNFFT'))
+  varargin{end+1} = 'direct';
+elseif SO3F.bandwidth>maxBW || check_option(varargin,'noNFFT')
   f = directEval(SO3F,rot,varargin{:});
   return
 end
@@ -92,7 +101,7 @@ if isempty(plan)
     fftw_flag = int8(64);
     nfft_flag = int8(0);
   % nfft_cutoff parameter 
-    m = 4;
+    m = get_option(varargin,'cutoffParameter',4);
   % oversampling factor
     sigma = 3;
     fftw_size = 2*ceil(sigma/2*NN);
@@ -159,6 +168,7 @@ else
   nfftmex('finalize',plan);
 end
 
+% reshape output
 if isscalar(SO3F), f = reshape(f,s); end
 
 end
@@ -186,7 +196,11 @@ else
   end
 end
   
-  
-if isscalar(SO3F), f = reshape(f,size(rot)); end
+% reshape output
+if isscalar(SO3F)
+  f = reshape(f,size(rot)); 
+else
+  f = reshape(f,[numel(rot) size(SO3F)]);
+end
 
 end

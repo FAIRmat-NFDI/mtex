@@ -2,11 +2,14 @@ function f = eval(SO3F,g,varargin)
 % evaluate sum of unimodal components at orientation g
 %
 % Syntax
-%   f = SO3F.eval(g)
+%   f = eval(SO3F,rot)
 %
 % Input
 %  SO3F - @SO3FunUnimodal
 %  rot  - @rotation
+%
+% Output
+%  f - double [numrot x size(SO3F)]
 %
 % Options
 %  exact   -
@@ -23,9 +26,12 @@ function f = eval(SO3F,g,varargin)
 % end
 
 % the constant part
-f = SO3F.c0 * ones(size(g));
+f = reshape(SO3F.c0,1,[]) .* ones(numel(g),1);
 
-if isempty(SO3F.weights), return; end
+if isempty(SO3F.weights)
+  if isscalar(SO3F), f = reshape(f,size(g)); end
+  return; 
+end
 
 % decide along which dimension to split the summation matrix
 if isa(g,'SO3Grid')
@@ -50,11 +56,14 @@ end
 % init variables
 iter = 0; numiter = 1; ind = 1; %for first run
 
+% extract coefficients
+c = reshape(SO3F.weights,[],numel(SO3F));
+
 % now iterate along the splitting
 while iter <= numiter
   if iter > 0% split
     ind = 1 + (1+(iter-1)*diter:min(num-1,iter*diter));
-    if isempty(ind), return; end
+    if isempty(ind), break; end
   end
 
   %eval the kernel
@@ -63,17 +72,17 @@ while iter <= numiter
     if SO3F.antipodal
       M = 0.5*(M + SO3F.psi.K_symmetrised(g,inv(SO3F.center(ind)),SO3F.CS,SO3F.SS,'nocubictrifoldaxis',varargin{:}));
     end
-    f = f + reshape(full(M * reshape(SO3F.weights(ind),[],1)),size(f));
+    f = f + reshape(full(M * c(ind,:)),size(f));
   else
     M = SO3F.psi.K_symmetrised(g(ind),SO3F.center,SO3F.CS,SO3F.SS,'nocubictrifoldaxis',varargin{:});
     if SO3F.antipodal
       M = 0.5*(M + SO3F.psi.K_symmetrised(inv(g(ind)),SO3F.center,SO3F.CS,SO3F.SS,'nocubictrifoldaxis',varargin{:}));
     end
-    f(ind) = f(ind) + reshape(full(M * SO3F.weights(:)),size(f(ind)));
+    f(ind,:) = f(ind,:) + reshape(full(M * c),size(f(ind,:)));
   end
 
   if num == 1
-    return
+    break
   elseif iter == 0 % iterate due to memory restrictions?
     numiter = ceil( max(1,nnz(M))*num / getMTEXpref('memory',512 * 1024) / 256 );
     diter = ceil(num / numiter);
@@ -84,9 +93,11 @@ while iter <= numiter
   iter = iter + 1;
 end
 
-if isalmostreal(f)
-  f = real(f);
+if ~isreal(f) && isalmostreal(f), f = real(f); end
+if isscalar(SO3F)
+  f = reshape(f,size(g)); 
+else
+  f = reshape(f,[numel(g) size(SO3F)]);
 end
-
 
 end

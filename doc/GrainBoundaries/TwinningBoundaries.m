@@ -8,11 +8,8 @@
 mtexdata twins
 
 % segment grains
-[grains,ebsd.grainId,ebsd.mis2mean] = calcGrains(ebsd('indexed'),'angle',5*degree);
-
-% remove two pixel grains
-ebsd(grains(grains.grainSize<=2)) = [];
-[grains,ebsd.grainId,ebsd.mis2mean] = calcGrains(ebsd('indexed'),'angle',5*degree);
+[grains,ebsd.grainId,ebsd.mis2mean] = calcGrains(ebsd('indexed'),...
+  'angle',5*degree,'minPixel',3);
 
 % smooth them
 grains = grains.smooth(5);
@@ -24,15 +21,15 @@ plot(grains,grains.meanOrientation)
 CS = grains.CS;
 
 %%
-% Next we extract the grainboundaries and save them to a separate variable
+% Next we extract the grain boundaries and save them to a separate variable
 
 gB = grains.boundary
 
 %%
 % The output tells us that we have 3219 Magnesium to Magnesium boundary
-% segments and 606 boundary segements where the grains are cut by the
+% segments and 606 boundary segments where the grains are cut by the
 % scanning boundary. To restrict the grain boundaries to a specific phase
-% transistion you shall do
+% transition you shall do
 
 gB_MgMg = gB('Magnesium','Magnesium')
 
@@ -55,7 +52,7 @@ mtexColorbar
 % We observe that we have many grain boundaries with misorientation angle
 % larger than 80 degree. In order to investigate the distribution of
 % misorientation angles further we have the look at a misorientation angle
-% histogramm.
+% histogram.
 
 close all
 histogram(gB_MgMg.misorientation.angle./degree,40)
@@ -76,7 +73,7 @@ mori = gB_MgMg.misorientation(ind);
 scatter(mori)
 
 %%
-% We may determin the center of the cluster and check whether it is close
+% We may determine the center of the cluster and check whether it is close
 % to some special orientation relation ship
 
 % determine the mean of the cluster
@@ -89,18 +86,31 @@ round2Miller(mori_mean)
 % Bases on the output above we may now define the special orientation
 % relationship as
 
-twinning = orientation.map(Miller(0,1,-1,-1,CS),Miller(-1,1,0,-1,CS),...
-  Miller(1,0,-1,1,CS,'uvw'),Miller(1,0,-1,-1,CS,'uvw'))
+twinning = orientation.map(Miller(1,-1,0,1,CS),Miller(1,0,-1,-1,CS),...
+  Miller(0,1,-1,1,CS,'uvw'),Miller(1,-1,0,1,CS,'uvw'))
 
 %%
-% and observe that it is actually a rotation about axis (-1210) and angle
-% 86.3 degree
+% Considering the disorientation angle we observe that it is 86.3 degree
+% with respect to the axis (-1210)
 
 % the rotational axis
 round(twinning.axis)
 
 % the rotational angle
 twinning.angle / degree
+
+%% 
+% However, remembering that twinning refers to rotations about 180 degrees
+% we may ask for the symmetrically equivalent misorientation with the
+% maximum misorientation angle. This can be computed using the option
+% |'max'|
+
+angle(twinning,'max')/degree
+
+%% 
+% The corresponding rotational axis is 
+
+v = round(Miller(axis(twinning,'max'),'UVTW'))
 
 %%
 % Next, we check for each boundary segment whether it is a twinning boundary,

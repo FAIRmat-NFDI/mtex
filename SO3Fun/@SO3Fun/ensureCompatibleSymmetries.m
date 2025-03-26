@@ -39,8 +39,8 @@ end
 SO3F2 = varargin{1};
 
 if isnumeric(SO3F1) || isnumeric(SO3F2) || ...
-    (isa(SO3F1,'SO3FunRBF') && SO3F1.c0~=0 && isempty(SO3F1.weights)) || ...
-    (isa(SO3F2,'SO3FunRBF') && SO3F2.c0~=0 && isempty(SO3F2.weights))
+    (isa(SO3F1,'SO3FunRBF') && all(SO3F1.c0(:)~=0) && isempty(SO3F1.weights)) || ...
+    (isa(SO3F2,'SO3FunRBF') && all(SO3F2.c0(:)~=0) && isempty(SO3F2.weights))
   return
 end
 
@@ -58,8 +58,8 @@ if isa(SO3F2,'S2FunHarmonic')
   return
 end
 
-if check_option(varargin,'conv_Left')
-  % compare symmetries in case of left sided convolution
+if check_option(varargin,'conv')
+  % compare symmetries in case of convolution
   em = SO3F1.SRight ~= SO3F2.SLeft;
 else
   % compare all symmetrys in case of +, -, *, /, cat, subsasgn
