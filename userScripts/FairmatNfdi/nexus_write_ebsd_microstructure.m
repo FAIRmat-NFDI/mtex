@@ -31,7 +31,7 @@ end
 disorientation_threshold = 15.0*degree;
 % classical argument 15. for high-angle grain boundary network
 % use smaller values to segment sub-grain boundary network
-grains_old = calcGrains(ebsd_orig('indexed'), ...
+[grains_old, ebsd_orig.grainId] = calcGrains(ebsd_orig('indexed'), ...
     'boundary', 'tight', 'angle', disorientation_threshold);
 grains_old.scanUnit = scan_unit;
 % for subtle orientation gradients, fast multi-scale clustering, https://doi.org/10.1016/j.ultramic.2013.04.009

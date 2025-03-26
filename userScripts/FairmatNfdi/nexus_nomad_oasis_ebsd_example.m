@@ -16,17 +16,20 @@ configdir = [thatone];
 thatone = 'CHANGEME';
 inputdir = [thatone '/unpacked'];
 outputdir = [thatone '/mtex'];
+addpath('userScripts/FairmatNfdi/tests');
 addpath(mtexdir);
 addpath(configdir);
 addpath(inputdir);
 addpath(outputdir);
 % diary 'diary.log'
 mtex_pref = configure_mtex_preferences();
-disp(getMTEXpref('xAxisDirection'));
-disp(getMTEXpref('zAxisDirection'));
+mtex_plot_default = plottingConvention();
+% disp(getMTEXpref('xAxisDirection'));
+% disp(getMTEXpref('zAxisDirection'));
 % diary off
 
 %% load configuration from dataset extraction Python script
+perform_io = false;
 case_id = '08';
 cfg_tbl = readtable([configdir ...
     '/harvest.examples.' case_id '.em.mtex.xls']);
@@ -52,11 +55,12 @@ writelines(strcat(replace(string( ...
 
 for row_idx = 3618:1:n_rows
     clearvars -except mtexdir configdir inputdir outputdir mtex_pref ...
-        case_id cfg_tbl n_rows ebsd_mime_types_to_use_mtex ...
+        perform_id case_id cfg_tbl n_rows ebsd_mime_types_to_use_mtex ...
         perf_file_name row_idx issues;
     % try
         cnvrsn = cfg_tbl{row_idx, 2}{1};
         ifpath_main = cfg_tbl{row_idx, 3}{1};
+        ifpath_main = 'userScripts/FairmatNfdi/tests/Forsterite.ctf';
         ifpath_supp = cfg_tbl{row_idx, 4}{1};
         ofpath = [outputdir '/' cfg_tbl{row_idx, 5}{1} '.nxs'];
         disp(['row_idx: ' int2str(row_idx) ' cnvrsn: ' cnvrsn]);
