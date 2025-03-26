@@ -1,4 +1,4 @@
-function status = nexus_write_ebsd_microstructure(ebsd_orig, fpath, parent)
+function status = nexus_write_ebsd_microstructure(ebsd_orig, fpath, parent, perform_io)
 % Generate extracted grains, grain- and phase boundary and triple point geometry
 
 % ebsd_orig
@@ -14,6 +14,9 @@ function status = nexus_write_ebsd_microstructure(ebsd_orig, fpath, parent)
 % grains were reconstructed, we can then export the geometry description
 % using NeXus classes
 
+if ~perform_io
+    return;
+end
 h5w = HdfFiveSeqHdl(fpath);
 
 scan_unit = 'n/a';

@@ -1,4 +1,4 @@
-function status = nexus_write_ebsd_odf(ebsd_orig, fpath, parent)
+function status = nexus_write_ebsd_odf(ebsd_orig, fpath, parent, perform_io)
 % Generate default ODF plots for H5Web and write data to NeXus/HDF5 file
 
 % ebsd_orig:
@@ -6,9 +6,12 @@ function status = nexus_write_ebsd_odf(ebsd_orig, fpath, parent)
 % parent: parent HDF5 group below which to write
 n_resolution = 2.0;  % of ODF plot
 
+if ~perform_io
+    return;
+end
 h5w = HdfFiveSeqHdl(fpath);
 
-grpnm = strcat(parent, ['/odf']);
+grpnm = strcat(parent, ['/odf1']);
 attr = io_attributes();
 attr.add('NX_class', 'NXmicrostructure_odf');
 ret = h5w.nexus_write_group(grpnm, attr);
@@ -26,13 +29,13 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
 
     if ~strcmp(ebsd_orig.mineralList{phase_idx}, 'notIndexed') & n_count > 0
 
-        grpnm = strcat(parent, ['/odf/odf' num2str(phase_id)]);
+        grpnm = strcat(parent, ['/odf/odf1/odf' num2str(phase_id)]);
         attr = io_attributes();
         attr.add('NX_class', 'NXmicrostructure_odf');
         % attr.add('comment', 'Orientation distribution function 10deg, 2.5deg resolution');
         ret = h5w.nexus_write_group(grpnm, attr);
 
-        grpnm = strcat(parent, ['/odf/odf' num2str(phase_id) '/configuration']);
+        grpnm = strcat(parent, ['/odf/odf1/odf' num2str(phase_id) '/configuration']);
         attr = io_attributes();
         attr.add('NX_class', 'NXobject');
         ret = h5w.nexus_write_group(grpnm, attr);
@@ -154,7 +157,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         % % % header = '%% alpha   beta    gamma   value';
         % % dat = [d, v(:)].';
 
-        grpnm = strcat(parent, ['/odf/odf' num2str(phase_id) '/phi_two_plot']);
+        grpnm = strcat(parent, ['/odf/odf1/odf' num2str(phase_id) '/phi_two_plot']);
         attr = io_attributes();
         attr.add('NX_class', 'NXdata');
         attr.add('signal', 'intensity');
@@ -220,7 +223,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         kth = 10;
         delta = 10.*degree;
 
-        grpnm = strcat(parent, ['/odf/odf' num2str(phase_id) '/kth_extrema']);
+        grpnm = strcat(parent, ['/odf/odf1/odf' num2str(phase_id) '/kth_extrema']);
         attr = io_attributes();
         attr.add('NX_class', 'NXobject');
         ret = h5w.nexus_write_group(grpnm, attr);

@@ -1,12 +1,15 @@
-function status = nexus_write_mtex_preferences(fpath, parent)
+function status = nexus_write_mtex_preferences(fpath, parent, perform_io)
 % Export current MTex and Matlab settings to NeXus/HDF5 file
 
 % fpath: path and filename of NeXus/HDF5 results file
 % parent: parent HDF5 group below which to write
 
-    mtex_pref = getMTEXpref;
-
+    if ~perform_io
+        return;
+    end
     h5w = HdfFiveSeqHdl(fpath);
+
+    mtex_pref = getMTEXpref;
 
     grpnm = strcat(parent, '/mtex');
     attr = io_attributes();

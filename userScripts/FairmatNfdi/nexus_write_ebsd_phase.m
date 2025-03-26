@@ -1,4 +1,4 @@
-function status = nexus_write_ebsd_phase(ebsd_orig, fpath, parent)
+function status = nexus_write_ebsd_phase(ebsd_orig, fpath, parent, perform_io)
 % Write list of phases to NeXus/HDF5 file
 
 % ebsd_orig:
@@ -7,7 +7,9 @@ function status = nexus_write_ebsd_phase(ebsd_orig, fpath, parent)
 
 % as white is a valid color in typical IPF plots black is used to mark
 % pixel which have no associated IPF color value
-
+if ~perform_io
+    return;
+end
 h5w = HdfFiveSeqHdl(fpath);
 
 n_phases = length(ebsd_orig.CSList);

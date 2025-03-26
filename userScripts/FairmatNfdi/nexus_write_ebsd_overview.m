@@ -1,21 +1,24 @@
-function status = nexus_write_ebsd_overview(ebsd_grd, fpath, parent)
+function status = nexus_write_ebsd_overview(ebsd_grd, fpath, parent, perform_io)
 % Generate default plot for H5Web and write data to NeXus/HDF5 file
 
 % ebsd_obj
 % fpath: path and filename of NeXus/HDF5 results file
 % parent: parent HDF5 group below which to write
 
+if ~perform_io
+    return;
+end
+h5w = HdfFiveSeqHdl(fpath);
+
 grid = size(ebsd_grd.phase);
 scan_unit = 'n/a';
 if isprop(ebsd_grd, 'scanUnit')
     if strcmp(ebsd_grd.scanUnit, 'um')
-        scan_unit = 'µm'; 
+        scan_unit = 'µm';
     else
         scan_unit = lower(ebsd_grd.scanUnit);
     end
 end
-
-h5w = HdfFiveSeqHdl(fpath);
 
 %% compute and add band-contrast overview image
 grpnm = strcat(parent, '/roi');
@@ -87,7 +90,7 @@ if strcmp(which_descriptor, 'normalized_band_contrast')
 elseif strcmp(which_descriptor, 'normalized_confidence_index')
     ret = h5w.nexus_write(dsnm, 'Region-of-interest normalized confidence index', attr);
 else
-    ret = h5w.nexus_write(dsnm, 'Region-of-interest', attr); 
+    ret = h5w.nexus_write(dsnm, 'Region-of-interest', attr);
 end
 disp('NeXus/HDF5 exporting of ROI overview image was successful');
 status = logical(1);

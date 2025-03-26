@@ -1,7 +1,10 @@
-function status = nexus_write_init(fpath)
+function status = nexus_write_init(fpath, perform_io)
 % init fresh NeXus/HDF5 file with path and file name given by fpath
 
 % disp(['Reporting results to NeXus/HDF5 to ' fpath]);
+if ~perform_io
+    return;
+end
 h5w = HdfFiveSeqHdl(fpath);
 ret = h5w.nexus_create(fpath);
 ret = h5w.nexus_open('H5F_ACC_RDWR');
@@ -27,21 +30,6 @@ grpnm = '/entry1/roi1/ebsd/indexing';
 attr = io_attributes();
 attr.add('NX_class', 'NXprocess');
 ret = h5w.nexus_write_group(grpnm, attr);
-
-% grpnm = '/entry1/roi1/ebsd/indexing/odf';
-% attr = io_attributes();
-% attr.add('NX_class', 'NXmicrostructure_odf');
-% ret = h5w.nexus_write_group(grpnm, attr);
-
-% grpnm = '/entry1/roi1/ebsd/indexing/pf';
-% attr = io_attributes();
-% attr.add('NX_class', 'NXmicrostructure_pf');
-% ret = h5w.nexus_write_group(grpnm, attr);
-
-% grpnm = '/entry1/roi1/ebsd/indexing/microstructure1';
-% attr = io_attributes();
-% attr.add('NX_class', 'NXmicrostructure');
-% ret = h5w.nexus_write_group(grpnm, attr);
 
 status = logical(1);
 

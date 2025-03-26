@@ -1,4 +1,4 @@
-function status = nexus_write_ebsd_phase_ipf(ebsd_orig, ebsd_grd, fpath, parent)
+function status = nexus_write_ebsd_phase_ipf(ebsd_orig, ebsd_grd, fpath, parent, perform_io)
 % Generate default inverse pole figure plot (for each phase) for H5Web and write data to NeXus/HDF5 file
 
 % ebsd_orig, ebsd_grd
@@ -7,6 +7,9 @@ function status = nexus_write_ebsd_phase_ipf(ebsd_orig, ebsd_grd, fpath, parent)
 
 % as white is a valid color in typical IPF plots, black is used to mark
 % pixels which were not indexed to belong to the phase in question
+if ~perform_io
+    return;
+end
 h5w = HdfFiveSeqHdl(fpath);
 
 n_phases = length(ebsd_grd.CSList);

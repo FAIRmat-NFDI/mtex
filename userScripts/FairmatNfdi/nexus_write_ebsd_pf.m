@@ -1,4 +1,4 @@
-function status = nexus_write_ebsd_pf(ebsd_orig, fpath, parent)
+function status = nexus_write_ebsd_pf(ebsd_orig, fpath, parent, perform_io)
 % Generate default PF plots recomputed for H5Web and write data to NeXus/HDF5 file
 
 % ebsd_orig:
@@ -6,9 +6,12 @@ function status = nexus_write_ebsd_pf(ebsd_orig, fpath, parent)
 % parent: parent HDF5 group below which to write
 n_resolution = 0.01; % of PF plot
 
+if ~perform_io
+    return;
+end
 h5w = HdfFiveSeqHdl(fpath);
 
-grpnm = strcat(parent, ['/pf']);
+grpnm = strcat(parent, ['/pf1']);
 attr = io_attributes();
 attr.add('NX_class', 'NXmicrostructure_pf');
 ret = h5w.nexus_write_group(grpnm, attr);
@@ -34,13 +37,13 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         % colorbar
 
         for k = 1:1:length(miller_set)
-            grpnm = strcat(parent, ['/pf/pf' num2str(pf_id)]);
+            grpnm = strcat(parent, ['/pf1/pf' num2str(pf_id)]);
             attr = io_attributes();
             attr.add('NX_class', 'NXdata');
             attr.add('comment1', 'Pole figure recomputed from equally-named odf')
             attr.add('comment2', 'PF looks as for MTex xEast, zIntoPlane but X and Y each have different sign?');
             ret = h5w.nexus_write_group(grpnm, attr);
-            grpnm = strcat(parent, ['/pf/pf' num2str(pf_id) '/configuration']);
+            grpnm = strcat(parent, ['/pf1/pf' num2str(pf_id) '/configuration']);
             attr = io_attributes();
             attr.add('NX_class', 'NXobject');
             ret = h5w.nexus_write_group(grpnm, attr);
@@ -129,7 +132,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
                 end
             end
 
-            grpnm = strcat(parent, ['/pf/pf' num2str(pf_id) '/pf_plot']);
+            grpnm = strcat(parent, ['/pf1/pf' num2str(pf_id) '/pf_plot']);
             attr = io_attributes();
             attr.add('NX_class', 'NXdata');
             attr.add('signal', 'intensity');
