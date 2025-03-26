@@ -19,7 +19,7 @@ h5w = HdfFiveSeqHdl(fpath);
 scan_unit = 'n/a';
 if isprop(ebsd_orig, 'scanUnit')
     if strcmp(ebsd_orig.scanUnit, 'um')
-        scan_unit = 'µm'; 
+        scan_unit = 'µm';
     else
         scan_unit = lower(ebsd_orig.scanUnit);
     end
@@ -94,7 +94,7 @@ clearvars bnd_vrts nn;
 % eventually wrap this into an ROI
 grpnm = strcat(parent, '/microstructure1');
 attr = io_attributes();
-attr.add('NX_class', 'NXms_recon');
+attr.add('NX_class', 'NXmicrostructure');
 ret = h5w.nexus_write_group(grpnm, attr);
 
 grpnm = strcat(parent, '/microstructure1/configuration');
@@ -110,29 +110,24 @@ attr.add('unit', '°');
 ret = h5w.nexus_write(dsnm, disorientation_threshold / pi * 180., attr);
 
 
-%% instantiate ms_feature_set
-grpnm = strcat(parent, '/microstructure1/ms_feature_set1');
-attr = io_attributes();
-attr.add('NX_class', 'NXms_feature_set');
-ret = h5w.nexus_write_group(grpnm, attr);
+%% instantiate storage of representation of the primitives
+%% building the interface network
+grpnm = strcat(parent, '/microstructure1');
 dsnm = strcat(grpnm, '/dimensionality');
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(2), attr);
 % generic classes
-grpnm = strcat(parent, '/microstructure1/ms_feature_set1/points');
+grpnm = strcat(parent, '/microstructure1/cg_point');
 attr = io_attributes();
-attr.add('NX_class', 'NXobject');
+attr.add('NX_class', 'NXcg_point');
 ret = h5w.nexus_write_group(grpnm, attr);
-grpnm = strcat(parent, '/microstructure1/ms_feature_set1/lines');
+grpnm = strcat(parent, '/microstructure1/cg_polyline');
 attr = io_attributes();
-attr.add('NX_class', 'NXobject');
+attr.add('NX_class', 'NXcg_polyline');
 ret = h5w.nexus_write_group(grpnm, attr);
 
 %% vertices
-grpnm = strcat(parent, '/microstructure1/ms_feature_set1/points/geometry');
-attr = io_attributes();
-attr.add('NX_class', 'NXcg_point_set');
-ret = h5w.nexus_write_group(grpnm, attr);
+grpnm = strcat(parent, '/microstructure1/cg_point');
 dsnm = strcat(grpnm, '/cardinality');
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(size(grains_old.V, 1)), attr);
@@ -151,10 +146,7 @@ ret = h5w.nexus_write(dsnm, double(grains_old.V)', attr);
 % problem the term facet is used for both a discretization of an interface
 % patch as well as for describing a specific (low-energy or low Miller
 % indices) face of a crystal
-grpnm = strcat(parent, '/microstructure1/ms_feature_set1/lines/geometry');
-attr = io_attributes();
-attr.add('NX_class', 'NXcg_polyline_set');
-ret = h5w.nexus_write_group(grpnm, attr);
+grpnm = strcat(parent, '/microstructure1/cg_polyline');
 dsnm = strcat(grpnm, '/cardinality');
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(size(grains_old.boundary.F, 1)), attr);
@@ -166,7 +158,7 @@ ret = h5w.nexus_write(dsnm, uint32(1), attr);
 % ret = h5w.nexus_write(dsnm, uint32(1:1:size(grains_old.boundary.F, 1)), attr);
 dsnm = strcat(grpnm, '/polylines');
 attr = io_attributes();
-attr.add('depends_on', strcat(parent, '/microstructure1/ms_feature_set1/points/geometry'));
+attr.add('depends_on', strcat(parent, '/microstructure1/cg_point'));
 ret = h5w.nexus_write(dsnm, uint32(reshape( ...
     grains_old.boundary.F', [1, 2*length(grains_old.boundary.F')])), attr);
 
@@ -185,24 +177,23 @@ attr.add('unit', grains_old.scanUnit);
 ret = h5w.nexus_write(dsnm, facet_length, attr);
 
 %% store grains
-grpnm = strcat(parent, ['/microstructure1/ms_feature_set1' ...
-    '/crystallite_projections']);
+grpnm = strcat(parent, ['/microstructure1/crystals']);
 attr = io_attributes();
-attr.add('NX_class', 'NXms_feature_set');
+attr.add('NX_class', 'NXobject');
 ret = h5w.nexus_write_group(grpnm, attr);
-dsnm = strcat(grpnm, '/cardinality');
+dsnm = strcat(grpnm, '/number_of_crystals');
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(size(grains_old.id, 1)), attr);
-dsnm = strcat(grpnm, '/identifier_offset');
+dsnm = strcat(grpnm, '/identifier_offset_crystal');
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
-% dsnm = strcat(grpnm, '/identifier');
+% dsnm = strcat(grpnm, '/identifier_crystal');
 % going for implicit naming, or should we use explicit naming?
 % attr = io_attributes();
 % ret = h5w.nexus_write(dsnm, uint32(grains_old.id), attr);
 
 %% store grain descriptors
-dsnm = strcat(grpnm, '/pixel_area');  % which type of area all pixels, polygon area?
+dsnm = strcat(grpnm, '/area');  % which type of area all pixels, polygon area?
 area_per_ebsd_pixel = polyshape(ebsd_orig.unitCell).area;  % clock-wise winding order
 % area_per_ebsd_pixel = (max(max(ebsd_orig.unitCell)) - min(min(ebsd_orig.unitCell)))^2;
 if length(ebsd_orig.unitCell) ~= 4
@@ -212,12 +203,12 @@ attr = io_attributes();
 attr.add('unit', strcat(grains_old.scanUnit, '^2'));
 ret = h5w.nexus_write(dsnm, double(grains_old.grainSize * area_per_ebsd_pixel), attr);
 clearvars area_per_ebsd_pixel;
-dsnm = strcat(grpnm, '/phase_identifier');
+dsnm = strcat(grpnm, '/identifier_phase');
 attr = io_attributes();
 % ##MK::TODO implement case that phases might be not indexed
 ret = h5w.nexus_write(dsnm, uint32(grains_old.phaseId), attr);
 % evaluate if grain has boundary contact
-% convenience, can be logically/topologically inferred from entry1/interfaces 
+% convenience, can be logically/topologically inferred from entry1/interfaces
 dsnm = strcat(grpnm, '/boundary_contact');
 attr = io_attributes();
 % boundary_contact = logical(zeros(size(grains_old.id)));
@@ -226,15 +217,14 @@ boundary_contact(max(grain_ids)) = any(grain_ids == 0, 1);
 clearvars grain_ids;
 ret = h5w.nexus_write(dsnm, uint8(boundary_contact), attr);
 clearvars boundary_contact;
-dsnm = strcat(grpnm, '/grain_orientation_spread');
+dsnm = strcat(grpnm, '/orientation_spread');
 attr = io_attributes();
 attr.add( 'unit', '°');
 ret = h5w.nexus_write(dsnm, double(grains_old.prop.GOS / pi * 180.), attr);
 
-grpnm = strcat(parent, ['/microstructure1/ms_feature_set1' ...
-    '/crystallite_projections/mean_rotation']);
+grpnm = strcat(parent, ['/microstructure1/crystals/mean_rotation']);
 attr = io_attributes();
-attr.add('NX_class', 'NXrotation_set');
+attr.add('NX_class', 'NXrotations');
 % ##MK::TODO why not an orientation set ??
 ret = h5w.nexus_write_group(grpnm, attr);
 dsnm = strcat(grpnm, '/parameterization');
@@ -256,17 +246,16 @@ clearvars quat;
 % ideally for this the grains should be stored as a half-edge data
 % structure instead of face, vertex lists
 
-%% store crystal boundaries which can be homo (aka grain) or hetero (phase) boundaries/interfaces 
+%% store crystal boundaries which can be homo (aka grain) or hetero (phase) boundaries/interfaces
 % (not their facets as a boundary can be discretized with differing number of support points)
 % interfaces are pairs of half-edges because an interface separates two crystals
 % each interface is discretized using at least one so-called facet, i.e.
 % typically much more facets (polyline segments or triangles exist than
 % conceptual interfaces
 
-grpnm = strcat(parent, ['/microstructure1/ms_feature_set1' ...
-    '/interface_projections']);
+grpnm = strcat(parent, ['/microstructure1/interfaces']);
 attr = io_attributes();
-attr.add('NX_class', 'NXms_feature_set');
+attr.add('NX_class', 'NXobject');
 ret = h5w.nexus_write_group(grpnm, attr);
 %% so far we only know the polyline segments but interfaces are composed
 % eventually of multiple such segments because the vertices from MTex
@@ -274,7 +263,7 @@ ret = h5w.nexus_write_group(grpnm, attr);
 % vertices discretizing the facets of the Voronoi cells from which
 % the individual regions are composed,
 % group interface facets to grains via hashing min/max crystal id pair
-dsnm = strcat(grpnm, '/cardinality');
+dsnm = strcat(grpnm, '/number_of_interfaces');
 attr = io_attributes();
 mi = min(grains_old.boundary.grainId');
 mx = max(grains_old.boundary.grainId');
@@ -305,18 +294,17 @@ ret = h5w.nexus_write(dsnm, uint32(1), attr);
 % 0 marks the virtual zero grain which specifies the boundary of the ROI
 dsnm = strcat(grpnm, '/crystallites');
 attr = io_attributes();
-attr.add('depends_on', strcat(parent, ['/microstructure1' ...
-    '/ms_feature_set1/crystallite_projections']));
+attr.add('depends_on', strcat(parent, ['/microstructure1/crystals']));
 ret = h5w.nexus_write(dsnm, crystal_id_pair, attr);
-dsnm = strcat(grpnm, '/phase_identifier_offset');
+dsnm = strcat(grpnm, '/identifier_phase_offset');
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(0), attr);
 
-dsnm = strcat(grpnm, '/phase_identifier');
+dsnm = strcat(grpnm, '/identifier_phase');
 attr = io_attributes();
 % check that for each facet with the same interface_hash
 % the phase_id pair is exactly the same!
-phase_id_pair = int64(zeros(size(crystal_id_pair))) - 1; % mark unknown with -1 
+phase_id_pair = int64(zeros(size(crystal_id_pair))) - 1; % mark unknown with -1
 mi = uint32(min(grains_old.boundary.phaseId'));
 mx = uint32(max(grains_old.boundary.phaseId'));
 for idx = 1:1:size(grains_old.boundary.phaseId, 1)
@@ -352,12 +340,11 @@ clearvars idx interface_id interface_idx mi mx phase_id_pair crystal_id_pair;
 
 
 %% triple junctions
-grpnm = strcat(parent, ['/microstructure1' ...
-    '/ms_feature_set1/triple_line_projections']);
+grpnm = strcat(parent, ['/microstructure1/triple_junctions']);
 attr = io_attributes();
-attr.add('NX_class', 'NXms_feature_set');
+attr.add('NX_class', 'NXobject');
 ret = h5w.nexus_write_group(grpnm, attr);
-dsnm = strcat(grpnm, '/cardinality');
+dsnm = strcat(grpnm, '/number_of_junctions');
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(size(grains_old.triplePoints.id, 1)), attr);
 dsnm = strcat(grpnm, '/identifier_offset');
@@ -365,28 +352,24 @@ attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
 dsnm = strcat(grpnm, '/location');  % THE SPECIAL SITUATION FOR indexing with offset +1 is that
 attr = io_attributes();
-attr.add('depends_on', strcat(parent, ['/microstructure1' ...
-    '/ms_feature_set1/points/geometry']));
+attr.add('depends_on', strcat(parent, ['/microstructure1/cg_point/geometry']));
 ret = h5w.nexus_write(dsnm, uint32(grains_old.triplePoints.id), attr);
 
-dsnm = strcat(grpnm, '/crystallite_projections');
+dsnm = strcat(grpnm, '/crystals');
 attr = io_attributes();
-attr.add('depends_on', strcat(parent, ['/microstructure1' ...
-    '/ms_feature_set1/crystallite_projections']));
+attr.add('depends_on', strcat(parent, ['/microstructure1/crystals']));
 ret = h5w.nexus_write(dsnm, uint32(grains_old.triplePoints.grainId)', attr);
 
 %% ##MK::TODO
 dsnm = strcat(grpnm, '/polylines');
 attr = io_attributes();
-attr.add('depends_on', strcat(parent, ['/microstructure1' ...
-    '/ms_feature_set1/lines/geometry/polylines']));
+attr.add('depends_on', strcat(parent, ['/microstructure1/cg_polyline']));
 ret = h5w.nexus_write(dsnm, uint32(grains_old.triplePoints.boundaryId)', attr);
 
 dsnm = strcat(grpnm, '/interfaces');
 % the adjoining interface, (also see above comment) not necessary
 attr = io_attributes();
-attr.add('depends_on', ['/entry1/roi1/ebsd/microstructure1' ...
-    '/ms_feature_set1/interface_projections']);
+attr.add('depends_on', ['/entry1/roi1/ebsd/microstructure1/interfaces']);
 interface_ids = int64(zeros([3, size(grains_old.triplePoints.boundaryId, 1)]) - 1);
 bnd_idxs = grains_old.triplePoints.boundaryId';
 a_bnd_hsh = segment_to_interface_lu(bnd_idxs(1, :));

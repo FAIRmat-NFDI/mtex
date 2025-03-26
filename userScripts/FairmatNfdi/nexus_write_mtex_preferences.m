@@ -10,9 +10,9 @@ function status = nexus_write_mtex_preferences(fpath, parent)
 
     grpnm = strcat(parent, '/mtex');
     attr = io_attributes();
-    attr.add('NX_class', 'NXms_mtex_config');
+    attr.add('NX_class', 'NXmicrostructure_mtex_config');
     ret = h5w.nexus_write_group(grpnm, attr);
-    
+
     % resetting attr and use it until again an HDF5 node with
     % attributes is required
 %% versions
@@ -20,7 +20,7 @@ function status = nexus_write_mtex_preferences(fpath, parent)
     attr = io_attributes();
     attr.add('NX_class', 'NXprogram');
     ret = h5w.nexus_write_group(grpnm, attr);
-    
+
     dsnm = strcat(grpnm, '/program');
     attr = io_attributes();
     attr.add('version', version);
@@ -33,9 +33,10 @@ function status = nexus_write_mtex_preferences(fpath, parent)
 
     dsnm = strcat(grpnm, '/program');
     attr = io_attributes();
-    attr.add('version', mtex_pref.version);
-    ret = h5w.nexus_write(dsnm, 'MTex', attr);    
-%% conventions    
+    mtex_version = strtrim(fileread('../../../mtex-version.txt'));
+    attr.add('version', mtex_version);  % mtex_pref.version);
+    ret = h5w.nexus_write(dsnm, 'MTex', attr);
+%% conventions
     grpnm = strcat(parent, '/mtex/conventions');
     attr = io_attributes();
     attr.add('NX_class', 'NXcollection');
@@ -145,7 +146,7 @@ function status = nexus_write_mtex_preferences(fpath, parent)
         ret = h5w.nexus_write(dsnm, uint8(1), attr);
     else
         ret = h5w.nexus_write(dsnm, uint8(0), attr);
-    end 
+    end
     dsnm = strcat(grpnm, '/text_interpreter');
     ret = h5w.nexus_write(dsnm, mtex_pref.textInterpreter, attr);
     dsnm = strcat(grpnm, '/voronoi_method');
@@ -189,14 +190,14 @@ function status = nexus_write_mtex_preferences(fpath, parent)
         ret = h5w.nexus_write(dsnm, uint8(0), attr);
     end
 
-%% paths 
+%% paths
     % switch off these annotations as I do not want share my local system configuration
     if 1 == 0
         grpnm = strcat(parent, '/mtex/path');
         attr.add('NX_class', 'NXcollection');
         ret = h5w.nexus_write_group(grpnm, attr);
         attr = io_attributes();
-       
+
         dsnm = strcat(grpnm, '/mtex');
         ret = h5w.nexus_write(dsnm, mtex_pref.mtexPath, attr);
         dsnm = strcat(grpnm, '/data');

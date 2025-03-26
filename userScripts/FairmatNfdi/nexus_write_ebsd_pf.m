@@ -1,7 +1,7 @@
 function status = nexus_write_ebsd_pf(ebsd_orig, fpath, parent)
 % Generate default PF plots recomputed for H5Web and write data to NeXus/HDF5 file
 
-% ebsd_orig: 
+% ebsd_orig:
 % fpath: path and filename of NeXus/HDF5 results file
 % parent: parent HDF5 group below which to write
 n_resolution = 0.01; % of PF plot
@@ -10,7 +10,7 @@ h5w = HdfFiveSeqHdl(fpath);
 
 grpnm = strcat(parent, ['/pf']);
 attr = io_attributes();
-attr.add('NX_class', 'NXms_pf_set');
+attr.add('NX_class', 'NXmicrostructure_pf');
 ret = h5w.nexus_write_group(grpnm, attr);
 
 pf_id = 1;
@@ -26,28 +26,28 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
     end
 
     if ~strcmp(ebsd_orig.mineralList{phase_idx}, 'notIndexed') & n_count > 0
-        
+
         cs = ebsd_orig.CSList{1 + phase_id};
         miller_set = Miller({0, 0, 1}, {1, -1, 0}, {1, 1, 1}, {2, 1, 0}, cs);
         % estimated specific polefigure from ebsd dataset
         % plotPDF(odf, miller_set);
         % colorbar
-        
+
         for k = 1:1:length(miller_set)
             grpnm = strcat(parent, ['/pf/pf' num2str(pf_id)]);
             attr = io_attributes();
-            attr.add('NX_class', 'NXms_pf');
+            attr.add('NX_class', 'NXdata');
             attr.add('comment1', 'Pole figure recomputed from equally-named odf')
             attr.add('comment2', 'PF looks as for MTex xEast, zIntoPlane but X and Y each have different sign?');
             ret = h5w.nexus_write_group(grpnm, attr);
             grpnm = strcat(parent, ['/pf/pf' num2str(pf_id) '/configuration']);
             attr = io_attributes();
             attr.add('NX_class', 'NXobject');
-            ret = h5w.nexus_write_group(grpnm, attr);        
-        
+            ret = h5w.nexus_write_group(grpnm, attr);
+
             phase_name = ebsd_orig.mineralList{phase_idx};
             % disp(phase_name);
-            
+
             % disp(cs);
             specimen_symmetry_point_group = 'triclinic';
             ss = specimenSymmetry(specimen_symmetry_point_group);
@@ -76,7 +76,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
             ret = h5w.nexus_write(dsnm, ...
                 ['{' num2str(miller_set(k).h) ...
                 ', ' num2str(miller_set(k).k) ...
-                ', ' num2str(miller_set(k).l) '}'], attr);            
+                ', ' num2str(miller_set(k).l) '}'], attr);
 
             % exemplar code for different type of default ODFs
             odf = calcDensity(ebsd_orig(phase_name).orientations, ...
@@ -87,7 +87,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
                 ', ' num2str(miller_set(k).k) ...
                 ', ' num2str(miller_set(k).l) '}'];
             % disp(pf_name);
-        
+
             pf = calcPDF(odf, miller_set(k));
             [intensity, maxima] = max(pf, 'numLocal', 10);
             % typical representation of polefigure is via S2Grid whose points are not
@@ -105,12 +105,12 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
                     XYZ(2, idx) = Y(j);
                 end
             end
-        
+
             % inverse stereographic projection
             % R^2 = X^2 + Y^2
             % (X,Y,0) -> (x,y,z) = (2X/(R^2 + 1), 2Y/(R^2 + 1), (R^2 - 1)/(R^2 + 1))
             % https://www.physicsforums.com/threads/inverse-of-the-stereographic-projection.108175/
-            
+
             xyz = zeros(3, length(X) * length(Y));
             Rsqr = XYZ(1, :).^2 + XYZ(2, :).^2;
             xyz(1, :) = 2.*XYZ(1, :) ./ (Rsqr + 1);
@@ -118,7 +118,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
             xyz(3, :) = (Rsqr - 1) ./ (Rsqr + 1);
             vec = normalize(vector3d(xyz, 'antipodal'));
             intensity = eval(pf, vec); % vector3d(1, 0, 0, 'antipodal'));
-            
+
             interp_values = nan([length(X), length(Y)]);
             for j = 1:1:length(Y)
                 for i = 1:1:length(X)
@@ -128,7 +128,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
                     end
                 end
             end
-            
+
             grpnm = strcat(parent, ['/pf/pf' num2str(pf_id) '/pf_plot']);
             attr = io_attributes();
             attr.add('NX_class', 'NXdata');
@@ -137,22 +137,22 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
             attr.add('axis_x_indices', uint32(0));
             attr.add('axis_y_indices', uint32(1));
             ret = h5w.nexus_write_group(grpnm, attr);
-            
+
             dsnm = strcat(grpnm, '/title');
             attr = io_attributes();
             ret = h5w.nexus_write(dsnm, ...
                 ['PF Miller ' miller_indices ' ' phase_name], attr);
-            
+
             dsnm = strcat(grpnm, '/intensity');
             attr = io_attributes();
             % ##MK::TODO single precision to reduce size for OASIS demo
             ret = h5w.nexus_write(dsnm, single(interp_values), attr);
-            
+
             dsnm = strcat(grpnm, '/axis_x');
             attr = io_attributes();
             attr.add('long_name', ['x']);
             ret = h5w.nexus_write(dsnm, double(X), attr);
-            
+
             dsnm = strcat(grpnm, '/axis_y');
             attr = io_attributes();
             attr.add('long_name', ['y']);

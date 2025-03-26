@@ -19,7 +19,7 @@ grid = size(ebsd_grd);
 scan_unit = 'n/a';
 if isprop(ebsd_grd, 'scanUnit')
     if strcmp(ebsd_grd.scanUnit, 'um')
-        scan_unit = 'µm'; 
+        scan_unit = 'µm';
     else
         scan_unit = lower(ebsd_grd.scanUnit);
     end
@@ -36,7 +36,7 @@ ret = h5w.nexus_write(dsnm, uint64(n_count_orig_total), attr);
 phase_id = 0;
 for phase_idx = 1:1:length(ebsd_grd.mineralList)
     % TODO: add a map for all those points not indexed
-    
+
     grpnm = strcat(parent, ['/phase' num2str(phase_id)]);
     dsnm = strcat(grpnm, '/number_of_scan_points');
     % for some examples the phaseMap starts at -1 for the notIndex
@@ -93,12 +93,12 @@ for phase_idx = 1:1:length(ebsd_grd.mineralList)
             else
                 phase_i_idx = uint32(ebsd_grd.id(ebsd_grd.phase == phase_id));
             end
-            nxs_ipf_map_u8_f(:, phase_i_idx) = colors(1:length(phase_i_idx), :)';  
+            nxs_ipf_map_u8_f(:, phase_i_idx) = colors(1:length(phase_i_idx), :)';
 
             grpnm = strcat(parent, ['/phase' num2str(phase_id) ...
                 '/ipf' num2str(proj_idx)]);  % lower(proj_name(proj_idx))]);
             attr = io_attributes();
-            attr.add('NX_class', 'NXms_ipf');
+            attr.add('NX_class', 'NXdata');
             attr.add('depends_on', ['phase' num2str(phase_id)]);
             ret = h5w.nexus_write_group(grpnm, attr);
 
@@ -106,7 +106,7 @@ for phase_idx = 1:1:length(ebsd_grd.mineralList)
             attr = io_attributes();
             v = proj_vector(proj_idx);
             ret = h5w.nexus_write(dsnm, single([v.x v.y v.z]), attr);
-            
+
             % dsnm = strcat(grpnm, '/bitdepth');
             % ret = h5w.nexus_write(dsnm, uint32(8), attr);
             % read from mtex_pref instead
@@ -183,7 +183,7 @@ for phase_idx = 1:1:length(ebsd_grd.mineralList)
             % or make a color fingerprint, i.e. defined orientation set pump
             % through color code and then rendered as n_orientations x 3 RGB
             % array this could also be used nicely for machine learning
-    
+
             dsnm = strcat(grpnm, '/data');
             sz = size(im);
             low_level = uint8(zeros(fliplr(sz)));

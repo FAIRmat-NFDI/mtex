@@ -20,24 +20,24 @@ phase_id = 0;
 for phase_idx = 1:1:n_phases
     % there are more optional fields in the
     % NXem_ebsd_crystal_structure_model base class
-    
+
     grpnm = strcat(parent, ['/phase' num2str(phase_id)]);
     attr = io_attributes();
-    attr.add('NX_class', 'NXcrystal_structure');
+    attr.add('NX_class', 'NXphase');
     ret = h5w.nexus_write_group(grpnm, attr);
     attr = io_attributes();
 
-    dsnm = strcat(grpnm, '/phase_identifier');
+    dsnm = strcat(grpnm, '/identifier');
     ret = h5w.nexus_write(dsnm, uint32(phase_id), attr);
     % in NeXus 0 is used for not indexed, Cstyle first i.e. 0th phase
-    dsnm = strcat(grpnm, '/phase_name');
+    dsnm = strcat(grpnm, '/name');
     ret = h5w.nexus_write(dsnm, ebsd_orig.mineralList{phase_idx}, attr);
 
     % additional information for true point groups
-    if ~strcmp(ebsd_orig.mineralList{phase_idx}, 'notIndexed') 
+    if ~strcmp(ebsd_orig.mineralList{phase_idx}, 'notIndexed')
         dsnm = strcat(grpnm, '/point_group');
         ret = h5w.nexus_write(dsnm, ebsd_orig.CSList{phase_idx}.pointGroup, attr);
-        
+
         dsnm = strcat(grpnm, '/unit_cell_abc');
         unit_cell_abc = [ebsd_orig.CSList{phase_idx}.aAxis.x ...
                          ebsd_orig.CSList{phase_idx}.bAxis.y ...
@@ -46,7 +46,7 @@ for phase_idx = 1:1:n_phases
         attr = io_attributes();
         attr.add('units', 'nm');
         ret = h5w.nexus_write(dsnm, unit_cell_abc, attr);
-        
+
         dsnm = strcat(grpnm, '/unit_cell_alphabetagamma');
         unit_cell_alphabetagamma = [ebsd_orig.CSList{phase_idx}.alpha ...
                                     ebsd_orig.CSList{phase_idx}.beta ...
@@ -55,7 +55,7 @@ for phase_idx = 1:1:n_phases
         attr = io_attributes();
         attr.add('units', '°');
         ret = h5w.nexus_write(dsnm, unit_cell_alphabetagamma, attr);
-        attr = io_attributes();   
+        attr = io_attributes();
         % TODO add all the other fields relevant
     end
 

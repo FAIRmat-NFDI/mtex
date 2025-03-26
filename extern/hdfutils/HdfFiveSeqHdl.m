@@ -4,8 +4,8 @@ classdef HdfFiveSeqHdl
         dspcid
         plistid
         dsetid
-    	fileid
-    	h5resultsfn
+        fileid
+        h5resultsfn
         verbose
     end
     methods
@@ -50,7 +50,7 @@ classdef HdfFiveSeqHdl
         function r = nexus_close(obj)  % , previous_status )
             % low-level function to release dangling object handles correctly to not leave the handle manager polluted after an access to an object
             % current_status = previous_status;
-	        if H5I.is_valid(obj.dspcid)
+            if H5I.is_valid(obj.dspcid)
                 H5S.close(obj.dspcid);
             end
             if H5I.is_valid(obj.plistid)
@@ -76,7 +76,7 @@ classdef HdfFiveSeqHdl
                     disp('Checking a chain of hopefully existing links...');
                 end
                 curr_loc_id = obj.fileid;
-	            % curr_group = '';
+                % curr_group = '';
                 % https://gist.github.com/jzrake/3025642
                 for i = 1:length(level_by_level)
                     curr_group = level_by_level{i}; % ['/', level_by_level{i}];
@@ -110,7 +110,7 @@ classdef HdfFiveSeqHdl
                         end
                         if H5I.is_valid(next_loc_id)
                             if curr_loc_id ~= obj.fileid
-                                % check if we have arrived at the leaf, write attributes then                            
+                                % check if we have arrived at the leaf, write attributes then
                                 if H5I.is_valid(curr_loc_id)
                                     if i == length(level_by_level)
                                         obj.nexus_write_attributes( ...
@@ -174,7 +174,7 @@ classdef HdfFiveSeqHdl
                                     k = keys(attrs.chr_arr);
                                     v = values(attrs.chr_arr);
                                     % ... but a cell of character arrays for chr_arr
-                                end                                    
+                                end
                             else
                                 % because attributes does not for now work
                                 % with multimaps we need an inelegant case
@@ -184,7 +184,7 @@ classdef HdfFiveSeqHdl
                                     v = values(attrs.u08);
                                 elseif strcmp(props{i}, 'i08')
                                     k = keys(attrs.i08);
-                                    v = values(attrs.i08);                                    
+                                    v = values(attrs.i08);
                                 elseif strcmp(props{i}, 'u16')
                                     k = keys(attrs.u16);
                                     v = values(attrs.u16);
@@ -202,7 +202,7 @@ classdef HdfFiveSeqHdl
                                     v = values(attrs.u64);
                                 elseif strcmp(props{i}, 'i64')
                                     k = keys(attrs.i64);
-                                    v = values(attrs.i64);      
+                                    v = values(attrs.i64);
                                 elseif strcmp(props{i}, 'f32')
                                     k = keys(attrs.f32);
                                     v = values(attrs.f32);
@@ -379,7 +379,7 @@ classdef HdfFiveSeqHdl
                             % maybe this branch is unnecessary ##MKas the
                             % branch code is the same in both cases
                             if obj.verbose
-    							disp('H5I.is_valid(obj.dsetid)');
+                                disp('H5I.is_valid(obj.dsetid)');
                             end
                             H5D.write(obj.dsetid, dtyp, 'H5S_ALL', obj.dspcid, 'H5P_DEFAULT', val);  % before 'H5S_ALL'
                             if obj.verbose
@@ -403,16 +403,16 @@ classdef HdfFiveSeqHdl
                                 disp('H5I.is_valid(obj.plistid)');
                             end
                             % chunk_rank = ifo.dims;
-							chunk_dims = [max(ifo.chunk)];
+                            chunk_dims = [max(ifo.chunk)];
                             H5P.set_chunk(obj.plistid, chunk_dims );
                             H5P.set_deflate(obj.plistid, ifo.compression_opts);
                         end
                     end
 
                     rank = 1;
-					dims = [max(ifo.shape)];
+                    dims = [max(ifo.shape)];
                     maxdims = [max(ifo.shape)]; % ##MK >1 shape value can be on the first or second entry
-					obj.dspcid = H5S.create_simple(rank, dims, maxdims);
+                    obj.dspcid = H5S.create_simple(rank, dims, maxdims);
                     if H5I.is_valid(obj.dspcid)
                         if obj.verbose
                             disp('H5I.is_valid(obj.dspcid)');
@@ -456,7 +456,7 @@ classdef HdfFiveSeqHdl
                                 disp('H5I.is_valid(obj.plistid)');
                             end
                             % chunk_rank = ifo.dims;
-						    chunk_dims = fliplr(ifo.chunk);
+                            chunk_dims = fliplr(ifo.chunk);
                             H5P.set_chunk(obj.plistid, chunk_dims );
                             H5P.set_deflate(obj.plistid, ifo.compression_opts);
                         end
@@ -469,10 +469,10 @@ classdef HdfFiveSeqHdl
                     % going wrong with this now we do not use a hyperslab
                     % selection but instead write everything at once!
                     rank = ifo.dims;
-					dims = fliplr(ifo.shape);
+                    dims = fliplr(ifo.shape);
                     maxdims = dims;
                     %offs = zeros([1, ifo.dims]);  % using hyperslabs
-					%cnt = fliplr(ifo.shape);
+                    %cnt = fliplr(ifo.shape);
                     %strd = ones([1, ifo.dims]);
                     %blck = ones([1, ifo.dims]);
                     obj.dspcid = H5S.create_simple(rank, dims, maxdims);

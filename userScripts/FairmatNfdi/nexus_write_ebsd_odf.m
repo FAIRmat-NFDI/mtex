@@ -10,7 +10,7 @@ h5w = HdfFiveSeqHdl(fpath);
 
 grpnm = strcat(parent, ['/odf']);
 attr = io_attributes();
-attr.add('NX_class', 'NXms_odf_set');
+attr.add('NX_class', 'NXmicrostructure_odf');
 ret = h5w.nexus_write_group(grpnm, attr);
 
 phase_id = 0;
@@ -23,12 +23,12 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
     else
         error('ERROR: The phaseMap for this EBSD map uses an unexpected indexing!');
     end
-    
+
     if ~strcmp(ebsd_orig.mineralList{phase_idx}, 'notIndexed') & n_count > 0
 
         grpnm = strcat(parent, ['/odf/odf' num2str(phase_id)]);
         attr = io_attributes();
-        attr.add('NX_class', 'NXms_odf');
+        attr.add('NX_class', 'NXmicrostructure_odf');
         % attr.add('comment', 'Orientation distribution function 10deg, 2.5deg resolution');
         ret = h5w.nexus_write_group(grpnm, attr);
 
@@ -36,7 +36,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         attr = io_attributes();
         attr.add('NX_class', 'NXobject');
         ret = h5w.nexus_write_group(grpnm, attr);
-  
+
         phase_name = ebsd_orig.mineralList{phase_idx};
         % disp(phase_name);
         cs = ebsd_orig.CSList{1 + phase_id};
@@ -67,14 +67,14 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         attr = io_attributes();
         attr.add('unit', '°');
         ret = h5w.nexus_write(dsnm, double(odf_reso / pi * 180.), attr);
-        
+
         % exemplar code for different type of default ODFs
         odf = calcDensity(ebsd_orig(phase_name).orientations, ...
             'kernel', kernel_type, 'resolution', odf_reso);
         % odf_naive = calcDensity(ori);
         % odf_psi = calcDensity(ori, 'kernel', SO3AbelPoissonKernel('halfwidth',10.*degree));
         % odf_fou = calcDensity(ori, 'order', 16);
-    
+
         % ##MK::TODO how to automatically parse out used kernel
         % see https://mtex-toolbox.github.io/PoleFigure.calcODF.html
 
@@ -82,12 +82,12 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         % classical way to export the ODF
         % odf.export_generic('test.odf','ZXZ');
         % plotSection > SO3Fun/@SO3Fun/plotSection
-    
+
         % inspecting .../SO3Fun/export_generic we can export the ODF as such
         % fprintf(fid,'%% MTEX ODF\n');
         % fprintf(fid,'%% crystal symmetry: %s\n',char(CS));
         % fprintf(fid,'%% specimen symmetry: %s\n',char(SS));
-    
+
         % get SO3Grid
         if isa(odf, 'SO3Grid')
             S3G = getClass(varargin,'SO3Grid');
@@ -96,17 +96,17 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         else
           [S3G,~,~,d] = regularSO3Grid(cs, ss, odf);
         end
-    
+
         % S3G is a grid on the sphere which we wish to evaluate for a phi2 section plot using a custom grid
         % specifically e.g. regularly spaced phi_1/Phi/phi_2 positions to get
         % classical phi2 sections
-    
+
         % evaluate
         ijk = 1;
         n_e1 = ceil(360. / n_resolution);  % size(S3G, 1);  % phi_one, $\varphi_1$
         n_e2 = ceil(90. / n_resolution);  % size(S3G, 2);  % Phi, $\Phi$
         n_e3 = ceil(180. / n_resolution);  % size(S3G, 3);  % phi_two $\varphi_2$
-    
+
         interp_pts = double(nan(3, n_e1*n_e2*n_e3));
         for k = 1:1:n_e3
             e3 = (0.5 + (k - 1)) * n_resolution;
@@ -140,20 +140,20 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         %     end
         % end
         % axis scale does not match
-    
+
         % % % evaluate ODF
         % % v = eval(odf, S3G);  %  ZXZ,BUNGE - Bunge (phi1,Phi,phi2) convention
-        % % %  ZYZ, ABG  - Matthies (alpha, beta, gamma) convention (default) 
+        % % %  ZYZ, ABG  - Matthies (alpha, beta, gamma) convention (default)
         % % % build up matrix to be exported
         % % d = mod(d, 2*pi);
         % % % from radians to degree
-        % % d = d./degree;  
+        % % d = d./degree;
         % % % convention
         % % convention = 'ZXZ';
         % % header = '%% phi1    Phi     phi2    value';
         % % % header = '%% alpha   beta    gamma   value';
         % % dat = [d, v(:)].';
-    
+
         grpnm = strcat(parent, ['/odf/odf' num2str(phase_id) '/phi_two_plot']);
         attr = io_attributes();
         attr.add('NX_class', 'NXdata');
@@ -163,11 +163,11 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         attr.add('capital_phi_indices', uint32(1));
         attr.add('varphi_two_indices', uint32(2));
         ret = h5w.nexus_write_group(grpnm, attr);
-    
+
         dsnm = strcat(grpnm, '/title');
         attr = io_attributes();
         ret = h5w.nexus_write(dsnm, ['ODF ' phase_name], attr);
-    
+
         dsnm = strcat(grpnm, '/intensity');
         attr = io_attributes();
         attr.add('comment', 'odf intensity normalized to random odf');
@@ -178,21 +178,21 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         % ##MK::TODO with single precision only half as much space
         % ##MK::TODO should be sufficient for EBSD database demonstrator
         ret = h5w.nexus_write(dsnm, single(interp_values), attr);
-    
+
         dsnm = strcat(grpnm, '/varphi_one');
         attr = io_attributes();
         attr.add('units', 'degree');
         attr.add('long_name', ['phi_1 (°)']);
         e1 = double((0.5 + ((1:1:n_e1) - 1)) * n_resolution);
         ret = h5w.nexus_write(dsnm, e1, attr);
-        
+
         dsnm = strcat(grpnm, '/capital_phi');
         attr = io_attributes();
         attr.add('units', 'degree');
         attr.add('long_name', ['Phi (°)']);
         e2 = double((0.5 + ((1:1:n_e2) - 1)) * n_resolution);
         ret = h5w.nexus_write(dsnm, e2, attr);
-        
+
         dsnm = strcat(grpnm, '/varphi_two');
         attr = io_attributes();
         attr.add('units', 'degree');
@@ -222,9 +222,9 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
 
         grpnm = strcat(parent, ['/odf/odf' num2str(phase_id) '/kth_extrema']);
         attr = io_attributes();
-        attr.add('NX_class', 'NXms_odf_cmp');
+        attr.add('NX_class', 'NXobject');
         ret = h5w.nexus_write_group(grpnm, attr);
-        
+
         dsnm = strcat(grpnm, '/theta');
         attr = io_attributes();
         attr.add('unit', '°');
@@ -251,7 +251,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         % modernized normalization of the volume fraction
         % V = volume(odf, components, delta) ./ ...
         %    volume(uniformODF(odf.CS), double(components), delta);
-        
+
         dsnm = strcat(grpnm, '/volume_fraction');
         attr = io_attributes();
         attr.add('comment1', 'NX_DIMENSIONLESS');

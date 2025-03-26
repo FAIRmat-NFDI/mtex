@@ -15,7 +15,7 @@ ret = h5w.nexus_write_group(grpnm, attr);
 
 grpnm = '/entry1/roi1';
 attr = io_attributes();
-attr.add('NX_class', 'NXroi');
+attr.add('NX_class', 'NXobject');
 ret = h5w.nexus_write_group(grpnm, attr);
 
 grpnm = '/entry1/roi1/ebsd';
@@ -23,24 +23,24 @@ attr = io_attributes();
 attr.add('NX_class', 'NXem_ebsd');
 ret = h5w.nexus_write_group(grpnm, attr);
 
-grpnm = '/entry1/roi1/ebsd/indexing1';
+grpnm = '/entry1/roi1/ebsd/indexing';
 attr = io_attributes();
 attr.add('NX_class', 'NXprocess');
 ret = h5w.nexus_write_group(grpnm, attr);
 
-% grpnm = '/entry1/roi1/ebsd/indexing1/odf';
+% grpnm = '/entry1/roi1/ebsd/indexing/odf';
 % attr = io_attributes();
-% attr.add('NX_class', 'NXms_odf_set');
+% attr.add('NX_class', 'NXmicrostructure_odf');
 % ret = h5w.nexus_write_group(grpnm, attr);
 
-% grpnm = '/entry1/roi1/ebsd/indexing1/pf';
+% grpnm = '/entry1/roi1/ebsd/indexing/pf';
 % attr = io_attributes();
-% attr.add('NX_class', 'NXms_pf_set');
+% attr.add('NX_class', 'NXmicrostructure_pf');
 % ret = h5w.nexus_write_group(grpnm, attr);
 
-% grpnm = '/entry1/roi1/ebsd/indexing1/microstructure1';
+% grpnm = '/entry1/roi1/ebsd/indexing/microstructure1';
 % attr = io_attributes();
-% attr.add('NX_class', 'NXms_recon');
+% attr.add('NX_class', 'NXmicrostructure');
 % ret = h5w.nexus_write_group(grpnm, attr);
 
 status = logical(1);
