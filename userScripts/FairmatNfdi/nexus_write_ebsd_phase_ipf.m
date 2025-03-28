@@ -5,9 +5,12 @@ function status = nexus_write_ebsd_phase_ipf(ebsd_orig, ebsd_grd, fpath, parent,
 % fpath: path and filename of NeXus/HDF5 results file
 % parent: parent HDF5 group below which to write
 ebsd_orig = ebsd_raw;
-ebsd_grd = ebsd_sqr_roi_hweb;
+ebsd_grd = ebsd_sqr_ipf_hweb;
+fpath = ofpath;
+
 % as white is a valid color in typical IPF plots, black is used to mark
 % pixels which were not indexed to belong to the phase in question
+
 if ~perform_io
     return;
 end
@@ -19,28 +22,18 @@ if n_phases ~= length(ebsd_grd.mineralList)
     return;
 end
 
-grid = size(ebsd_grd);
-scan_unit = 'n/a';
-if strcmp(ebsd_grd.scanUnit, 'um')
-    scan_unit = 'µm';
-else
-    scan_unit = lower(ebsd_grd.scanUnit);
-end
-
+grid = fliplr([ebsd_grd.opt.nx, ebsd_grd.opt.ny]);
+scan_unit = ebsd_grd.scanUnit;
 n_count_orig_indexed = 0;
 n_count_orig_total = length(ebsd_orig);
-% total number of scan points in the original mapping
-% not the H5Web resized one!
-dsnm = strcat(parent, '/number_of_scan_points');
-attr = io_attributes();
-ret = h5w.nexus_write(dsnm, uint64(n_count_orig_total), attr);
 
-phase_id = 0;
-for phase_idx = 1:1:length(ebsd_grd.mineralList)
+phase_id = 1;  % 0;
+for phase_idx = 2:1:n_phases
+
     % TODO: add a map for all those points not indexed
 
-    grpnm = strcat(parent, ['/phase' num2str(phase_id)]);
-    dsnm = strcat(grpnm, '/number_of_scan_points');
+    grpnm = [parent '/phase' num2str(phase_id)];
+    dsnm = [grpnm '/number_of_scan_points'];
     % for some examples the phaseMap starts at -1 for the notIndex
     % how many scan points of that phase in original EBSD map
     if min(ebsd_orig.phaseMap) == -1
@@ -57,7 +50,7 @@ for phase_idx = 1:1:length(ebsd_grd.mineralList)
     end
 
     % how many scan points of that phase in eventually downsampled H5Web
-    % preview of that IPF
+    % preview of that IPF if any?
     if min(ebsd_grd.phaseMap) == -1
         n_count = sum(sum(ebsd_grd.phase == (phase_id - 1)));
     elseif min(ebsd_grd.phaseMap) == 0 || min(ebsd_grd.phaseMap) == 1
@@ -76,21 +69,20 @@ for phase_idx = 1:1:length(ebsd_grd.mineralList)
             clearvars ipf_key colors nx_ipf_map_u8_f nxs_ipf_y nxs_ipf_x phase_i_idx v low_level idx;
             % ipf_hsv_key = ipfHSVKey(ebsd_grd(phase_name));
             if min(ebsd_grd.phaseMap) == -1
-                msk = ebsd_orig(closest_scan_point_id).phase == (phase_id - 1);
-                ipf_key = ipfColorKey(ebsd_orig(msk));
+                msk = ebsd_grd.phase == (phase_id - 1);
+                ipf_key = ipfColorKey(ebsd_grd(phase_name));
             else
-                msk = ebsd_orig(closest_scan_point_id).phase == phase_id;
-                ipf_key = ipfColorKey(ebsd_orig(msk));
+                msk = ebsd_grd.phase == phase_id;
+                ipf_key = ipfColorKey(ebsd_grd(phase_name));
             end
-            ipf_key = ipfColorKey(ebsd_orig(phase_name));
             ipf_key.inversePoleFigureDirection = proj_vector(proj_idx);
-            colors = ipf_key.orientation2color(size(ebsd_grd(phase_name).orientations));
+            colors = ipf_key.orientation2color(ebsd_grd(phase_name).orientations);
             % from normalized colors to RGB colors
             colors = uint8(uint32(colors * 255.));
             % base color black
             nxs_ipf_map_u8_f = uint8(uint32(zeros([3, grid(1) * grid(2)]) * 255.));
-            nxs_ipf_y = ebsd_grd.prop.y(:, 1)';
-            nxs_ipf_x = ebsd_grd.prop.x(1, :);
+            nxs_ipf_y = ebsd_grd.y(:, 1)';
+            nxs_ipf_x = ebsd_grd.x(1, :);
 
             % get array indices of all those pixels which were indexed as phase phase_idx
             if min(ebsd_grd.phaseMap) == -1
@@ -100,11 +92,9 @@ for phase_idx = 1:1:length(ebsd_grd.mineralList)
             end
             nxs_ipf_map_u8_f(:, phase_i_idx) = colors(1:length(phase_i_idx), :)';
 
-            grpnm = strcat(parent, ['/phase' num2str(phase_id) ...
-                '/ipf' num2str(proj_idx)]);  % lower(proj_name(proj_idx))]);
+            grpnm = [parent '/phase' num2str(phase_id) '/ipf' num2str(proj_idx)];
             attr = io_attributes();
             attr.add('NX_class', 'NXdata');
-            attr.add('depends_on', ['phase' num2str(phase_id)]);
             ret = h5w.nexus_write_group(grpnm, attr);
 
             dsnm = strcat(grpnm, '/projection_direction');
@@ -112,16 +102,7 @@ for phase_idx = 1:1:length(ebsd_grd.mineralList)
             v = proj_vector(proj_idx);
             ret = h5w.nexus_write(dsnm, single([v.x v.y v.z]), attr);
 
-            % dsnm = strcat(grpnm, '/bitdepth');
-            % ret = h5w.nexus_write(dsnm, uint32(8), attr);
-            % read from mtex_pref instead
-            % dsnm = strcat(grpnm, '/program');
-            % attr = io_attributes();
-            % attr.add('version', ['Matlab: ', version ', MTex: 5.8.2']);
-            % ret = h5w.nexus_write(dsnm, 'mtex', attr);
-
-            grpnm =  strcat(parent, ['/phase' num2str(phase_id) ...
-                '/ipf' num2str(proj_idx) '/map']);
+            grpnm = [parent '/phase' num2str(phase_id) '/ipf' num2str(proj_idx) '/map'];
             attr = io_attributes();
             attr.add('NX_class', 'NXdata');
             attr.add('signal', 'data');
@@ -162,8 +143,7 @@ for phase_idx = 1:1:length(ebsd_grd.mineralList)
             ret = h5w.nexus_write(dsnm, nxs_ipf_x, attr);
 
             %% add specific IPF color key used
-            grpnm = strcat(parent, ['/phase' num2str(phase_id) ...
-                '/ipf' num2str(proj_idx) '/legend']);
+            grpnm = [parent '/phase' num2str(phase_id) '/ipf' num2str(proj_idx) '/legend'];
             attr = io_attributes();
             attr.add('NX_class', 'NXdata');
             attr.add('signal', 'data');
@@ -173,7 +153,7 @@ for phase_idx = 1:1:length(ebsd_grd.mineralList)
             ret = h5w.nexus_write_group(grpnm, attr);
             attr = io_attributes();
 
-            dsnm = strcat(grpnm, '/title');
+            dsnm = [grpnm '/title'];
             ret = h5w.nexus_write(dsnm, ['IPF ' upper(proj_name(proj_idx)) ' color key with SST'], attr);
             figure('visible','off');
             plot(ipf_key);
