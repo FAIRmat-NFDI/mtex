@@ -27,8 +27,8 @@ scan_unit = ebsd_grd.scanUnit;
 n_count_orig_indexed = 0;
 n_count_orig_total = length(ebsd_orig);
 
-phase_id = 1;  % 0;
-for phase_idx = 2:1:n_phases
+phase_id = 0;
+for phase_idx = 1:1:n_phases
 
     % TODO: add a map for all those points not indexed
 

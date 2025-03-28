@@ -11,7 +11,7 @@ if ~perform_io
 end
 h5w = HdfFiveSeqHdl(fpath);
 
-grpnm = strcat(parent, ['/odf1']);
+grpnm = [parent '/odf1'];
 attr = io_attributes();
 attr.add('NX_class', 'NXmicrostructure_odf');
 ret = h5w.nexus_write_group(grpnm, attr);
@@ -29,44 +29,41 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
 
     if ~strcmp(ebsd_orig.mineralList{phase_idx}, 'notIndexed') & n_count > 0
 
-        grpnm = strcat(parent, ['/odf/odf1/odf' num2str(phase_id)]);
+        grpnm = [parent '/odf/odf1/odf' num2str(phase_id)];
         attr = io_attributes();
         attr.add('NX_class', 'NXmicrostructure_odf');
         % attr.add('comment', 'Orientation distribution function 10deg, 2.5deg resolution');
         ret = h5w.nexus_write_group(grpnm, attr);
 
-        grpnm = strcat(parent, ['/odf/odf1/odf' num2str(phase_id) '/configuration']);
+        grpnm = [parent '/odf/odf1/odf' num2str(phase_id) '/configuration'];
         attr = io_attributes();
         attr.add('NX_class', 'NXobject');
         ret = h5w.nexus_write_group(grpnm, attr);
 
         phase_name = ebsd_orig.mineralList{phase_idx};
-        % disp(phase_name);
         cs = ebsd_orig.CSList{1 + phase_id};
-        % disp(cs);
         specimen_symmetry_point_group = 'triclinic';
         ss = specimenSymmetry(specimen_symmetry_point_group);
-        % disp(ss);
 
         kernel_hw = 5.*degree;
         kernel_type = SO3DeLaValleePoussinKernel('halfwidth', kernel_hw);
         odf_reso = 2.5*degree;
-        dsnm = strcat(grpnm, '/phase_name');
+        dsnm = [grpnm '/phase_name'];
         attr = io_attributes();
         ret = h5w.nexus_write(dsnm, phase_name, attr);
-        dsnm = strcat(grpnm, '/phase_identifier');
+        dsnm = [grpnm '/phase_id'];
         ret = h5w.nexus_write(dsnm, uint32(phase_id), attr);
-        dsnm = strcat(grpnm, '/crystal_symmetry_point_group');
+        dsnm = [grpnm '/crystal_symmetry_point_group'];
         ret = h5w.nexus_write(dsnm, cs.pointGroup, attr);
-        dsnm = strcat(grpnm, '/specimen_symmetry_point_group');
+        dsnm = [grpnm '/specimen_symmetry_point_group'];
         ret = h5w.nexus_write(dsnm, specimen_symmetry_point_group, attr);
-        dsnm = strcat(grpnm, '/kernel_name');
+        dsnm = [grpnm '/kernel_name'];
         ret = h5w.nexus_write(dsnm, 'de_la_vallee_poussin', attr);
-        dsnm = strcat(grpnm, '/kernel_halfwidth');
+        dsnm = [grpnm '/kernel_halfwidth'];
         attr = io_attributes();
         attr.add('unit', '°');
         ret = h5w.nexus_write(dsnm, double(kernel_hw / pi * 180.), attr);
-        dsnm = strcat(grpnm, '/resolution');
+        dsnm = [grpnm '/resolution'];
         attr = io_attributes();
         attr.add('unit', '°');
         ret = h5w.nexus_write(dsnm, double(odf_reso / pi * 180.), attr);
@@ -157,7 +154,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         % % % header = '%% alpha   beta    gamma   value';
         % % dat = [d, v(:)].';
 
-        grpnm = strcat(parent, ['/odf/odf1/odf' num2str(phase_id) '/phi_two_plot']);
+        grpnm = [parent '/odf/odf1/odf' num2str(phase_id) '/phi_two_plot'];
         attr = io_attributes();
         attr.add('NX_class', 'NXdata');
         attr.add('signal', 'intensity');
@@ -167,11 +164,11 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         attr.add('varphi_two_indices', uint32(2));
         ret = h5w.nexus_write_group(grpnm, attr);
 
-        dsnm = strcat(grpnm, '/title');
+        dsnm = [grpnm '/title'];
         attr = io_attributes();
         ret = h5w.nexus_write(dsnm, ['ODF ' phase_name], attr);
 
-        dsnm = strcat(grpnm, '/intensity');
+        dsnm = [grpnm '/intensity'];
         attr = io_attributes();
         attr.add('comment', 'odf intensity normalized to random odf');
         % attr.add('long_name', 'ODF contour');
@@ -182,21 +179,21 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         % ##MK::TODO should be sufficient for EBSD database demonstrator
         ret = h5w.nexus_write(dsnm, single(interp_values), attr);
 
-        dsnm = strcat(grpnm, '/varphi_one');
+        dsnm = [grpnm '/varphi_one'];
         attr = io_attributes();
         attr.add('units', 'degree');
         attr.add('long_name', ['phi_1 (°)']);
         e1 = double((0.5 + ((1:1:n_e1) - 1)) * n_resolution);
         ret = h5w.nexus_write(dsnm, e1, attr);
 
-        dsnm = strcat(grpnm, '/capital_phi');
+        dsnm = [grpnm '/capital_phi'];
         attr = io_attributes();
         attr.add('units', 'degree');
         attr.add('long_name', ['Phi (°)']);
         e2 = double((0.5 + ((1:1:n_e2) - 1)) * n_resolution);
         ret = h5w.nexus_write(dsnm, e2, attr);
 
-        dsnm = strcat(grpnm, '/varphi_two');
+        dsnm = [grpnm '/varphi_two'];
         attr = io_attributes();
         attr.add('units', 'degree');
         attr.add('long_name', ['phi_2 (°)']);
@@ -208,7 +205,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         % % % attr = io_attributes();
         % % % ret = h5w.nexus_write_group(grpnm, attr);
         % % % dbg = reshape(1:1:24, [4, 2, 3]); %';
-        % % % dsnm = strcat(grpnm, '/dbg');
+        % % % dsnm = [grpnm '/dbg'];
         % % % ret = h5w.nexus_write(dsnm, dbg, attr);
         % % % disp(size(dbg));
 
@@ -223,21 +220,21 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         kth = 10;
         delta = 10.*degree;
 
-        grpnm = strcat(parent, ['/odf/odf1/odf' num2str(phase_id) '/kth_extrema']);
+        grpnm = [parent '/odf/odf1/odf' num2str(phase_id) '/kth_extrema'];
         attr = io_attributes();
         attr.add('NX_class', 'NXobject');
         ret = h5w.nexus_write_group(grpnm, attr);
 
-        dsnm = strcat(grpnm, '/theta');
+        dsnm = [grpnm '/theta'];
         attr = io_attributes();
         attr.add('unit', '°');
         ret = h5w.nexus_write(dsnm, double(delta / pi * 180.), attr);
 
-        dsnm = strcat(grpnm, '/kth');
+        dsnm = [grpnm '/kth'];
         attr = io_attributes();
         ret = h5w.nexus_write(dsnm, uint32(kth), attr);
 
-        dsnm = strcat(grpnm, '/location');
+        dsnm = [grpnm '/location'];
         [intensity, maxima] = max(odf, 'numLocal', kth);
         components = reshape(maxima, [1, length(maxima)]);
         e1_e2_e3 = zeros(3, length(maxima));
@@ -255,7 +252,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         % V = volume(odf, components, delta) ./ ...
         %    volume(uniformODF(odf.CS), double(components), delta);
 
-        dsnm = strcat(grpnm, '/volume_fraction');
+        dsnm = [grpnm '/volume_fraction'];
         attr = io_attributes();
         attr.add('comment1', 'NX_DIMENSIONLESS');
         attr.add('comment2', 'Components may overlap with the search region defined by theta !');

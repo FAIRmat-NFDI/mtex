@@ -11,7 +11,7 @@ if ~perform_io
 end
 h5w = HdfFiveSeqHdl(fpath);
 
-grpnm = strcat(parent, ['/pf1']);
+grpnm = [parent, '/pf1'];
 attr = io_attributes();
 attr.add('NX_class', 'NXmicrostructure_pf');
 ret = h5w.nexus_write_group(grpnm, attr);
@@ -37,44 +37,41 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         % colorbar
 
         for k = 1:1:length(miller_set)
-            grpnm = strcat(parent, ['/pf1/pf' num2str(pf_id)]);
+            grpnm = [parent '/pf1/pf' num2str(pf_id)];
             attr = io_attributes();
             attr.add('NX_class', 'NXdata');
             attr.add('comment1', 'Pole figure recomputed from equally-named odf')
             attr.add('comment2', 'PF looks as for MTex xEast, zIntoPlane but X and Y each have different sign?');
             ret = h5w.nexus_write_group(grpnm, attr);
-            grpnm = strcat(parent, ['/pf1/pf' num2str(pf_id) '/configuration']);
+            grpnm = [parent '/pf1/pf' num2str(pf_id) '/configuration'];
             attr = io_attributes();
             attr.add('NX_class', 'NXobject');
             ret = h5w.nexus_write_group(grpnm, attr);
 
             phase_name = ebsd_orig.mineralList{phase_idx};
-            % disp(phase_name);
-
-            % disp(cs);
             specimen_symmetry_point_group = 'triclinic';
             ss = specimenSymmetry(specimen_symmetry_point_group);
-            % disp(ss);
-            dsnm = strcat(grpnm, '/phase_name');
+
+            dsnm = [grpnm '/phase_name'];
             attr = io_attributes();
             ret = h5w.nexus_write(dsnm, phase_name, attr);
-            dsnm = strcat(grpnm, '/phase_identifier');
+            dsnm = [grpnm '/phase_id'];
             ret = h5w.nexus_write(dsnm, uint32(phase_id), attr);
-            dsnm = strcat(grpnm, '/crystal_symmetry_point_group');
+            dsnm = [grpnm '/crystal_symmetry_point_group'];
             ret = h5w.nexus_write(dsnm, cs.pointGroup, attr);
-            dsnm = strcat(grpnm, '/specimen_symmetry_point_group');
+            dsnm = [grpnm '/specimen_symmetry_point_group'];
             ret = h5w.nexus_write(dsnm, specimen_symmetry_point_group, attr);
             kernel_hw = 10.*degree;
             kernel_reso = 2.5*degree;
-            dsnm = strcat(grpnm, '/halfwidth');
+            dsnm = [grpnm '/halfwidth'];
             attr = io_attributes();
             attr.add('unit', '°');
             ret = h5w.nexus_write(dsnm, double(kernel_hw / pi * 180.), attr);
-            dsnm = strcat(grpnm, '/resolution');
+            dsnm = [grpnm '/resolution'];
             attr = io_attributes();
             attr.add('unit', '°');
             ret = h5w.nexus_write(dsnm, double(kernel_reso / pi * 180.), attr);
-            dsnm = strcat(grpnm, '/miller_indices');
+            dsnm = [grpnm '/miller_indices'];
             attr = io_attributes();
             ret = h5w.nexus_write(dsnm, ...
                 ['{' num2str(miller_set(k).h) ...
@@ -85,11 +82,10 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
             odf = calcDensity(ebsd_orig(phase_name).orientations, ...
                 'halfwidth', kernel_hw, 'resolution', kernel_reso);
 
-            pf_name = strcat('miller', num2str(k));
+            pf_name = ['miller' num2str(k)];
             miller_indices = ['{' num2str(miller_set(k).h) ...
                 ', ' num2str(miller_set(k).k) ...
                 ', ' num2str(miller_set(k).l) '}'];
-            % disp(pf_name);
 
             pf = calcPDF(odf, miller_set(k));
             [intensity, maxima] = max(pf, 'numLocal', 10);
@@ -132,7 +128,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
                 end
             end
 
-            grpnm = strcat(parent, ['/pf1/pf' num2str(pf_id) '/pf_plot']);
+            grpnm = [parent '/pf1/pf' num2str(pf_id) '/pf_plot'];
             attr = io_attributes();
             attr.add('NX_class', 'NXdata');
             attr.add('signal', 'intensity');
@@ -141,22 +137,22 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
             attr.add('axis_y_indices', uint32(1));
             ret = h5w.nexus_write_group(grpnm, attr);
 
-            dsnm = strcat(grpnm, '/title');
+            dsnm = [grpnm '/title'];
             attr = io_attributes();
             ret = h5w.nexus_write(dsnm, ...
                 ['PF Miller ' miller_indices ' ' phase_name], attr);
 
-            dsnm = strcat(grpnm, '/intensity');
+            dsnm = [grpnm '/intensity'];
             attr = io_attributes();
             % ##MK::TODO single precision to reduce size for OASIS demo
             ret = h5w.nexus_write(dsnm, single(interp_values), attr);
 
-            dsnm = strcat(grpnm, '/axis_x');
+            dsnm = [grpnm '/axis_x'];
             attr = io_attributes();
             attr.add('long_name', ['x']);
             ret = h5w.nexus_write(dsnm, double(X), attr);
 
-            dsnm = strcat(grpnm, '/axis_y');
+            dsnm = [grpnm '/axis_y'];
             attr = io_attributes();
             attr.add('long_name', ['y']);
             ret = h5w.nexus_write(dsnm, double(Y), attr);
