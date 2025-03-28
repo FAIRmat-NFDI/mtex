@@ -20,18 +20,19 @@ end
 h5w = HdfFiveSeqHdl(fpath);
 
 scan_unit = 'n/a';
-if isprop(ebsd_orig, 'scanUnit')
-    if strcmp(ebsd_orig.scanUnit, 'um')
-        scan_unit = 'µm';
-    else
-        scan_unit = lower(ebsd_orig.scanUnit);
-    end
+% if isprop(ebsd_orig, 'scanUnit') extremely slow
+if strcmp(ebsd_orig.scanUnit, 'um')
+    scan_unit = 'µm';
+else
+    scan_unit = lower(ebsd_orig.scanUnit);
 end
+% end
 
 disorientation_threshold = 15.0*degree;
 % classical argument 15. for high-angle grain boundary network
 % use smaller values to segment sub-grain boundary network
-[grains_old, ebsd_orig.grainId] = calcGrains(ebsd_orig('indexed'), ...
+% extremely slow [grains_old, ebsd_orig.grainId]
+grains_old = calcGrains(ebsd_orig('indexed'), ...
     'boundary', 'tight', 'angle', disorientation_threshold);
 grains_old.scanUnit = scan_unit;
 % for subtle orientation gradients, fast multi-scale clustering, https://doi.org/10.1016/j.ultramic.2013.04.009

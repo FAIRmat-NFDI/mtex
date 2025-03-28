@@ -29,18 +29,24 @@ for phase_idx = 1:1:n_phases
     ret = h5w.nexus_write_group(grpnm, attr);
     attr = io_attributes();
 
-    dsnm = strcat(grpnm, '/identifier');
-    ret = h5w.nexus_write(dsnm, uint32(phase_id), attr);
+    dsnm = strcat(grpnm, '/phase_id');
+    ret = h5w.nexus_write(dsnm, int32(phase_id), attr);
     % in NeXus 0 is used for not indexed, Cstyle first i.e. 0th phase
     dsnm = strcat(grpnm, '/name');
     ret = h5w.nexus_write(dsnm, ebsd_orig.mineralList{phase_idx}, attr);
 
+    grpnm = strcat(parent, ['/phase' num2str(phase_id)], '/unit_cell');
+    attr = io_attributes();
+    attr.add('NX_class', 'NXunit_cell');
+    ret = h5w.nexus_write_group(grpnm, attr);
+    attr = io_attributes();
+    
     % additional information for true point groups
     if ~strcmp(ebsd_orig.mineralList{phase_idx}, 'notIndexed')
         dsnm = strcat(grpnm, '/point_group');
         ret = h5w.nexus_write(dsnm, ebsd_orig.CSList{phase_idx}.pointGroup, attr);
 
-        dsnm = strcat(grpnm, '/unit_cell_abc');
+        dsnm = strcat(grpnm, '/a_b_c');
         unit_cell_abc = [ebsd_orig.CSList{phase_idx}.aAxis.x ...
                          ebsd_orig.CSList{phase_idx}.bAxis.y ...
                          ebsd_orig.CSList{phase_idx}.cAxis.z];
@@ -49,7 +55,7 @@ for phase_idx = 1:1:n_phases
         attr.add('units', 'nm');
         ret = h5w.nexus_write(dsnm, unit_cell_abc, attr);
 
-        dsnm = strcat(grpnm, '/unit_cell_alphabetagamma');
+        dsnm = strcat(grpnm, '/alpha_beta_gamma');
         unit_cell_alphabetagamma = [ebsd_orig.CSList{phase_idx}.alpha ...
                                     ebsd_orig.CSList{phase_idx}.beta ...
                                     ebsd_orig.CSList{phase_idx}.gamma];
