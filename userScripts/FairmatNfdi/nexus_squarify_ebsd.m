@@ -7,37 +7,32 @@ nlimit = get_option(varargin,'h5web_max_size');
 % disp(['H5Web maximum image size ' num2str(nlimit)]);
 
 scan_unit = 'n/a';
-if isprop(inp, 'scanUnit')
-    if strcmp(inp.scanUnit, 'um')
-        scan_unit = 'µm'; 
-    else
-        scan_unit = lower(inp.scanUnit);
-    end
+if strcmp(inp.scanUnit, 'um')
+    scan_unit = 'µm'; 
+else
+    scan_unit = lower(inp.scanUnit);
 end
-% get roi extent assuming
-% x and y are scan point centre positions individually
-% exact details depend on the flight plan of the scan box from the
-% microscope isf it was an experiment
-xmin = min(inp.prop.x);
-xmax = max(inp.prop.x);
-ymin = min(inp.prop.y);
-ymax = max(inp.prop.y);
+% get roi extent assuming x and y are scan point center positions 
+% individually exact details depend on the flight plan of the scan box
+% from the microscope
+xmin = min(inp.pos.x);
+xmax = max(inp.pos.x);
+ymin = min(inp.pos.y);
+ymax = max(inp.pos.y);
 
 % sz = size(inp.unitCell);
 % sz(1) == 4 for square grid and sz(1) == 6 for (flat-top?) hexagon grid
-dx0 = abs(median(diff(unique(inp.prop.x, 'stable'))));
-dy0 = abs(median(diff(unique(inp.prop.y, 'stable'))));  
+dx0 = abs(median(diff(unique(inp.pos.x, 'stable'))));
+dy0 = abs(median(diff(unique(inp.pos.y, 'stable'))));  
 
 % estimate resulting size of the grid when staying close to original uc
 nx0 = ceil((xmax - xmin) / dx0);
 ny0 = ceil((ymax - ymin) / dy0);
-% ##MK::TODO x and y have no meaning SUGGESTION: define where x and y is defined
+% ##MK::TODO x and y have no meaning
 
-% H5Web has a maximum edge number in pixel along for each image axis
-% for the contrast image of the ROI we use a heatmap which has a larger
-% limit
-% nlimit = 200; % 2^32;  % dunno exactly for heatmaps but likely much smaller
-% % do not upscale smaller maps but scale down larger maps
+% H5Web has a maximum edge number in pixel along for each image axis for
+% the contrast image of the ROI we use a heatmap which has a larger limit
+% do not upscale smaller maps but scale down larger maps
 scaler = 1.;
 if nx0 > nlimit || ny0 > nlimit
     if nx0 > ny0
@@ -58,64 +53,32 @@ ny = 1 + round(ny0 * scaler);
 [x, y] = meshgrid( ...
     linspace(xmin, xmax, nx), ...
     linspace(ymin, ymax, ny));
-% xy = [x(:), y(:)]; % .';
 
-% check that each support vertex of a triplePoint is just a copy of a
-% vertex to the boundary network support vertices
-kdtree = KDTreeSearcher([inp.prop.x, inp.prop.y]);
-closest_scan_point_id = knnsearch(kdtree, [x(:), y(:)]);  %xy);
+kdtree = KDTreeSearcher([inp.pos.x, inp.pos.y]);
+closest_scan_point_id = knnsearch(kdtree, [x(:), y(:)]);
 np = length(closest_scan_point_id);
 clearvars kdtree;
 
 out = EBSDsquare();
-out.dx = 2. * hx;
-out.dy = 2. * hy;
-% out.xmin = xmin;
-% out.xmax = xmax;
-% out.ymin = ymin;
-% out.ymax = ymax;
 out.id = reshape(linspace(1, np, np)', fliplr([nx, ny]));
 out.rotations = reshape(inp(closest_scan_point_id).rotations, fliplr([nx, ny]));
-out.scanUnit = inp.scanUnit;
+out.scanUnit = scan_unit;
 out.unitCell = [+hx, +hy; -hx, +hx; -hx, -hy; +hx, -hy];
 out.phaseId = inp(closest_scan_point_id).phaseId;
 out.CSList = inp.CSList;
 out.phaseMap = inp.phaseMap;
 out.phase = reshape(inp(closest_scan_point_id).phase, fliplr([nx, ny]));
-% out.isIndexed = reshape(inp(closest_scan_point_id).isIndexed, fliplr([nx, ny]));
-% out.mineralList = inp.mineralList;
-% out.indexedPhasesId = inp.indexedPhasesId;
-for fn = fieldnames(inp.prop).'
-    if any(strcmp(char(fn), {'x','y','z'}))
-        continue;
+for descriptor = {'bc', 'ci', 'confidenceindex', 'mad'}
+    if isfield(inp.prop, char(descriptor))
+        tmp = inp(closest_scan_point_id).getProp(char(descriptor));
+        disp(descriptor)
+        disp(size(tmp));
+        clearvars tmp;
+        break;
     end
-    out.prop.(char(fn)) = reshape(inp( ...
-        closest_scan_point_id).prop.(char(fn)), fliplr([nx, ny]));
 end
-out.prop.x = x;
-out.prop.y = y;
-out.prop.oldId = reshape(linspace(1, np, np), fliplr([nx, ny]));
-
-% plot(out)
-
-% a = EBSD()';
-% a.id = linspace(1, np, np)';
-% a.rotations = inp(closest_scan_point_id).rotations';
-% a.scanUnit = scan_unit;
-% a.unitCell = [+hx, +hy; -hx, +hx; -hx, -hy; +hx, -hy];
-% % a.orientations;
-% a.phaseId = inp(closest_scan_point_id).phaseId';
-% a.CSList = inp.CSList;
-% a.phaseMap = inp.phaseMap;
-% a.phase = inp(closest_scan_point_id).phase;
-% a.isIndexed = inp(closest_scan_point_id).isIndexed;
-% a.mineralList = inp.mineralList;
-% a.indexedPhasesId = inp.indexedPhasesId;
-% for fn = fieldnames(inp.prop).'
-%     if any(strcmp(char(fn), {'x','y','z'}))
-%         continue;
-%     end
-%     a.prop.(char(fn)) = inp(closest_scan_point_id).prop.(char(fn));
-% end
+out.x = x;
+out.y = y;
+% no z 2D-case for now
 
 end

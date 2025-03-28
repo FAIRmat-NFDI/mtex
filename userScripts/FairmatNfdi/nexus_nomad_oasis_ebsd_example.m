@@ -61,7 +61,6 @@ for row_idx = 3618:1:n_rows
     % try
         cnvrsn = cfg_tbl{row_idx, 2}{1};
         ifpath_main = cfg_tbl{row_idx, 3}{1};
-        ifpath_main = 'data/EBSD/Forsterite.ctf';
         ifpath_supp = cfg_tbl{row_idx, 4}{1};
         ofpath = [outputdir '/' cfg_tbl{row_idx, 5}{1} '.nxs'];
         disp(['row_idx: ' int2str(row_idx) ' cnvrsn: ' cnvrsn]);
@@ -75,7 +74,9 @@ for row_idx = 3618:1:n_rows
             % disp(['Processing ' ifpath_main ' ' ifpath_supp]);
 
             tic;
-            fpath = "userScripts/FairmatNfdi/test.nxs";
+            
+            ifpath_main = 'data/EBSD/Forsterite.ctf';
+            fpath = 'userScripts/FairmatNfdi/test.nxs';
             parent = '/entry1/roi1/ebsd/indexing';
 
             status = nexus_write_init(ofpath, perform_io);
@@ -104,21 +105,20 @@ for row_idx = 3618:1:n_rows
             else
                 ebsd_raw = EBSD.load(input);
             end
-            % ebsd_raw is a classical EBSD object (2D scan points set)
-            % i.e. material points with data per point, different ROI shapes
+            
+            % ebsd_raw 2D EBSD scan point set, arbitrary ROI shapes
             % plot(ebsd_raw);
-            % return;
-
             status = nexus_write_ebsd_phase( ...
                 ebsd_raw, ...
                 ofpath, ...
                 '/entry1/roi1/ebsd/indexing', ...
                 perform_io);
 
-            %% TODO VERIFIED UNTIL HERE
             ebsd_sqr_roi_hweb = nexus_squarify_ebsd( ...
                 ebsd_raw, ...
                 'h5web_max_size', 2^14 - 1);
+
+            %% TODO VERIFIED UNTIL HERE
             status = nexus_write_ebsd_overview( ...
                 ebsd_sqr_roi_hweb, ...
                 ofpath, ...
