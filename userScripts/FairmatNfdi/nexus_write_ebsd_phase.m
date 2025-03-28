@@ -18,6 +18,12 @@ if n_phases ~= length(ebsd_orig.mineralList)
     return;
 end
 
+n_count_orig_total = length(ebsd_orig);
+% total number of scan points in the original mapping
+dsnm = strcat(parent, '/number_of_scan_points');
+attr = io_attributes();
+ret = h5w.nexus_write(dsnm, uint64(n_count_orig_total), attr);
+
 phase_id = 0;
 for phase_idx = 1:1:n_phases
     % there are more optional fields in the

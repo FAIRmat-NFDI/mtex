@@ -4,7 +4,8 @@ function status = nexus_write_ebsd_phase_ipf(ebsd_orig, ebsd_grd, fpath, parent,
 % ebsd_orig, ebsd_grd
 % fpath: path and filename of NeXus/HDF5 results file
 % parent: parent HDF5 group below which to write
-
+ebsd_orig = ebsd_raw;
+ebsd_grd = ebsd_sqr_roi_hweb;
 % as white is a valid color in typical IPF plots, black is used to mark
 % pixels which were not indexed to belong to the phase in question
 if ~perform_io
@@ -20,12 +21,10 @@ end
 
 grid = size(ebsd_grd);
 scan_unit = 'n/a';
-if isprop(ebsd_grd, 'scanUnit')
-    if strcmp(ebsd_grd.scanUnit, 'um')
-        scan_unit = 'µm';
-    else
-        scan_unit = lower(ebsd_grd.scanUnit);
-    end
+if strcmp(ebsd_grd.scanUnit, 'um')
+    scan_unit = 'µm';
+else
+    scan_unit = lower(ebsd_grd.scanUnit);
 end
 
 n_count_orig_indexed = 0;
@@ -77,12 +76,15 @@ for phase_idx = 1:1:length(ebsd_grd.mineralList)
             clearvars ipf_key colors nx_ipf_map_u8_f nxs_ipf_y nxs_ipf_x phase_i_idx v low_level idx;
             % ipf_hsv_key = ipfHSVKey(ebsd_grd(phase_name));
             if min(ebsd_grd.phaseMap) == -1
-                ipf_key = ipfColorKey(ebsd_grd(ebsd_grd.phase == (phase_id - 1)));
+                msk = ebsd_orig(closest_scan_point_id).phase == (phase_id - 1);
+                ipf_key = ipfColorKey(ebsd_orig(msk));
             else
-                ipf_key = ipfColorKey(ebsd_grd(ebsd_grd.phase == phase_id));
+                msk = ebsd_orig(closest_scan_point_id).phase == phase_id;
+                ipf_key = ipfColorKey(ebsd_orig(msk));
             end
+            ipf_key = ipfColorKey(ebsd_orig(phase_name));
             ipf_key.inversePoleFigureDirection = proj_vector(proj_idx);
-            colors = ipf_key.orientation2color(ebsd_grd(phase_name).orientations);
+            colors = ipf_key.orientation2color(size(ebsd_grd(phase_name).orientations));
             % from normalized colors to RGB colors
             colors = uint8(uint32(colors * 255.));
             % base color black
