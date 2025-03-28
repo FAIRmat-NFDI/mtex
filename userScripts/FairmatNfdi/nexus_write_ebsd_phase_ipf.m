@@ -97,7 +97,7 @@ for phase_idx = 2:1:n_phases
             attr.add('NX_class', 'NXdata');
             ret = h5w.nexus_write_group(grpnm, attr);
 
-            dsnm = strcat(grpnm, '/projection_direction');
+            dsnm = [grpnm '/projection_direction'];
             attr = io_attributes();
             v = proj_vector(proj_idx);
             ret = h5w.nexus_write(dsnm, single([v.x v.y v.z]), attr);
@@ -111,11 +111,11 @@ for phase_idx = 2:1:n_phases
             attr.add('axis_x_indices', uint32(0));
             ret = h5w.nexus_write_group(grpnm, attr);
 
-            dsnm = strcat(grpnm, '/title');
+            dsnm = [grpnm '/title'];
             ret = h5w.nexus_write(dsnm, ['Inverse pole figure ' ...
                 upper(proj_name(proj_idx)) ' ' phase_name], attr);
 
-            dsnm = strcat(grpnm, '/data');
+            dsnm = [grpnm '/data'];
             low_level = uint8(uint32(zeros([3 grid(2) grid(1)])));
             %fliplr(size(nxs_ipf_map_u8_f))));
             for x = 1:1:grid(2)
@@ -131,12 +131,12 @@ for phase_idx = 2:1:n_phases
             attr.add('SUBCLASS_VERSION', uint32(15));
             ret = h5w.nexus_write(dsnm, low_level, attr);
 
-            dsnm = strcat(grpnm, '/axis_y');
+            dsnm = [grpnm '/axis_y'];
             attr = io_attributes();
             attr.add('units', scan_unit);
             attr.add('long_name', ['Calibrated coordinate along y-axis (' scan_unit ')']);
             ret = h5w.nexus_write(dsnm, nxs_ipf_y, attr);
-            dsnm = strcat(grpnm, '/axis_x');
+            dsnm = [grpnm '/axis_x'];
             attr = io_attributes();
             attr.add('units', scan_unit);
             attr.add('long_name', ['Calibrated coordinate along x-axis (' scan_unit ')']);
@@ -169,7 +169,7 @@ for phase_idx = 2:1:n_phases
             % through color code and then rendered as n_orientations x 3 RGB
             % array this could also be used nicely for machine learning
 
-            dsnm = strcat(grpnm, '/data');
+            dsnm = [grpnm '/data'];
             sz = size(im);
             low_level = uint8(zeros(fliplr(sz)));
             for x = 1:sz(2)
@@ -185,12 +185,12 @@ for phase_idx = 2:1:n_phases
             attr.add('SUBCLASS_VERSION', uint32(15));
             ret = h5w.nexus_write(dsnm, low_level, attr);
             sz = size(im);
-            dsnm = strcat(grpnm, '/axis_y');
+            dsnm = [grpnm '/axis_y'];
             nxs_px_y = uint32(linspace(1, sz(1), sz(1)));
             attr = io_attributes();
             attr.add('long_name', 'Pixel along y-axis');
             ret = h5w.nexus_write(dsnm, nxs_px_y, attr);
-            dsnm = strcat(grpnm, '/axis_x');
+            dsnm = [grpnm '/axis_x'];
             nxs_px_x = uint32(linspace(1, sz(2), sz(2)));
             attr = io_attributes();
             attr.add('long_name', 'Pixel along x-axis');
@@ -201,7 +201,7 @@ for phase_idx = 2:1:n_phases
     phase_id = phase_id + 1;
 end
 
-dsnm = strcat(parent, '/indexing_rate');
+dsnm = [parent '/indexing_rate'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, ...
     double(double(n_count_orig_indexed) / ...

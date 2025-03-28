@@ -12,7 +12,7 @@ h5w = HdfFiveSeqHdl(fpath);
 grid = fliplr([ebsd_implicit_sqr.opt.nx, ebsd_implicit_sqr.opt.ny]);
 scan_unit = ebsd_implicit_sqr.scanUnit;
 
-grpnm = strcat(parent, '/roi');
+grpnm = [parent '/roi'];
 attr = io_attributes();
 attr.add('NX_class', 'NXdata');
 attr.add('signal', 'data');
@@ -48,11 +48,11 @@ else
 end
 % not thrown ?
 
-dsnm = strcat(grpnm, '/descriptor');
+dsnm = [grpnm '/descriptor'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, descriptor_name, attr);
 
-dsnm = strcat(grpnm, '/data');
+dsnm = [grpnm '/data'];
 attr = io_attributes();
 attr.add('long_name', 'Signal');
 attr.add('CLASS', 'IMAGE');
@@ -61,20 +61,20 @@ attr.add('SUBCLASS_VERSION', uint32(15));
 ret = h5w.nexus_write(dsnm, reshape(nxs_roi_map_u8_f, grid)', attr);
 
 % ... and dimension scale axes positions
-dsnm = strcat(grpnm, '/axis_y');
+dsnm = [grpnm '/axis_y'];
 nxs_bc_y = ebsd_implicit_sqr.y(:, 1)';
 attr = io_attributes();
 attr.add('units', scan_unit);
 attr.add('long_name', ['Calibrated coordinate along y-axis (', scan_unit, ')']);
 ret = h5w.nexus_write(dsnm, nxs_bc_y, attr);
-dsnm = strcat(grpnm, '/axis_x');
+dsnm = [grpnm '/axis_x'];
 nxs_bc_x = ebsd_implicit_sqr.x(1, :);
 attr = io_attributes();
 attr.add('units', scan_unit);
 attr.add('long_name', ['Calibrated coordinate along x-axis (', scan_unit, ')']);
 ret = h5w.nexus_write(dsnm, nxs_bc_x, attr);
 
-dsnm = strcat(grpnm, '/title');
+dsnm = [grpnm '/title'];
 ret = h5w.nexus_write(dsnm, ['Region-of-interest ', descriptor_name], attr);
 
 disp('NeXus/HDF5 exporting of ROI overview image was successful');
