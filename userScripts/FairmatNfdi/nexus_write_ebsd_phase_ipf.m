@@ -4,9 +4,9 @@ function status = nexus_write_ebsd_phase_ipf(ebsd_orig, ebsd_grd, fpath, parent,
 % ebsd_orig, ebsd_grd
 % fpath: path and filename of NeXus/HDF5 results file
 % parent: parent HDF5 group below which to write
-ebsd_orig = ebsd_raw;
-ebsd_grd = ebsd_sqr_ipf_hweb;
-fpath = ofpath;
+% ebsd_orig = ebsd_raw;
+% ebsd_grd = ebsd_sqr_ipf_hweb;
+% fpath = ofpath;
 
 % as white is a valid color in typical IPF plots, black is used to mark
 % pixels which were not indexed to belong to the phase in question
@@ -37,9 +37,9 @@ for phase_idx = 1:1:n_phases
     % for some examples the phaseMap starts at -1 for the notIndex
     % how many scan points of that phase in original EBSD map
     if min(ebsd_orig.phaseMap) == -1
-        n_count_orig = sum(sum(ebsd_orig.phase == (phase_id - 1)));
-    elseif min(ebsd_orig.phaseMap) == 0 || min(ebsd_grd.phaseMap) == 1
-        n_count_orig = sum(sum(ebsd_orig.phase == phase_id));
+        n_count_orig = sum(ebsd_orig.phase == (phase_id - 1));
+    elseif min(ebsd_orig.phaseMap) == 0 || min(ebsd_orig.phaseMap) == 1
+        n_count_orig = sum(ebsd_orig.phase == phase_id);
     else
         error('ERROR: The phaseMap for this EBSD map uses an unexpected indexing!');
     end
@@ -69,22 +69,21 @@ for phase_idx = 1:1:n_phases
             clearvars ipf_key colors nx_ipf_map_u8_f nxs_ipf_y nxs_ipf_x phase_i_idx v low_level idx;
             % ipf_hsv_key = ipfHSVKey(ebsd_grd(phase_name));
             if min(ebsd_grd.phaseMap) == -1
-                msk = ebsd_grd.phase == (phase_id - 1);
+                % msk = ebsd_grd.phase == (phase_id - 1);
                 ipf_key = ipfColorKey(ebsd_grd(phase_name));
             else
-                msk = ebsd_grd.phase == phase_id;
+                % msk = ebsd_grd.phase == phase_id;
                 ipf_key = ipfColorKey(ebsd_grd(phase_name));
             end
             ipf_key.inversePoleFigureDirection = proj_vector(proj_idx);
             colors = ipf_key.orientation2color(ebsd_grd(phase_name).orientations);
             % from normalized colors to RGB colors
-            colors = uint8(uint32(colors * 255.));
-            % base color black
+            colors = uint8(uint32(colors * 255.)); % base color is black
             nxs_ipf_map_u8_f = uint8(uint32(zeros([3, grid(1) * grid(2)]) * 255.));
             nxs_ipf_y = ebsd_grd.y(:, 1)';
             nxs_ipf_x = ebsd_grd.x(1, :);
 
-            % get array indices of all those pixels which were indexed as phase phase_idx
+            % get array indices of all pixels that were indexed phase phase_idx
             if min(ebsd_grd.phaseMap) == -1
                 phase_i_idx = uint32(ebsd_grd.id(ebsd_grd.phase == (phase_id - 1)));
             else
@@ -116,13 +115,15 @@ for phase_idx = 1:1:n_phases
                 upper(proj_name(proj_idx)) ' ' phase_name], attr);
 
             dsnm = [grpnm '/data'];
-            low_level = uint8(uint32(zeros([3 grid(2) grid(1)])));
-            %fliplr(size(nxs_ipf_map_u8_f))));
+            % low_level = uint8(uint32(zeros([3 grid(2) grid(1)])));
             for x = 1:1:grid(2)
-                for y = 1:1:grid(1)
-                    idx = y + (x - 1) * grid(1);
-                    low_level(:, x, y) = nxs_ipf_map_u8_f(:, idx);
-                end
+                offset = (x - 1) * grid(1);
+                % for y = 1:1:grid(1)
+                %     idx = y + offset;
+                %     low_level(:, x, y) = nxs_ipf_map_u8_f(:, idx);
+                % end
+                % three-times faster than with the loop above
+                low_level(:, x, 1:1:grid(1)) = nxs_ipf_map_u8_f(:, offset+1:1:offset+grid(1));
             end
             attr = io_attributes();
             attr.add('long_name', 'IPF color-coded orientation mapping');
@@ -155,15 +156,24 @@ for phase_idx = 1:1:n_phases
 
             dsnm = [grpnm '/title'];
             ret = h5w.nexus_write(dsnm, ['IPF ' upper(proj_name(proj_idx)) ' color key with SST'], attr);
-            figure('visible','off');
-            plot(ipf_key);
-            % f = gcf;
-            png_fnm = ['temporary.png'];
-            exportgraphics(gcf, png_fnm, 'Resolution', 300);
-            close all hidden;  %gcf;
-            % ... framegrab this image to get the pixel color values (no alpha)
-            im = imread(png_fnm);
-            delete(png_fnm); % remove the intermediately created figure
+            % solution one
+                figure('visible','off');
+                plot(ipf_key);
+                % f = gcf;
+                png_fnm = ['temporary.png'];
+                exportgraphics(gcf, png_fnm, 'Resolution', 300);
+                close all hidden;
+                % ... framegrab this image to get the pixel color values (no alpha)
+                im = imread(png_fnm);
+                delete(png_fnm); % remove the intermediately created figure
+            % solution two
+            %    tic
+            %    plot(ipf_key);
+            %    png = getframe(gcf);
+            %    im = png.cdata();
+            %    close all hidden;
+            %    close all force;
+            
             % better would be to use the image directly as a matrix
             % or make a color fingerprint, i.e. defined orientation set pump
             % through color code and then rendered as n_orientations x 3 RGB
