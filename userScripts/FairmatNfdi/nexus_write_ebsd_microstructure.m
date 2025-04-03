@@ -13,6 +13,7 @@ function status = nexus_write_ebsd_microstructure(ebsd_orig, fpath, parent, perf
 % the idea with this function here is to show how irrespective how the
 % grains were reconstructed, we can then export the geometry description
 % using NeXus classes
+ebsd_orig = ebsd_raw;
 
 if ~perform_io
     return;
@@ -20,13 +21,11 @@ end
 h5w = HdfFiveSeqHdl(fpath);
 
 scan_unit = 'n/a';
-% if isprop(ebsd_orig, 'scanUnit') extremely slow
 if strcmp(ebsd_orig.scanUnit, 'um')
     scan_unit = 'µm';
 else
     scan_unit = lower(ebsd_orig.scanUnit);
 end
-% end
 
 disorientation_threshold = 15.0*degree;
 % classical argument 15. for high-angle grain boundary network
@@ -34,7 +33,6 @@ disorientation_threshold = 15.0*degree;
 % extremely slow [grains_old, ebsd_orig.grainId]
 grains_old = calcGrains(ebsd_orig('indexed'), ...
     'boundary', 'tight', 'angle', disorientation_threshold);
-grains_old.scanUnit = scan_unit;
 % for subtle orientation gradients, fast multi-scale clustering, https://doi.org/10.1016/j.ultramic.2013.04.009
 % for the ger_freiberg_hielscher (forsterite example) this is not very useful as the interfaces are strongly ragged
 % grains_fmc = calcGrains(ebsd('indexed'), 'boundary', 'tight', 'FMC', 3.5);
@@ -76,14 +74,32 @@ grains_old.scanUnit = scan_unit;
 % hold on
 % plot(grains_old.boundary, 'linewidth', 1.5, 'linecolor', 'black')
 
-% check that each support vertex of a triplePoint is just a copy of a
-% vertex to the boundary network support vertices
-bnd_vrts = KDTreeSearcher(grains_old.V);
-nn = knnsearch(bnd_vrts, grains_old.triplePoints.V);
-disp(['Check triple points are copies of support vertices: ' ...
-    num2str(max(abs(nn - grains_old.triplePoints.id))) ', 0 means OK']);
-% we observe nn is grains_old.triplePoints.id
-clearvars bnd_vrts nn;
+% check that grain2d objects have several redundant quantities
+% g = grains_old(1);
+% disp([num2str(max(abs(g.allV.x - g.x))) ', 0 means x is OK']);
+% disp([num2str(max(abs(g.allV.y - g.y))) ', 0 means y is OK']);
+% disp([num2str(sum(abs(g.allV.z))) ', 0. means z is OK']);
+% check triple points of a representative grain that has no boundary
+% contact
+% [val, idx] = max(grains_old(~grains_old.isBoundary).numPixel);
+% g = grains_old(~grains_old.isBoundary);
+% g = g(idx);
+% plot(g);
+% check that each supporting vertex of a triplePoint is included in the
+% the set of supporting vertices of the boundary network
+% bnd_vrts = KDTreeSearcher(grains_old.V.xyz);
+% nn = knnsearch(bnd_vrts, grains_old.triplePoints.V.xyz);
+% for i = 1:1:length(nn)
+%     t = grains_old.allV(grains_old.triplePoints.id(i)).xyz;
+%     v = grains_old.V(nn(i)).xyz;
+%     d = sqrt((t(1) - v(1))^2 + (t(2) - v(2))^2);
+%     if d > eps
+%        disp(['WARNING mismatch in vertices for ' num2str(i)]);
+%     end
+% end
+% disp(['If no warning was issued we confirmed above that ' ...
+%     'triple points are copies of support vertices:']);
+% clearvars bnd_vrts nn;
 
 %% store discretization of crystal interface network
 % some of these vertices represent triplePoints
@@ -110,7 +126,7 @@ attr = io_attributes();
 ret = h5w.nexus_write(dsnm, 'disorientation_clustering', attr);
 dsnm = [grpnm '/disorientation_threshold'];
 attr = io_attributes();
-attr.add('unit', '°');
+attr.add('units', '°');
 ret = h5w.nexus_write(dsnm, disorientation_threshold / pi * 180., attr);
 
 
@@ -130,20 +146,34 @@ attr = io_attributes();
 attr.add('NX_class', 'NXcg_polyline');
 ret = h5w.nexus_write_group(grpnm, attr);
 
+%% summary statistics
+% grains_old.boundary reports a summary table how many segments
+% and how much boundary length between different phases
+
 %% vertices
+% TODO this implementation supports 32-bit wide identifier/indices
+% for integer valued quantities, the support can be extended by
+% changing the reporting type from (u)int32 to (u)int64
+% typically though a width of 32 bits allows to store 2^32 identifier
+% if counting from zero which especially for 2D are extremely large
+% EBSD maps that one would not even exhaust if each hexagon-shaped pixel
+% of a 500 million !!! scan point EBSD map is naively stored with each
+% of its six vertices repeated
+% using 32 bit instead of blindly 64 bit makes each processing
+% take half the cache and feeding half the payload to the compression
+% that is happening within the nexus_write calls
 grpnm = [parent '/microstructure1/cg_point'];
 dsnm = [grpnm '/cardinality'];
 attr = io_attributes();
+% TODO::should this be allV here ?
 ret = h5w.nexus_write(dsnm, uint32(size(grains_old.V, 1)), attr);
-dsnm = [grpnm '/identifier_offset'];
+dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
-% dsnm = [grpnm '/identifier');
-% attr = io_attributes();
-% ret = h5w.nexus_write(dsnm, uint32(1:1:size(grains_old.V, 1)), attr);
 dsnm = [grpnm '/position'];
 attr = io_attributes();
-attr.add('unit', grains_old.scanUnit);
+attr.add('units', scan_unit);
+% TODO::should this be allV and here ?
 ret = h5w.nexus_write(dsnm, double(grains_old.V)', attr);
 
 %% the set of polylines representing individual interface facets
@@ -153,31 +183,26 @@ ret = h5w.nexus_write(dsnm, double(grains_old.V)', attr);
 grpnm = [parent '/microstructure1/cg_polyline'];
 dsnm = [grpnm '/cardinality'];
 attr = io_attributes();
-ret = h5w.nexus_write(dsnm, uint32(size(grains_old.boundary.F, 1)), attr);
-dsnm = [grpnm '/identifier_offset'];
+polylines = grains_old.boundary.F;
+ret = h5w.nexus_write(dsnm, uint32(size(polylines, 1)), attr);
+dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
-% dsnm = [grpnm '/identifier'];
-% attr = io_attributes();
-% ret = h5w.nexus_write(dsnm, uint32(1:1:size(grains_old.boundary.F, 1)), attr);
 dsnm = [grpnm '/polylines'];
 attr = io_attributes();
 attr.add('depends_on', [parent '/microstructure1/cg_point']);
-ret = h5w.nexus_write(dsnm, uint32(reshape( ...
-    grains_old.boundary.F', [1, 2*length(grains_old.boundary.F')])), attr);
-
-% facet_length = double(nan([1, length(grains_old.boundary.F')]));
 polylines = grains_old.boundary.F';
-p_u = grains_old.V(polylines(1, :), :);
-p_v = grains_old.V(polylines(2, :), :);
-facet_length = sqrt((p_u(:, 1) - p_v(:, 1)).^2 ...
-    + (p_u(:, 2) - p_v(:, 2)).^2);
+ret = h5w.nexus_write(dsnm, uint32(reshape(polylines, ...
+    [1, 2*length(polylines)])), attr);
+p_u = grains_old.allV(polylines(1, :), :);
+p_v = grains_old.allV(polylines(2, :), :);
+facet_length = hypot((p_u.x - p_v.x), (p_u.y - p_v.y));
 if any(isnan(facet_length))
-    disp('ERROR: None of these should be NaN!');
+    error('At least one entry in facet_length is NaN !');
 end
 dsnm = [grpnm '/length'];
 attr = io_attributes();
-attr.add('unit', grains_old.scanUnit);
+attr.add('units', scan_unit);
 ret = h5w.nexus_write(dsnm, facet_length, attr);
 
 %% store grains
@@ -188,26 +213,21 @@ ret = h5w.nexus_write_group(grpnm, attr);
 dsnm = [grpnm '/number_of_crystals'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(size(grains_old.id, 1)), attr);
-dsnm = [grpnm '/identifier_offset_crystal'];
+dsnm = [grpnm '/index_offset_crystal'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
-% dsnm = [grpnm '/identifier_crystal'];
-% going for implicit naming, or should we use explicit naming?
-% attr = io_attributes();
-% ret = h5w.nexus_write(dsnm, uint32(grains_old.id), attr);
 
 %% store grain descriptors
 dsnm = [grpnm '/area'];  % which type of area all pixels, polygon area?
-area_per_ebsd_pixel = polyshape(ebsd_orig.unitCell).area;  % clock-wise winding order
-% area_per_ebsd_pixel = (max(max(ebsd_orig.unitCell)) - min(min(ebsd_orig.unitCell)))^2;
+area_per_ebsd_pixel = polyshape(ebsd_orig.unitCell.xy).area;  % clock-wise winding order
 if length(ebsd_orig.unitCell) ~= 4
-    disp('TODO::Check correct size of that hexagonal Wigner-Seitz cell !');
+    error('TODO::Check correct size of that hexagonal Wigner-Seitz cell !');
 end
 attr = io_attributes();
-attr.add('unit', [grains_old.scanUnit, '^2']);
-ret = h5w.nexus_write(dsnm, double(grains_old.grainSize * area_per_ebsd_pixel), attr);
+attr.add('units', [scan_unit, '^2']);
+ret = h5w.nexus_write(dsnm, double(grains_old.numPixel * area_per_ebsd_pixel), attr);
 clearvars area_per_ebsd_pixel;
-dsnm = [grpnm '/phase_id'];
+dsnm = [grpnm '/indices_phase'];
 attr = io_attributes();
 % ##MK::TODO implement case that phases might be not indexed
 ret = h5w.nexus_write(dsnm, uint32(grains_old.phaseId), attr);
@@ -215,32 +235,27 @@ ret = h5w.nexus_write(dsnm, uint32(grains_old.phaseId), attr);
 % convenience, can be logically/topologically inferred from entry1/interfaces
 dsnm = [grpnm '/boundary_contact'];
 attr = io_attributes();
-% boundary_contact = logical(zeros(size(grains_old.id)));
-grain_ids = grains_old.boundary.grainId';
-boundary_contact(max(grain_ids)) = any(grain_ids == 0, 1);
-clearvars grain_ids;
-ret = h5w.nexus_write(dsnm, uint8(boundary_contact), attr);
-clearvars boundary_contact;
+ret = h5w.nexus_write(dsnm, uint8(grains_old.isBoundary), attr);
+% TODO write out as bitfield, currently happening via pynxtools-em
 dsnm = [grpnm '/orientation_spread'];
 attr = io_attributes();
-attr.add( 'unit', '°');
-ret = h5w.nexus_write(dsnm, double(grains_old.prop.GOS / pi * 180.), attr);
+attr.add( 'units', '°');
+ret = h5w.nexus_write(dsnm, double(grains_old.GOS / pi * 180.), attr);
 
 grpnm = [parent '/microstructure1/crystals/mean_rotation'];
 attr = io_attributes();
 attr.add('NX_class', 'NXrotations');
-% ##MK::TODO why not an orientation set ??
 ret = h5w.nexus_write_group(grpnm, attr);
 dsnm = [grpnm '/parameterization'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, 'quaternion', attr);
 dsnm = [grpnm '/rotation'];
 attr = io_attributes();
-quat = double(zeros([4, length(grains_old.prop.meanRotation.a)]));
-quat(1,:) = double(grains_old.prop.meanRotation.a');
-quat(2,:) = double(grains_old.prop.meanRotation.b');
-quat(3,:) = double(grains_old.prop.meanRotation.c');
-quat(4,:) = double(grains_old.prop.meanRotation.d');
+quat = double(zeros([4, length(grains_old.meanRotation.a)]));
+quat(1,:) = double(grains_old.meanRotation.a');
+quat(2,:) = double(grains_old.meanRotation.b');
+quat(3,:) = double(grains_old.meanRotation.c');
+quat(4,:) = double(grains_old.meanRotation.d');
 ret = h5w.nexus_write(dsnm, quat, attr);
 clearvars quat;
 
@@ -269,22 +284,19 @@ ret = h5w.nexus_write_group(grpnm, attr);
 % group interface facets to grains via hashing min/max crystal id pair
 dsnm = [grpnm '/number_of_interfaces'];
 attr = io_attributes();
-mi = min(grains_old.boundary.grainId');
-mx = max(grains_old.boundary.grainId');
-segment_to_interface_lu = uint64(mi) + uint64(2^32) * uint64(mx);
-clearvars mi mx;
+pairs = grains_old.boundary.grainId';
+segment_to_interface_lu = uint64(min(pairs)) + uint64(2^32) * uint64(max(pairs));
+clearvars pairs;
 unique_interfaces = unique(segment_to_interface_lu);
-keys = num2cell(unique_interfaces');
-values = uint32(1:1:length(unique_interfaces));
-hash_to_interface_idx = containers.Map(keys, values);
-clearvars keys values;
+hash_to_interface_idx = containers.Map( ...
+    num2cell(unique_interfaces'), ...
+    uint32(1:1:length(unique_interfaces)));
 % includes interfaces of crystals to the edge of the ROI / boundary
 crystal_id_pair = uint32(zeros([2, length(unique_interfaces)]));
 mx = unique_interfaces ./ uint64(2^32);
 mi = unique_interfaces - (uint64(2^32) .* uint64(mx));
 if max(mi) >= uint64(2^32) | max(mx) >= uint64(2^32)
-    disp('ERROR: crystal_id must not be >= 2^32 !');
-    % stop
+    error('At least one crystal_id is incorrectly >= 2^32 !');
 end
 crystal_id_pair(1, :) = mi;
 crystal_id_pair(2, :) = mx;
@@ -292,23 +304,25 @@ clearvars mi mx;
 ret = h5w.nexus_write(dsnm, uint32(length(unique_interfaces)), attr);
 clearvars unique_interfaces;
 
-dsnm = [grpnm '/identifier_offset'];
+dsnm = [grpnm '/index_offset_interface'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
-% 0 marks the virtual zero grain which specifies the boundary of the ROI
-dsnm = [grpnm '/crystallites'];
+% 0 marks the virtual zero grain which specifies the boundary of the ROI !
+dsnm = [grpnm '/indices_crystal'];
 attr = io_attributes();
 attr.add('depends_on', [parent '/microstructure1/crystals']);
 ret = h5w.nexus_write(dsnm, crystal_id_pair, attr);
-dsnm = [grpnm '/identifier_phase_offset'];
+% do not wonder why crystal_id_pair may include 0, it marks the
+% discretization of the boundary of the ROI !
+dsnm = [grpnm '/index_offset_phase'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(0), attr);
 
-dsnm = [grpnm '/identifier_phase'];
+dsnm = [grpnm '/indices_phase'];
 attr = io_attributes();
 % check that for each facet with the same interface_hash
 % the phase_id pair is exactly the same!
-phase_id_pair = int64(zeros(size(crystal_id_pair))) - 1; % mark unknown with -1
+phase_id_pair = int64(zeros(size(crystal_id_pair))) - 1;% mark unknown with -1
 mi = uint32(min(grains_old.boundary.phaseId'));
 mx = uint32(max(grains_old.boundary.phaseId'));
 for idx = 1:1:size(grains_old.boundary.phaseId, 1)
@@ -329,13 +343,15 @@ for idx = 1:1:size(grains_old.boundary.phaseId, 1)
         if phase_id_pair(1, interface_idx) == mi(idx) ...
                 & phase_id_pair(2, interface_idx) == mx(idx)
         else
-            disp([num2str(idx) ' problem !']);
+            error(['Resetting values in a phase_id_pair ' ...
+                num2str(idx) ' is not allowed !']);
         end
     end
 end
-% check that no index remains -1
 if min(min(phase_id_pair)) >= 0 & max(max(phase_id_pair)) < int64(2^32)
     phase_id_pair = uint32(phase_id_pair);
+else
+    error('At least one phase_id_pair value remained incorrectly -1 !');
 end
 % so the information e.g. phase_id_pair  (0, 2) means this interface
 % is an interface between some crystallite_projections of phase 0 and phase 2
@@ -351,29 +367,29 @@ ret = h5w.nexus_write_group(grpnm, attr);
 dsnm = [grpnm '/number_of_junctions'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(size(grains_old.triplePoints.id, 1)), attr);
-dsnm = [grpnm '/identifier_offset'];
+dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
-dsnm = [grpnm '/location'];  % THE SPECIAL SITUATION FOR indexing with offset +1 is that
-attr = io_attributes();
-attr.add('depends_on', [parent '/microstructure1/cg_point/geometry']);
-ret = h5w.nexus_write(dsnm, uint32(grains_old.triplePoints.id), attr);
+% dsnm = [grpnm '/location'];
+% attr = io_attributes();
+% attr.add('depends_on', [parent '/microstructure1/cg_point/position']);
+% ret = h5w.nexus_write(dsnm, uint32(grains_old.triplePoints.id), attr);
 
-dsnm = [grpnm '/crystals'];
+dsnm = [grpnm '/indices_crystal'];
 attr = io_attributes();
-attr.add('depends_on', [parent '/microstructure1/crystals']);
+% attr.add('depends_on', [parent '/microstructure1/crystals']);
 ret = h5w.nexus_write(dsnm, uint32(grains_old.triplePoints.grainId)', attr);
 
 %% ##MK::TODO
-dsnm = [grpnm '/polylines'];
+dsnm = [grpnm '/indices_polyline'];
 attr = io_attributes();
-attr.add('depends_on', [parent '/microstructure1/cg_polyline']);
+% attr.add('depends_on', [parent '/microstructure1/cg_polyline']);
 ret = h5w.nexus_write(dsnm, uint32(grains_old.triplePoints.boundaryId)', attr);
 
-dsnm = [grpnm '/interfaces'];
+dsnm = [grpnm '/indices_interface'];
 % the adjoining interface, (also see above comment) not necessary
 attr = io_attributes();
-attr.add('depends_on', ['/entry1/roi1/ebsd/microstructure1/interfaces']);
+% attr.add('depends_on', ['/entry1/roi1/ebsd/microstructure1/interfaces']);
 interface_ids = int64(zeros([3, size(grains_old.triplePoints.boundaryId, 1)]) - 1);
 bnd_idxs = grains_old.triplePoints.boundaryId';
 a_bnd_hsh = segment_to_interface_lu(bnd_idxs(1, :));
@@ -406,6 +422,8 @@ end
 % check that no index remains -1
 if min(min(interface_ids)) >= 0 & max(max(interface_ids)) < int64(2^32)
     interface_ids = uint32(interface_ids);
+else
+    error(['At least on interface_id is incorrectly >= 2^32 !']);
 end
 clearvars idx a_bnd b_bnd c_bnd a_bnd_hsh b_bnd_hsh c_bnd_hsh;
 ret = h5w.nexus_write(dsnm, interface_ids, attr);
