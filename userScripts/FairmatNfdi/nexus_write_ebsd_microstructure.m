@@ -33,6 +33,7 @@ disorientation_threshold = 15.0*degree;
 % extremely slow [grains_old, ebsd_orig.grainId]
 grains_old = calcGrains(ebsd_orig('indexed'), ...
     'boundary', 'tight', 'angle', disorientation_threshold);
+% for the Forsterite MTex example grain 2842 is the largest
 % for subtle orientation gradients, fast multi-scale clustering, https://doi.org/10.1016/j.ultramic.2013.04.009
 % for the ger_freiberg_hielscher (forsterite example) this is not very useful as the interfaces are strongly ragged
 % grains_fmc = calcGrains(ebsd('indexed'), 'boundary', 'tight', 'FMC', 3.5);
@@ -87,11 +88,11 @@ grains_old = calcGrains(ebsd_orig('indexed'), ...
 % plot(g);
 % check that each supporting vertex of a triplePoint is included in the
 % the set of supporting vertices of the boundary network
-% bnd_vrts = KDTreeSearcher(grains_old.V.xyz);
+% bnd_vrts = KDTreeSearcher(grains_old.allV.xyz);
 % nn = knnsearch(bnd_vrts, grains_old.triplePoints.V.xyz);
 % for i = 1:1:length(nn)
-%     t = grains_old.allV(grains_old.triplePoints.id(i)).xyz;
-%     v = grains_old.V(nn(i)).xyz;
+%     t = grains_old.triplePoints.V(i).xyz;
+%     v = grains_old.allV(nn(i)).xyz;
 %     d = sqrt((t(1) - v(1))^2 + (t(2) - v(2))^2);
 %     if d > eps
 %        disp(['WARNING mismatch in vertices for ' num2str(i)]);
@@ -165,16 +166,14 @@ ret = h5w.nexus_write_group(grpnm, attr);
 grpnm = [parent '/microstructure1/cg_point'];
 dsnm = [grpnm '/cardinality'];
 attr = io_attributes();
-% TODO::should this be allV here ?
-ret = h5w.nexus_write(dsnm, uint32(size(grains_old.V, 1)), attr);
+ret = h5w.nexus_write(dsnm, uint32(size(grains_old.allV, 1)), attr);
 dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
 dsnm = [grpnm '/position'];
 attr = io_attributes();
 attr.add('units', scan_unit);
-% TODO::should this be allV and here ?
-ret = h5w.nexus_write(dsnm, double(grains_old.V)', attr);
+ret = h5w.nexus_write(dsnm, double(grains_old.allV)', attr);
 
 %% the set of polylines representing individual interface facets
 % problem the term facet is used for both a discretization of an interface
