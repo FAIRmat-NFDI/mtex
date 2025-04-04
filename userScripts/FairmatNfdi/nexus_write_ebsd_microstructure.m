@@ -1,19 +1,15 @@
 function status = nexus_write_ebsd_microstructure(ebsd_orig, fpath, parent, perform_io)
 % Generate extracted grains, grain- and phase boundary and triple point geometry
 
-% ebsd_orig
+% ebsd_orig: array of one EBSD object per scan point
 % fpath: path and filename of NeXus/HDF5 results file
 % parent: parent HDF5 group below which to write
+ebsd_orig = ebsd_raw;  % TODO remove in production
 
 %% generate discretization of crystal interface network
-% see https://mtex-toolbox.github.io/EBSD.calcGrains.html for details
-% especially more advanced strategies how to account for non-indexed
-% points could be used ##MK::TODO
-
 % the idea with this function here is to show how irrespective how the
 % grains were reconstructed, we can then export the geometry description
 % using NeXus classes
-ebsd_orig = ebsd_raw;
 
 if ~perform_io
     return;
@@ -28,79 +24,40 @@ else
 end
 
 disorientation_threshold = 15.0*degree;
-% classical argument 15. for high-angle grain boundary network
+% classical 15. high-angle to low-angle grain boundary
 % use smaller values to segment sub-grain boundary network
-% extremely slow [grains_old, ebsd_orig.grainId]
-grains_old = calcGrains(ebsd_orig('indexed'), ...
-    'boundary', 'tight', 'angle', disorientation_threshold);
-% for the Forsterite MTex example grain 2842 is the largest
+% do not call like this [grains, ebsd_orig.grainId] as this
+% is extremely slow
+grains = calcGrains(ebsd_orig('indexed'), 'boundary', 'tight', 'angle', disorientation_threshold);
+% for the Forsterite example grain 2842 is the largest
 % for subtle orientation gradients, fast multi-scale clustering, https://doi.org/10.1016/j.ultramic.2013.04.009
-% for the ger_freiberg_hielscher (forsterite example) this is not very useful as the interfaces are strongly ragged
+% for the Forsterite example this is not useful due to interfaces strongly ragged
 % grains_fmc = calcGrains(ebsd('indexed'), 'boundary', 'tight', 'FMC', 3.5);
-% also for subtle orientation gradients, Markov graph clustering
-% https://micans.org/mcl/
-% http://dx.doi.org/10.1007/s11661-018-4904-9
-% for the ger_freiberg_hielscher (forsterite example) this is useless as it
-% tries to allocate a 294GB matrix :D !!
+% for subtle orientation gradients, Markov graph clustering
+% https://micans.org/mcl/, http://dx.doi.org/10.1007/s11661-018-4904-9
+% for the Forsterite example this tried to allocate a 294GB matrix, hence 
 % grains_mcl = calcGrains(ebsd('indexed'), 'boundary', ...
 %     'tight', 'mcl', [1.24 50], 'soft', [0.2 0.3]*degree);
 
-% % hold on
-% % plot(grains_fmc.boundary, 'linewidth', 1.5, 'linecolor', 'blue')
-% % % hold
-% % % plot(grains_mcl.boundary, 'linewidth', 1.5, 'linecolor', 'orange')
-% % hold off
-% % % for a mixture of homo and hetero-phase boundaries no misorientation is
-% % % computed
-% % gB = grains_old.boundary('Forsterite', 'Forsterite');
-% % Sigma3 = gB(angle(gB.misorientation, CSL(3, ebsd('Forsterite').CS)) < 30.0*degree);
-% % hold on
-% % plot(ebsd('Forsterite'),log(ebsd('Forsterite').prop.bc), 'figSize', 'large')
-% % mtexColorMap black2white
-% % hold on
-% % plot(gB, 'linewidth', 1.5, 'linecolor', 'black', 'DisplayName', 'Forsterite/Forsterite homo-phase boundaries')
-% % hold on
-% % plot(Sigma3, 'lineColor', 'gold', 'linewidth', 1.5, 'DisplayName','CSL3 within 30deg')
-% % hold off
-% % % the large/complex Enstatite OPX Av77 crystal with island grains inside
-% % test_grain_x = 5336;
-% % test_grain_y = 8251;
-% % hold on
-% % plot(grains_old(test_grain_x, test_grain_y).boundary,'linewidth',4,'linecolor','blue')
-% % hold off
-% % outer_bnd_id = any(grains_old.boundary.grainId == 0, 2);
-% % inner_bnd_id = ~outer_bnd_id;
+%% store phases
+for phase_id = 1:1:length(ebsd_orig.mineralList)
+    grpnm = [parent '/microstructure1/phase' num2str(ebsd_orig.phaseMap{phase_id})];
+    attr = io_attributes();
+    attr.add('NX_class', 'NXphase');
+    ret = h5w.nexus_write_group(grpnm, attr);
 
-%% preview for development purposes
-% hold on
-% plot(grains_old.boundary, 'linewidth', 1.5, 'linecolor', 'black')
-
-% check that grain2d objects have several redundant quantities
-% g = grains_old(1);
-% disp([num2str(max(abs(g.allV.x - g.x))) ', 0 means x is OK']);
-% disp([num2str(max(abs(g.allV.y - g.y))) ', 0 means y is OK']);
-% disp([num2str(sum(abs(g.allV.z))) ', 0. means z is OK']);
-% check triple points of a representative grain that has no boundary
-% contact
-% [val, idx] = max(grains_old(~grains_old.isBoundary).numPixel);
-% g = grains_old(~grains_old.isBoundary);
-% g = g(idx);
-% plot(g);
-% check that each supporting vertex of a triplePoint is included in the
-% the set of supporting vertices of the boundary network
-% bnd_vrts = KDTreeSearcher(grains_old.allV.xyz);
-% nn = knnsearch(bnd_vrts, grains_old.triplePoints.V.xyz);
-% for i = 1:1:length(nn)
-%     t = grains_old.triplePoints.V(i).xyz;
-%     v = grains_old.allV(nn(i)).xyz;
-%     d = sqrt((t(1) - v(1))^2 + (t(2) - v(2))^2);
-%     if d > eps
-%        disp(['WARNING mismatch in vertices for ' num2str(i)]);
-%     end
-% end
-% disp(['If no warning was issued we confirmed above that ' ...
-%     'triple points are copies of support vertices:']);
-% clearvars bnd_vrts nn;
+    dsnm = [grpnm '/name'];
+    attr = io_attributes();
+    ret = h5w.nexus_write(dsnm, ebsd_orig.mineralList{phase_id}, attr);
+    dsnm = [grpnm '/phase_id'];
+    attr = io_attributes();
+    ret = h5w.nexus_write(dsnm, int32(ebsd_orig.phaseMap{phase_id}), attr);
+    dsnm = [grpnm '/index_offset'];
+    attr = io_attributes();
+    ret = h5w.nexus_write(dsnm, uint32(1), attr);
+    % respecting the assumption that for MTex phase 0 is always notIndexed
+    % and boundary !
+end
 
 %% store discretization of crystal interface network
 % some of these vertices represent triplePoints
@@ -130,9 +87,7 @@ attr = io_attributes();
 attr.add('units', '°');
 ret = h5w.nexus_write(dsnm, disorientation_threshold / pi * 180., attr);
 
-
 %% instantiate storage of representation of the primitives
-%% building the interface network
 grpnm = [parent '/microstructure1'];
 dsnm = [grpnm '/dimensionality'];
 attr = io_attributes();
@@ -148,7 +103,7 @@ attr.add('NX_class', 'NXcg_polyline');
 ret = h5w.nexus_write_group(grpnm, attr);
 
 %% summary statistics
-% grains_old.boundary reports a summary table how many segments
+% grains.boundary reports a summary table how many segments
 % and how much boundary length between different phases
 
 %% vertices
@@ -166,14 +121,14 @@ ret = h5w.nexus_write_group(grpnm, attr);
 grpnm = [parent '/microstructure1/cg_point'];
 dsnm = [grpnm '/cardinality'];
 attr = io_attributes();
-ret = h5w.nexus_write(dsnm, uint32(size(grains_old.allV, 1)), attr);
+ret = h5w.nexus_write(dsnm, uint32(size(grains.allV, 1)), attr);
 dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
 dsnm = [grpnm '/position'];
 attr = io_attributes();
 attr.add('units', scan_unit);
-ret = h5w.nexus_write(dsnm, double(grains_old.allV)', attr);
+ret = h5w.nexus_write(dsnm, double(grains.allV)', attr);
 
 %% the set of polylines representing individual interface facets
 % problem the term facet is used for both a discretization of an interface
@@ -182,19 +137,19 @@ ret = h5w.nexus_write(dsnm, double(grains_old.allV)', attr);
 grpnm = [parent '/microstructure1/cg_polyline'];
 dsnm = [grpnm '/cardinality'];
 attr = io_attributes();
-polylines = grains_old.boundary.F;
+polylines = grains.boundary.F;
 ret = h5w.nexus_write(dsnm, uint32(size(polylines, 1)), attr);
 dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
 dsnm = [grpnm '/polylines'];
 attr = io_attributes();
-attr.add('depends_on', [parent '/microstructure1/cg_point']);
-polylines = grains_old.boundary.F';
+attr.add('use_these', [parent '/microstructure1/cg_point']);
+polylines = grains.boundary.F';
 ret = h5w.nexus_write(dsnm, uint32(reshape(polylines, ...
     [1, 2*length(polylines)])), attr);
-p_u = grains_old.allV(polylines(1, :), :);
-p_v = grains_old.allV(polylines(2, :), :);
+p_u = grains.allV(polylines(1, :), :);
+p_v = grains.allV(polylines(2, :), :);
 facet_length = hypot((p_u.x - p_v.x), (p_u.y - p_v.y));
 if any(isnan(facet_length))
     error('At least one entry in facet_length is NaN !');
@@ -211,8 +166,8 @@ attr.add('NX_class', 'NXobject');
 ret = h5w.nexus_write_group(grpnm, attr);
 dsnm = [grpnm '/number_of_crystals'];
 attr = io_attributes();
-ret = h5w.nexus_write(dsnm, uint32(size(grains_old.id, 1)), attr);
-dsnm = [grpnm '/index_offset_crystal'];
+ret = h5w.nexus_write(dsnm, uint32(size(grains.id, 1)), attr);
+dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
 
@@ -224,24 +179,24 @@ if length(ebsd_orig.unitCell) ~= 4
 end
 attr = io_attributes();
 attr.add('units', [scan_unit, '^2']);
-ret = h5w.nexus_write(dsnm, double(grains_old.numPixel * area_per_ebsd_pixel), attr);
+ret = h5w.nexus_write(dsnm, double(grains.numPixel * area_per_ebsd_pixel), attr);
 clearvars area_per_ebsd_pixel;
 dsnm = [grpnm '/indices_phase'];
 attr = io_attributes();
 % ##MK::TODO implement case that phases might be not indexed
-ret = h5w.nexus_write(dsnm, uint32(grains_old.phaseId), attr);
+ret = h5w.nexus_write(dsnm, uint32(grains.phaseId), attr);
 % evaluate if grain has boundary contact
 % convenience, can be logically/topologically inferred from entry1/interfaces
 dsnm = [grpnm '/boundary_contact'];
 attr = io_attributes();
-ret = h5w.nexus_write(dsnm, uint8(grains_old.isBoundary), attr);
+ret = h5w.nexus_write(dsnm, uint8(grains.isBoundary), attr);
 % TODO write out as bitfield, currently happening via pynxtools-em
 dsnm = [grpnm '/orientation_spread'];
 attr = io_attributes();
 attr.add( 'units', '°');
-ret = h5w.nexus_write(dsnm, double(grains_old.GOS / pi * 180.), attr);
+ret = h5w.nexus_write(dsnm, double(grains.GOS / pi * 180.), attr);
 
-grpnm = [parent '/microstructure1/crystals/mean_rotation'];
+grpnm = [parent '/microstructure1/crystals/orientation'];
 attr = io_attributes();
 attr.add('NX_class', 'NXrotations');
 ret = h5w.nexus_write_group(grpnm, attr);
@@ -250,11 +205,11 @@ attr = io_attributes();
 ret = h5w.nexus_write(dsnm, 'quaternion', attr);
 dsnm = [grpnm '/rotation'];
 attr = io_attributes();
-quat = double(zeros([4, length(grains_old.meanRotation.a)]));
-quat(1,:) = double(grains_old.meanRotation.a');
-quat(2,:) = double(grains_old.meanRotation.b');
-quat(3,:) = double(grains_old.meanRotation.c');
-quat(4,:) = double(grains_old.meanRotation.d');
+quat = double(zeros([4, length(grains.meanRotation.a)]));
+quat(1,:) = double(grains.meanRotation.a');
+quat(2,:) = double(grains.meanRotation.b');
+quat(3,:) = double(grains.meanRotation.c');
+quat(4,:) = double(grains.meanRotation.d');
 ret = h5w.nexus_write(dsnm, quat, attr);
 clearvars quat;
 
@@ -275,6 +230,7 @@ grpnm = [parent '/microstructure1/interfaces'];
 attr = io_attributes();
 attr.add('NX_class', 'NXobject');
 ret = h5w.nexus_write_group(grpnm, attr);
+
 %% so far we only know the polyline segments but interfaces are composed
 % eventually of multiple such segments because the vertices from MTex
 % represent on the one hand vertices at triple points and virtual
@@ -283,7 +239,7 @@ ret = h5w.nexus_write_group(grpnm, attr);
 % group interface facets to grains via hashing min/max crystal id pair
 dsnm = [grpnm '/number_of_interfaces'];
 attr = io_attributes();
-pairs = grains_old.boundary.grainId';
+pairs = grains.boundary.grainId';
 segment_to_interface_lu = uint64(min(pairs)) + uint64(2^32) * uint64(max(pairs));
 clearvars pairs;
 unique_interfaces = unique(segment_to_interface_lu);
@@ -303,35 +259,33 @@ clearvars mi mx;
 ret = h5w.nexus_write(dsnm, uint32(length(unique_interfaces)), attr);
 clearvars unique_interfaces;
 
-dsnm = [grpnm '/index_offset_interface'];
+dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
 % 0 marks the virtual zero grain which specifies the boundary of the ROI !
 dsnm = [grpnm '/indices_crystal'];
 attr = io_attributes();
-attr.add('depends_on', [parent '/microstructure1/crystals']);
+attr.add('use_these', [parent '/microstructure1/crystals']);
 ret = h5w.nexus_write(dsnm, crystal_id_pair, attr);
 % do not wonder why crystal_id_pair may include 0, it marks the
 % discretization of the boundary of the ROI !
-dsnm = [grpnm '/index_offset_phase'];
-attr = io_attributes();
-ret = h5w.nexus_write(dsnm, uint32(0), attr);
 
 dsnm = [grpnm '/indices_phase'];
 attr = io_attributes();
 % check that for each facet with the same interface_hash
 % the phase_id pair is exactly the same!
 phase_id_pair = int64(zeros(size(crystal_id_pair))) - 1;% mark unknown with -1
-mi = uint32(min(grains_old.boundary.phaseId'));
-mx = uint32(max(grains_old.boundary.phaseId'));
-for idx = 1:1:size(grains_old.boundary.phaseId, 1)
+mi = uint32(min(grains.boundary.phaseId'));
+mx = uint32(max(grains.boundary.phaseId'));
+for idx = 1:1:size(grains.boundary.phaseId, 1)
     % never zero unless 0 + (2^32 * 0) not possible by virtue of construction?
     interface_id = segment_to_interface_lu(idx);
     interface_idx = hash_to_interface_idx(interface_id);
-    % mi = min(uint32(grains_old.boundary.phaseId(idx, :)));
-    % mx = max(uint32(grains_old.boundary.phaseId(idx, :)));
+    % mi = min(uint32(grains.boundary.phaseId(idx, :)));
+    % mx = max(uint32(grains.boundary.phaseId(idx, :)));
     % in the case of mi == mx we have a homophase interface
-    % in the case of any([mi, mx]) zero we have boundary contact
+    % in the case of any([mi, mx]) == 0 we have boundary contact
+    % but the flag isBoundary is a cleaner way to query these cases
     % in all other cases we have heterophase interface
     if phase_id_pair(1, interface_idx) == -1 ...
             & phase_id_pair(2, interface_idx) == -1
@@ -354,9 +308,9 @@ else
 end
 % so the information e.g. phase_id_pair  (0, 2) means this interface
 % is an interface between some crystallite_projections of phase 0 and phase 2
+% phase 0 is notIndexed and used for representing the interface
 ret = h5w.nexus_write(dsnm, phase_id_pair, attr);
 clearvars idx interface_id interface_idx mi mx phase_id_pair crystal_id_pair;
-
 
 %% triple junctions
 grpnm = [parent '/microstructure1/triple_junctions'];
@@ -365,43 +319,32 @@ attr.add('NX_class', 'NXobject');
 ret = h5w.nexus_write_group(grpnm, attr);
 dsnm = [grpnm '/number_of_junctions'];
 attr = io_attributes();
-ret = h5w.nexus_write(dsnm, uint32(size(grains_old.triplePoints.id, 1)), attr);
+ret = h5w.nexus_write(dsnm, uint32(size(grains.triplePoints.id, 1)), attr);
 dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
-% dsnm = [grpnm '/location'];
-% attr = io_attributes();
-% attr.add('depends_on', [parent '/microstructure1/cg_point/position']);
-% ret = h5w.nexus_write(dsnm, uint32(grains_old.triplePoints.id), attr);
 
 dsnm = [grpnm '/indices_crystal'];
 attr = io_attributes();
-% attr.add('depends_on', [parent '/microstructure1/crystals']);
-ret = h5w.nexus_write(dsnm, uint32(grains_old.triplePoints.grainId)', attr);
+attr.add('use_these', [parent '/microstructure1/crystals']);
+ret = h5w.nexus_write(dsnm, uint32(grains.triplePoints.grainId)', attr);
 
-%% ##MK::TODO
 dsnm = [grpnm '/indices_polyline'];
 attr = io_attributes();
-% attr.add('depends_on', [parent '/microstructure1/cg_polyline']);
-ret = h5w.nexus_write(dsnm, uint32(grains_old.triplePoints.boundaryId)', attr);
+attr.add('use_these', [parent '/microstructure1/cg_polyline']);
+ret = h5w.nexus_write(dsnm, uint32(grains.triplePoints.boundaryId)', attr);
 
 dsnm = [grpnm '/indices_interface'];
 % the adjoining interface, (also see above comment) not necessary
 attr = io_attributes();
-% attr.add('depends_on', ['/entry1/roi1/ebsd/microstructure1/interfaces']);
-interface_ids = int64(zeros([3, size(grains_old.triplePoints.boundaryId, 1)]) - 1);
-bnd_idxs = grains_old.triplePoints.boundaryId';
+attr.add('use_these', [parent '/microstructure1/interfaces']);
+interface_ids = int64(zeros([3, size(grains.triplePoints.boundaryId, 1)]) - 1);
+bnd_idxs = grains.triplePoints.boundaryId';
 a_bnd_hsh = segment_to_interface_lu(bnd_idxs(1, :));
 b_bnd_hsh = segment_to_interface_lu(bnd_idxs(2, :));
 c_bnd_hsh = segment_to_interface_lu(bnd_idxs(3, :));
 clearvars bnd_idxs;
-for idx = 1:1:size(grains_old.triplePoints.boundaryId, 1)
-    % a_idx = grains_old.triplePoints.boundaryId(idx, 1);
-    % b_idx = grains_old.triplePoints.boundaryId(idx, 2);
-    % c_idx = grains_old.triplePoints.boundaryId(idx, 3);
-    % a_bnd_hsh = segment_to_interface_lu(a_idx);
-    % b_bnd_hsh = segment_to_interface_lu(b_idx);
-    % c_bnd_hsh = segment_to_interface_lu(c_idx);
+for idx = 1:1:size(grains.triplePoints.boundaryId, 1)
     a_bnd = hash_to_interface_idx(a_bnd_hsh(idx));
     b_bnd = hash_to_interface_idx(b_bnd_hsh(idx));
     c_bnd = hash_to_interface_idx(c_bnd_hsh(idx));
@@ -432,58 +375,5 @@ clearvars hash_to_interface_id segment_to_interface_lu ret;
 disp('NeXus/HDF5 exporting of microstructural features was successful');
 
 status = logical(1);
-
-% HOW TO DECIDE WHICH ONE KICKS IN AND HOW TO RESOLVE AMBIGUITIES?
-% e.g. if one just gives identifier_offset and assumes as a NeXus default
-% that ids run from offset:1:: then what if there is another field called
-% identifier, see below which refers to completely different ids though?
-% at least two possibilities exist how to interpret "identifier"
-% TRICKY, benefit of explicit stating which vertices are triple junctions
-% is that minimal information is stored and one is explicit, more
-% cumbersome one could add a boolean array behind discretization/vertices
-% and name which are triple junctions then from the order one would have to
-% compute back their ids but explicit names are always clearer than rely on
-% implicit assumptions also for the sake of being self-descriptive
-% above-mentioned means we introduce explicitly the ids of each triple
-% junction
-% alternatively one could here list the indices of the discretized vertices
-% i.e. those vertices of the interface network which are triple points
-% all other vertices are supporting vertices between triple junctions for
-% discretizing the polyline contour approximation of the interface segment
-% in the grain growth literature these are known as e.g. virtual vertices
-% their spacing is dictated by the discretization of the underlying EBSD
-% map
-
-% the key question here is from which level to describe the hierarchy
-% top-down or bottom-up
-% from bottom-up triple lines connect interfaces which delineate crystals
-% from top-down crystals are delineated by interface (s segments) two of which meet at triple
-% junctions
-% both description describe equally the topological and logical grouping
-% identifier and indices can have the same value but represent two different
-% concepts: an identifier is a name of an instance (a specific vertex)
-% while an index is a variable to know from where to dereference pieces of
-% information in a sequence (tuple, list, array)
-
-% THIS SCREAMS for getting an own i.e. vertex_identifier/@depends_on but not on interfaces but on
-% discretization, but then there is no more relation between the triple
-% junctions and the interfaces, hooking to interfaces is also ambiguous
-% because the here written indices must not be resolved from
-% identifier/index arrays inside interfaces but from discretization
-% CLEARLY one could avoid such ambiguity by making copies at the costs of
-% store and duplication of information
-
-% strictly speaking this is redundant information as it can be inferred via
-% analyzing the topology of which facets are connected to the triple point
-% and to which interfaces are these facets belonging and then which unique
-% triplet of crystals meets at the interface
-% THE TRICKY PART FOR NUMERICAL ALGORITHMS IS THAT IN SOME CASES MORE THAN
-% three crystals can meet at the triple line / here point as an algorithm
-% may not be topologically robust enough to distinguish geometrical corner
-% cases
-% four crystal junctions are considered as thermodynamically unstable but
-% of course in reality interfaces are just imaginary segmentation surfaces
-% which delineate the crystal i.e. interfaces are models and therefore may have
-% numerical inaccuracies
 
 end
