@@ -4,7 +4,7 @@ function status = nexus_write_ebsd_odf(ebsd_orig, fpath, parent, perform_io)
 % ebsd_orig:
 % fpath: path and filename of NeXus/HDF5 results file
 % parent: parent HDF5 group below which to write
-n_resolution = 2.0;  % of ODF plot
+n_resolution = 1.0;  % of ODF plot
 
 if ~perform_io
     return;
@@ -61,11 +61,11 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         ret = h5w.nexus_write(dsnm, 'de_la_vallee_poussin', attr);
         dsnm = [grpnm '/kernel_halfwidth'];
         attr = io_attributes();
-        attr.add('unit', '°');
+        attr.add('units', '°');
         ret = h5w.nexus_write(dsnm, double(kernel_hw / pi * 180.), attr);
         dsnm = [grpnm '/resolution'];
         attr = io_attributes();
-        attr.add('unit', '°');
+        attr.add('units', '°');
         ret = h5w.nexus_write(dsnm, double(odf_reso / pi * 180.), attr);
 
         % exemplar code for different type of default ODFs
@@ -181,21 +181,21 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
 
         dsnm = [grpnm '/varphi_one'];
         attr = io_attributes();
-        attr.add('units', 'degree');
+        attr.add('units', '°');
         attr.add('long_name', ['phi_1 (°)']);
         e1 = double((0.5 + ((1:1:n_e1) - 1)) * n_resolution);
         ret = h5w.nexus_write(dsnm, e1, attr);
 
         dsnm = [grpnm '/capital_phi'];
         attr = io_attributes();
-        attr.add('units', 'degree');
+        attr.add('units', '°');
         attr.add('long_name', ['Phi (°)']);
         e2 = double((0.5 + ((1:1:n_e2) - 1)) * n_resolution);
         ret = h5w.nexus_write(dsnm, e2, attr);
 
         dsnm = [grpnm '/varphi_two'];
         attr = io_attributes();
-        attr.add('units', 'degree');
+        attr.add('units', '°');
         attr.add('long_name', ['phi_2 (°)']);
         e3 = double((0.5 + ((1:1:n_e3) - 1)) * n_resolution);
         ret = h5w.nexus_write(dsnm, e3, attr);
@@ -227,7 +227,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
 
         dsnm = [grpnm '/theta'];
         attr = io_attributes();
-        attr.add('unit', '°');
+        attr.add('units', '°');
         ret = h5w.nexus_write(dsnm, double(delta / pi * 180.), attr);
 
         dsnm = [grpnm '/kth'];
@@ -242,7 +242,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         e1_e2_e3(2, :) = maxima(:).Phi / degree;
         e1_e2_e3(3, :) = maxima(:).phi2 / degree;
         attr = io_attributes();
-        attr.add('unit', '°');
+        attr.add('units', '°');
         ret = h5w.nexus_write(dsnm, double(e1_e2_e3), attr);
 
         % classical volume fraction with classical disorientation threshold
