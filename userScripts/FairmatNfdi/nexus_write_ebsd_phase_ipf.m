@@ -61,21 +61,22 @@ for phase_idx = 1:1:n_phases
 
     if ~strcmp(ebsd_grd.mineralList{phase_idx}, 'notIndexed') & n_count > 0
         % the null-phase, for MTex @EBSD.phase == 0 but confusingly @EBSD.phaseId == 1 !
-        proj_vector = [vector3d.X, vector3d.Y, vector3d.Z];
-        proj_name = ['x', 'y', 'z'];
+        % proj_vector = [vector3d.X, vector3d.Y, vector3d.Z];
+        % proj_name = ['x', 'y', 'z'];
         phase_name = ebsd_grd.mineralList{phase_idx};
         disp(['nexus_write_ebsd_ipf ' num2str(phase_idx) '/' num2str(length(ebsd_grd.mineralList)) ' ' phase_name ' phase_id ' num2str(phase_id)]);
-        for proj_idx = 1:1:3
-            clearvars ipf_key colors nx_ipf_map_u8_f nxs_ipf_y nxs_ipf_x phase_i_idx v low_level idx;
+        % for proj_idx = 1:1:3
+        color_models = {'tsl', 'mtex'};
+        for cm = 1:1:2
+            clearvars ipf_key pg colors nx_ipf_map_u8_f nxs_ipf_y nxs_ipf_x phase_i_idx low_level idx;
             % ipf_hsv_key = ipfHSVKey(ebsd_grd(phase_name));
-            if min(ebsd_grd.phaseMap) == -1
-                % msk = ebsd_grd.phase == (phase_id - 1);
-                ipf_key = ipfColorKey(ebsd_grd(phase_name));
+            if cm == 1
+                ipf_key = ipfTSLKey(ebsd_grd(phase_name));
             else
-                % msk = ebsd_grd.phase == phase_id;
                 ipf_key = ipfColorKey(ebsd_grd(phase_name));
             end
-            ipf_key.inversePoleFigureDirection = proj_vector(proj_idx);
+            ipf_key.inversePoleFigureDirection = vector3d.X;  % proj_idx);
+            pg = ipf_key.CS1.pointGroup;
             colors = ipf_key.orientation2color(ebsd_grd(phase_name).orientations);
             % from normalized colors to RGB colors
             colors = uint8(uint32(colors * 255.)); % base color is black
@@ -98,8 +99,12 @@ for phase_idx = 1:1:n_phases
 
             dsnm = [grpnm '/projection_direction'];
             attr = io_attributes();
-            v = proj_vector(proj_idx);
-            ret = h5w.nexus_write(dsnm, single([v.x v.y v.z]), attr);
+            % v = proj_vector(proj_idx);
+            ret = h5w.nexus_write(dsnm, double(vector3d.X.xyz), attr);
+            dsnm = [grpnm '/color_model'];
+            attr = io_attributes();
+            % v = proj_vector(proj_idx);
+            ret = h5w.nexus_write(dsnm, color_models{cm}, attr);
 
             grpnm = [parent '/phase' num2str(phase_id) '/ipf' num2str(proj_idx) '/map'];
             attr = io_attributes();
@@ -131,7 +136,6 @@ for phase_idx = 1:1:n_phases
             attr.add('IMAGE_VERSION', '1.2');
             attr.add('SUBCLASS_VERSION', uint32(15));
             ret = h5w.nexus_write(dsnm, low_level, attr);
-
             dsnm = [grpnm '/axis_y'];
             attr = io_attributes();
             attr.add('units', scan_unit);
@@ -153,55 +157,55 @@ for phase_idx = 1:1:n_phases
             attr.add('axis_x_indices', uint32(0));
             ret = h5w.nexus_write_group(grpnm, attr);
             attr = io_attributes();
-
-            dsnm = [grpnm '/title'];
-            ret = h5w.nexus_write(dsnm, ['IPF ' upper(proj_name(proj_idx)) ' color key with SST'], attr);
-            % solution one
-                figure('visible','off');
-                plot(ipf_key);
-                % f = gcf;
-                png_fnm = ['temporary.png'];
-                exportgraphics(gcf, png_fnm, 'Resolution', 300);
-                close all hidden;
-                % ... framegrab this image to get the pixel color values (no alpha)
-                im = imread(png_fnm);
-                delete(png_fnm); % remove the intermediately created figure
-            % solution two
-            %    tic
-            %    plot(ipf_key);
-            %    png = getframe(gcf);
-            %    im = png.cdata();
-            %    close all hidden;
-            %    close all force;
-            
-            % better would be to use the image directly as a matrix
-            % or make a color fingerprint, i.e. defined orientation set pump
-            % through color code and then rendered as n_orientations x 3 RGB
-            % array this could also be used nicely for machine learning
-
-            dsnm = [grpnm '/data'];
-            sz = size(im);
-            low_level = uint8(zeros(fliplr(sz)));
-            for x = 1:sz(2)
-                for y = 1:sz(1)
-                    idx = y + (x - 1) * sz(1);
-                    low_level(:, x, y) = im(y, x, :);
-                end
+            % load precomputed data
+            if cm == 1
+               low_level = ipf_lgd_tsl_dct{pg};
+            else
+                low_level = ipf_lgd_mtx_dct{pg};
             end
+            % solution one
+            % figure('visible','off');
+            % plot(ipf_key);
+            % f = gcf;
+            % png_fnm = ['temporary.png'];
+            % exportgraphics(gcf, png_fnm, 'Resolution', 300);
+            % close all hidden;
+            % ... framegrab this image to get the pixel color values (no alpha)
+            % im = imread(png_fnm);
+            % delete(png_fnm); % remove the intermediately created figure
+            % solution two
+            % tic
+            % plot(ipf_key);
+            % png = getframe(gcf);
+            % im = png.cdata();
+            % close all hidden;
+            % close all force;
+            % sz = size(im);
+            % low_level = uint8(zeros(fliplr(sz)));
+            % for x = 1:sz(2)
+            %     for y = 1:sz(1)
+            %         idx = y + (x - 1) * sz(1);
+            %         low_level(:, x, y) = im(y, x, :);
+            %     end
+            % end
+            dsnm = [grpnm '/title'];
+            ret = h5w.nexus_write(dsnm, ['IPF ' 'X' upper(color_maps(cm)) ' color key with SST'], attr);
+            dsnm = [grpnm '/data'];
             attr = io_attributes();
             attr.add('long_name', 'Signal');
             attr.add('CLASS', 'IMAGE');
             attr.add('IMAGE_VERSION', '1.2');
             attr.add('SUBCLASS_VERSION', uint32(15));
             ret = h5w.nexus_write(dsnm, low_level, attr);
-            sz = size(im);
+            % sz = size(im);
+            sz = size(low_level); % 3 --> 0, x --> 1, y --> 2
             dsnm = [grpnm '/axis_y'];
-            nxs_px_y = uint32(linspace(1, sz(1), sz(1)));
+            nxs_px_y = uint32(linspace(1, sz(2), sz(2)));
             attr = io_attributes();
             attr.add('long_name', 'Pixel along y-axis');
             ret = h5w.nexus_write(dsnm, nxs_px_y, attr);
             dsnm = [grpnm '/axis_x'];
-            nxs_px_x = uint32(linspace(1, sz(2), sz(2)));
+            nxs_px_x = uint32(linspace(1, sz(1), sz(1)));
             attr = io_attributes();
             attr.add('long_name', 'Pixel along x-axis');
             ret = h5w.nexus_write(dsnm, nxs_px_x, attr);
