@@ -196,12 +196,12 @@ for phase_idx = 1:1:n_phases
             % sz = size(im);
             sz = size(low_level); % 3 --> 0, x --> 1, y --> 2
             dsnm = [grpnm '/axis_y'];
-            nxs_px_y = uint32(linspace(1, sz(2), sz(2)));
+            nxs_px_y = linspace(1, sz(3), sz(3));
             attr = io_attributes();
             attr.add('long_name', 'Pixel along y-axis');
             ret = h5w.nexus_write(dsnm, nxs_px_y, attr);
             dsnm = [grpnm '/axis_x'];
-            nxs_px_x = uint32(linspace(1, sz(3), sz(3)));
+            nxs_px_x = linspace(1, sz(2), sz(2));
             attr = io_attributes();
             attr.add('long_name', 'Pixel along x-axis');
             ret = h5w.nexus_write(dsnm, nxs_px_x, attr);
