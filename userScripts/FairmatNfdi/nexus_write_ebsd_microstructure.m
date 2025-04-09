@@ -28,6 +28,7 @@ disorientation_threshold = 15.0*degree;
 % use smaller values to segment sub-grain boundary network
 % do not call like this [grains, ebsd_orig.grainId] as this
 % is extremely slow
+disp(['calcGrains ...']);
 grains = calcGrains(ebsd_orig('indexed'), 'boundary', 'tight', 'angle', disorientation_threshold);
 % for the Forsterite example grain 2842 is the largest
 % for subtle orientation gradients, fast multi-scale clustering, https://doi.org/10.1016/j.ultramic.2013.04.009
@@ -128,7 +129,7 @@ attr = io_attributes();
 attr.add('use_these', [parent '/microstructure1/cg_point']);
 polylines = grains.boundary.F';
 ret = h5w.nexus_write(dsnm, uint32(reshape(polylines, ...
-    [length(polylines), 2])), attr);
+    [1, 2*length(polylines)])), attr);
 p_u = grains.allV(polylines(1, :), :);
 p_v = grains.allV(polylines(2, :), :);
 facet_length = hypot((p_u.x - p_v.x), (p_u.y - p_v.y));
