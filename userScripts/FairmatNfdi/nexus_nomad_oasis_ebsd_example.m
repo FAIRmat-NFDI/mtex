@@ -9,7 +9,9 @@
 
 %% init
 clear; clc;
-
+%% for Linux might need to use qhull
+setMTEXpref('voronoiMethod','qhull');
+% see https://github.com/mtex-toolbox/mtex/discussions/2083 for details
 %% load preprocessed color maps for all point groups
 load('ipf_lgds.mat');
 %% define custom mappings of (mis)spelled point groups used in EBSD maps
