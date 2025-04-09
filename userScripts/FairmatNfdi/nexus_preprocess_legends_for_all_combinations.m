@@ -23,12 +23,12 @@ for cs = 1:1:length(point_groups)
         else
             prefix = '';
         end
-        png_fnm = ['temporary_' prefix num2str(cs) '.png'];  % '_' num2str(proj_idx) '.png'];
+        png_fnm = ['temporary_mtx_' prefix num2str(cs) '.png'];  % '_' num2str(proj_idx) '.png'];
         exportgraphics(gcf, png_fnm, 'Resolution', 300);
         close all hidden;
         % ... framegrab this image to get the pixel color values (no alpha)
         im = imread(png_fnm);
-        delete(png_fnm);
+        % delete(png_fnm);
         % remove the intermediately created figure
         sz = size(im);
         low_level = uint8(zeros(fliplr(sz)));
@@ -50,11 +50,11 @@ for cs = 1:1:length(point_groups)
         else
             prefix = '';
         end
-        png_fnm = ['temporary_' prefix num2str(cs) '.png'];  % '_' num2str(proj_idx) '.png'];
+        png_fnm = ['temporary_tsl' prefix num2str(cs) '.png'];  % '_' num2str(proj_idx) '.png'];
         exportgraphics(gcf, png_fnm, 'Resolution', 300);
         close all hidden;
         im = imread(png_fnm);
-        delete(png_fnm);
+        % delete(png_fnm);
         sz = size(im);
         low_level = uint8(zeros(fliplr(sz)));
         % TODO::this must not be y-flipped !
@@ -69,3 +69,4 @@ for cs = 1:1:length(point_groups)
     end
 end
 clearvars pg cs prj;
+save('ipf_lgds.mat');

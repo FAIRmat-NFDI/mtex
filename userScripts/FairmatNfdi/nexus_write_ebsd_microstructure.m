@@ -108,7 +108,7 @@ ret = h5w.nexus_write(dsnm, uint32(1), attr);
 dsnm = [grpnm '/position'];
 attr = io_attributes();
 attr.add('units', scan_unit);
-ret = h5w.nexus_write(dsnm, double(grains.allV)', attr);
+ret = h5w.nexus_write(dsnm, double(grains.allV), attr);
 
 %% the set of polylines representing individual interface facets
 % problem the term facet is used for both a discretization of an interface
@@ -118,6 +118,7 @@ grpnm = [parent '/microstructure1/cg_polyline'];
 dsnm = [grpnm '/cardinality'];
 attr = io_attributes();
 polylines = grains.boundary.F;
+% TODO::compare against NXcg_polyline data model if correct?
 ret = h5w.nexus_write(dsnm, uint32(size(polylines, 1)), attr);
 dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
@@ -127,7 +128,7 @@ attr = io_attributes();
 attr.add('use_these', [parent '/microstructure1/cg_point']);
 polylines = grains.boundary.F';
 ret = h5w.nexus_write(dsnm, uint32(reshape(polylines, ...
-    [1, 2*length(polylines)])), attr);
+    [length(polylines), 2])), attr);
 p_u = grains.allV(polylines(1, :), :);
 p_v = grains.allV(polylines(2, :), :);
 facet_length = hypot((p_u.x - p_v.x), (p_u.y - p_v.y));
@@ -290,6 +291,8 @@ end
 % is an interface between some crystallite_projections of phase 0 and phase 2
 % phase 0 is notIndexed and used for representing the interface
 ret = h5w.nexus_write(dsnm, phase_id_pair, attr);
+
+% TODO::export indices_polyline segments
 clearvars idx interface_id interface_idx mi mx phase_id_pair crystal_id_pair;
 
 %% triple junctions
@@ -352,8 +355,8 @@ ret = h5w.nexus_write(dsnm, interface_ids, attr);
 clearvars interface_ids;
 
 clearvars hash_to_interface_id segment_to_interface_lu ret;
-disp('NeXus/HDF5 exporting of microstructural features was successful');
 
+disp('NeXus/HDF5 exporting of microstructure: OK');
 status = logical(1);
 
 end

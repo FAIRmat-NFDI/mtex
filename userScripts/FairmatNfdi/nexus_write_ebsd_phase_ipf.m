@@ -95,7 +95,7 @@ for phase_idx = 1:1:n_phases
 
             grpnm = [parent '/phase' num2str(phase_id) '/ipf' num2str(cm)];
             attr = io_attributes();
-            attr.add('NX_class', 'NXdata');
+            attr.add('NX_class', 'NXmicrostructure_ipf');
             ret = h5w.nexus_write_group(grpnm, attr);
 
             dsnm = [grpnm '/projection_direction'];
@@ -147,7 +147,7 @@ for phase_idx = 1:1:n_phases
             ret = h5w.nexus_write(dsnm, ['IPF, X, ' pg ', ' color_models{cm} ', phase' num2str(phase_id) ', ' phase_name], attr);
 
             %% add specific IPF color key used
-            grpnm = [parent '/phase' num2str(phase_id) '/ipf' num2str(cm) '/lgd'];
+            grpnm = [parent '/phase' num2str(phase_id) '/ipf' num2str(cm) '/legend'];
             attr = io_attributes();
             attr.add('NX_class', 'NXdata');
             attr.add('signal', 'data');

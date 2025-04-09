@@ -11,12 +11,13 @@
 clear; clc;
 
 %% load preprocessed color maps for all point groups
-load('userScripts/FairmatNfdi/tests/ipf_lgds.mat');
+load('ipf_lgds.mat');
 %% define custom mappings of (mis)spelled point groups used in EBSD maps
 ipf_lgd_tsl_pg_map = containers.Map();
 ipf_lgd_mtx_pg_map = containers.Map();
 ipf_lgd_tsl_pg_map('12/m1') = '2/m';
 ipf_lgd_mtx_pg_map('12/m1') = '2/m';
+% TODO::add other low-symmetry point groups that are pre- and suffix with 1
 
 thatone = 'CHANGEME';
 mtexdir = [thatone '/mtextoolbox/mtex'];
