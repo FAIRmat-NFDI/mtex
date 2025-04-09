@@ -36,7 +36,9 @@ ret = h5w.nexus_write_group(grpnm, attr);
 
 dsnm = [grpnm '/program'];
 attr = io_attributes();
-mtex_version = strtrim(fileread([pwd '\mtex-version.txt']));
+% generate via CLI command
+% git describe --dirty --tags --long --abbrev=8 --match '*[0-9]*' >mtex-version.txt
+mtex_version = strtrim(fileread([pwd '/mtex-version.txt']));
 attr.add('version', mtex_version);  % mtex_pref.version);
 ret = h5w.nexus_write(dsnm, 'MTex', attr);
 %% conventions
@@ -227,5 +229,6 @@ if 1 == 0
     ret = h5w.nexus_write(dsnm, strjoin(mtex_pref.EBSDExtensions, ';'), attr);
 end
 
+disp('NeXus/HDF5 exporting of MTex configuration: OK');
 status = logical(1);
 end

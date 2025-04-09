@@ -55,8 +55,6 @@ ny = 1 + round(ny0 * scaler);
     linspace(ymin, ymax, ny));
 % TODO extent to 3D
 
-disp(['H5Web, implicit squarifying, scaler ' num2str(scaler) ', nx ' num2str(nx) ', ny ' num2str(ny) ', nlimit ' num2str(nlimit)]);
-
 kdtree = KDTreeSearcher([ebsd_orig.pos.x, ebsd_orig.pos.y]);
 closest_scan_point_id = uint64(knnsearch(kdtree, [x(:), y(:)]));
 np = length(closest_scan_point_id);
@@ -90,5 +88,5 @@ for descriptor = {'bc', 'ci', 'confidenceindex', 'mad'}
     end
 end
 % no z 2D-case for now
-
+disp(['NeXus/HDF5 regridding for H5Web ' num2str(scaler) ', ' num2str(nx) ', ' num2str(ny) ': OK']);
 end

@@ -2,7 +2,6 @@
 % Markus Kühbach, Humboldt-Universität zu Berlin, Department of Physics
 % NOMAD Oasis, FAIRmat 2024/05/21
 
-
 %% context
 % an example that shows how to process MTex class instances to map
 % information content conceptually on NeXus class instances
@@ -10,6 +9,15 @@
 
 %% init
 clear; clc;
+
+%% load preprocessed color maps for all point groups
+load('userScripts/FairmatNfdi/tests/ipf_lgds.mat');
+%% define custom mappings of (mis)spelled point groups used in EBSD maps
+ipf_lgd_tsl_pg_map = containers.Map();
+ipf_lgd_mtx_pg_map = containers.Map();
+ipf_lgd_tsl_pg_map('12/m1') = '2/m';
+ipf_lgd_mtx_pg_map('12/m1') = '2/m';
+
 thatone = 'CHANGEME';
 mtexdir = [thatone '/mtextoolbox/mtex'];
 configdir = [thatone];
@@ -59,11 +67,11 @@ for row_idx = 3618:1:n_rows
         perform_id case_id cfg_tbl n_rows ebsd_mime_types_to_use_mtex ...
         perf_file_name row_idx issues;
     % try
-        cnvrsn = cfg_tbl{row_idx, 2}{1};
+        reference_frame_convention = cfg_tbl{row_idx, 2}{1};
         ifpath_main = cfg_tbl{row_idx, 3}{1};
         ifpath_supp = cfg_tbl{row_idx, 4}{1};
         ofpath = [outputdir '/' cfg_tbl{row_idx, 5}{1} '.nxs'];
-        disp(['row_idx: ' int2str(row_idx) ' cnvrsn: ' cnvrsn]);
+        disp(['row_idx: ' int2str(row_idx) ' reference_frame_convention: ' reference_frame_convention]);
         disp(['ifpath_main: ' ifpath_main]);
         disp(['ifpath_supp: ' ifpath_supp]);
         disp(['ofpath: ' ofpath]);
@@ -79,6 +87,8 @@ for row_idx = 3618:1:n_rows
             ofpath = 'userScripts/FairmatNfdi/test.nxs';
             parent = '/entry1/roi1/ebsd/indexing';
             perform_io = logical(1);
+            reference_frame_convention = 's2e';
+            mime_type = "ctf";
 
             status = nexus_write_init(ofpath, perform_io);
             status = nexus_write_mtex_preferences( ...
@@ -86,7 +96,7 @@ for row_idx = 3618:1:n_rows
                     '/entry1/roi1/ebsd/indexing', ...
                     perform_io);
 
-            if strcmp(cnvrsn, 's2e')
+            if strcmp(reference_frame_convention, 's2e')
                 % assuming just setting 2 is a very strong if not a wrong assumption
                 if strcmp(mime_type{1}, 'cpr')
                     ebsd_raw = loadEBSD_crc(ifpath_main, ifpath_supp, ...
@@ -95,7 +105,7 @@ for row_idx = 3618:1:n_rows
                     ebsd_raw = EBSD.load(ifpath_main, ...
                         'convertSpatial2EulerReferenceFrame', 'setting 2');
                 end
-            elseif strcmp(cnvrsn, 'e2s')
+            elseif strcmp(reference_frame_convention, 'e2s')
                 if strcmp(mime_type{1}, 'cpr')
                     ebsd_raw = loadEBSD_crc(ifpath_main, ifpath_supp, ...
                         'convertEuler2SpatialReferenceFrame', 'setting 2');
@@ -115,7 +125,11 @@ for row_idx = 3618:1:n_rows
                 '/entry1/roi1/ebsd/indexing', ...
                 perform_io);
 
-            status = nexus_write_ebsd_data();
+            status = nexus_write_ebsd_data( ...
+                ebsd_raw, ...
+                ofpath, ...
+                '/entry1/roi1/ebsd/indexing', ...
+                perform_io);
             % grid type, positions, euler, phase, quality descriptor
 
             % prepare a default plot on a square grid but represented
@@ -139,7 +153,11 @@ for row_idx = 3618:1:n_rows
                 ebsd_sqr_ipf_hweb, ...
                 ofpath, ...
                 '/entry1/roi1/ebsd/indexing', ...
-                perform_io);
+                perform_io, ...
+                ipf_lgd_tsl_dct, ...
+                ipf_lgd_mtx_dct, ...
+                ipf_lgd_tsl_pg_map, ...
+                ipf_lgd_mtx_pg_map);
 
             % skip for now computations which will increase the file size
             % substantially, i.e. ODF, PF, and microstructure

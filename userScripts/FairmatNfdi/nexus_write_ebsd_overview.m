@@ -77,7 +77,7 @@ ret = h5w.nexus_write(dsnm, nxs_bc_x, attr);
 dsnm = [grpnm '/title'];
 ret = h5w.nexus_write(dsnm, ['Region-of-interest ', descriptor_name], attr);
 
-disp('NeXus/HDF5 exporting of ROI overview image was successful');
+disp('NeXus/HDF5 exporting of ROI overview: OK');
 status = logical(1);
 
 end

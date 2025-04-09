@@ -31,6 +31,7 @@ attr = io_attributes();
 attr.add('NX_class', 'NXprocess');
 ret = h5w.nexus_write_group(grpnm, attr);
 
+disp('NeXus/HDF5 initializing file: OK');
 status = logical(1);
 
 end

@@ -1,4 +1,4 @@
-function status = nexus_write_ebsd_phase_ipf(ebsd_orig, ebsd_grd, fpath, parent, perform_io)
+function status = nexus_write_ebsd_phase_ipf(ebsd_orig, ebsd_grd, fpath, parent, perform_io, ipf_lgd_tsl_dct, ipf_lgd_mtx_dct, ipf_lgd_tsl_pg_map, ipf_lgd_mtx_pg_map)
 % Generate default inverse pole figure plot (for each phase) for H5Web and write data to NeXus/HDF5 file
 
 % ebsd_orig, ebsd_grd
@@ -77,6 +77,7 @@ for phase_idx = 1:1:n_phases
             end
             ipf_key.inversePoleFigureDirection = vector3d.X;  % proj_idx);
             pg = ipf_key.CS1.pointGroup;
+            disp(['pg ' pg]);
             colors = ipf_key.orientation2color(ebsd_grd(phase_name).orientations);
             % from normalized colors to RGB colors
             colors = uint8(uint32(colors * 255.)); % base color is black
@@ -92,7 +93,7 @@ for phase_idx = 1:1:n_phases
             end
             nxs_ipf_map_u8_f(:, phase_i_idx) = colors(1:length(phase_i_idx), :)';
 
-            grpnm = [parent '/phase' num2str(phase_id) '/ipf' num2str(proj_idx)];
+            grpnm = [parent '/phase' num2str(phase_id) '/ipf' num2str(cm)];
             attr = io_attributes();
             attr.add('NX_class', 'NXdata');
             ret = h5w.nexus_write_group(grpnm, attr);
@@ -106,7 +107,7 @@ for phase_idx = 1:1:n_phases
             % v = proj_vector(proj_idx);
             ret = h5w.nexus_write(dsnm, color_models{cm}, attr);
 
-            grpnm = [parent '/phase' num2str(phase_id) '/ipf' num2str(proj_idx) '/map'];
+            grpnm = [parent '/phase' num2str(phase_id) '/ipf' num2str(cm) '/map'];
             attr = io_attributes();
             attr.add('NX_class', 'NXdata');
             attr.add('signal', 'data');
@@ -116,8 +117,7 @@ for phase_idx = 1:1:n_phases
             ret = h5w.nexus_write_group(grpnm, attr);
 
             dsnm = [grpnm '/title'];
-            ret = h5w.nexus_write(dsnm, ['Inverse pole figure ' ...
-                upper(proj_name(proj_idx)) ' ' phase_name], attr);
+            ret = h5w.nexus_write(dsnm, ['IPF, X, ' color_models{cm} ', phase' num2str(phase_id) ' named ' phase_name], attr);
 
             dsnm = [grpnm '/data'];
             % low_level = uint8(uint32(zeros([3 grid(2) grid(1)])));
@@ -148,7 +148,7 @@ for phase_idx = 1:1:n_phases
             ret = h5w.nexus_write(dsnm, nxs_ipf_x, attr);
 
             %% add specific IPF color key used
-            grpnm = [parent '/phase' num2str(phase_id) '/ipf' num2str(proj_idx) '/legend'];
+            grpnm = [parent '/phase' num2str(phase_id) '/ipf' num2str(cm) '/legend'];
             attr = io_attributes();
             attr.add('NX_class', 'NXdata');
             attr.add('signal', 'data');
@@ -159,9 +159,28 @@ for phase_idx = 1:1:n_phases
             attr = io_attributes();
             % load precomputed data
             if cm == 1
-               low_level = ipf_lgd_tsl_dct{pg};
+                if isKey(ipf_lgd_tsl_dct, pg)
+                    low_level = ipf_lgd_tsl_dct(pg);
+                else
+                    if isKey(ipf_lgd_tsl_pg_map, pg)
+                        pg = ipf_lgd_tsl_pg_map(pg);
+                        low_level = ipf_lgd_tsl_dct(pg);
+                    else
+                        msg = ['Unable to find ' pg ' in ipf_lgd_tsl_pg_map !'];
+                        error msg;
+                    end
+                end
             else
-                low_level = ipf_lgd_mtx_dct{pg};
+                if isKey(ipf_lgd_mtx_dct, pg)
+                    low_level = ipf_lgd_mtx_dct(pg);
+                else
+                    if isKey(ipf_lgd_mtx_pg_map, pg)
+                        pg = ipf_lgd_mtx_pg_map(pg);
+                        low_level = ipf_lgd_mtx_dct(pg);
+                    else
+                        msg = ['Unable to find ' pg ' in ipf_lgd_tsl_pg_map !'];
+                        error msg;
+                    end
             end
             % solution one
             % figure('visible','off');
@@ -189,7 +208,7 @@ for phase_idx = 1:1:n_phases
             %     end
             % end
             dsnm = [grpnm '/title'];
-            ret = h5w.nexus_write(dsnm, ['IPF ' 'X' upper(color_maps(cm)) ' color key with SST'], attr);
+            ret = h5w.nexus_write(dsnm, ['IPF, ' pg ' color key with SST'], attr);
             dsnm = [grpnm '/data'];
             attr = io_attributes();
             attr.add('long_name', 'Signal');
@@ -221,7 +240,7 @@ ret = h5w.nexus_write(dsnm, ...
     double(double(n_count_orig_indexed) / ...
     double(n_count_orig_total)), attr);
 
-disp('NeXus/HDF5 exporting of phase-specific inverse pole figures was successful');
+disp('NeXus/HDF5 exporting of phase-specific IPFs: OK');
 status = logical(1);
 
 end

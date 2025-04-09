@@ -40,15 +40,15 @@ for phase_idx = 1:1:n_phases
     % in NeXus 0 is used for not indexed, Cstyle first i.e. 0th phase
     dsnm = [grpnm '/name'];
     ret = h5w.nexus_write(dsnm, ebsd_orig.mineralList{phase_idx}, attr);
-
-    grpnm = [parent '/phase' num2str(phase_id) '/unit_cell'];
-    attr = io_attributes();
-    attr.add('NX_class', 'NXunit_cell');
-    ret = h5w.nexus_write_group(grpnm, attr);
-    attr = io_attributes();
-    
-    % additional information for true point groups
+   
+    % additional information for phases that have a point group
     if ~strcmp(ebsd_orig.mineralList{phase_idx}, 'notIndexed')
+        grpnm = [parent '/phase' num2str(phase_id) '/unit_cell'];
+        attr = io_attributes();
+        attr.add('NX_class', 'NXunit_cell');
+        ret = h5w.nexus_write_group(grpnm, attr);
+        attr = io_attributes();
+
         dsnm = [grpnm '/point_group'];
         ret = h5w.nexus_write(dsnm, ebsd_orig.CSList{phase_idx}.pointGroup, attr);
 
@@ -85,6 +85,6 @@ for phase_idx = 1:1:n_phases
 
     phase_id = phase_id + 1;
 end
-disp('NeXus/HDF5 exporting of pieces of information about phases was successful');
+disp('NeXus/HDF5 exporting of phases: OK');
 status = logical(1);
 end
