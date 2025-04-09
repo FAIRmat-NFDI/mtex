@@ -15,8 +15,19 @@ load('ipf_lgds.mat');
 %% define custom mappings of (mis)spelled point groups used in EBSD maps
 ipf_lgd_tsl_pg_map = containers.Map();
 ipf_lgd_mtx_pg_map = containers.Map();
+% https://orix.readthedocs.io/en/latest/tutorials/inverse_pole_figures.html
+ipf_lgd_tsl_pg_map('121') = '2';
+ipf_lgd_mtx_pg_map('121') = '2';
+ipf_lgd_tsl_pg_map('1m1') = 'm';
+ipf_lgd_mtx_pg_map('1m1') = 'm';
 ipf_lgd_tsl_pg_map('12/m1') = '2/m';
 ipf_lgd_mtx_pg_map('12/m1') = '2/m';
+ipf_lgd_tsl_pg_map('321') = '32';
+ipf_lgd_mtx_pg_map('321') = '32';
+ipf_lgd_tsl_pg_map('3m1') = '3m';
+ipf_lgd_mtx_pg_map('3m1') = '3m';
+ipf_lgd_tsl_pg_map('-3m1') = '-3m';
+ipf_lgd_mtx_pg_map('-3m1') = '-3m';
 % TODO::add other low-symmetry point groups that are pre- and suffix with 1
 
 thatone = 'CHANGEME';

@@ -124,6 +124,10 @@ ret = h5w.nexus_write(dsnm, uint32(size(polylines, 1)), attr);
 dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
+dsnm = [grpnm '/number_of_vertices'];
+attr = io_attributes();
+ret = h5w.nexus_write(dsnm, uint32(2*ones([1, size(polylines, 1)]))', attr);
+
 dsnm = [grpnm '/polylines'];
 attr = io_attributes();
 attr.add('use_these', [parent '/microstructure1/cg_point']);
@@ -293,7 +297,11 @@ end
 % phase 0 is notIndexed and used for representing the interface
 ret = h5w.nexus_write(dsnm, phase_id_pair, attr);
 
-% TODO::export indices_polyline segments
+% TODO::export indices_polylines segments
+dsnm = [grpnm '/indices_polylines'];
+attr = io_attributes();
+ret = h5w.nexus_write(dsnm, uint32(1:1:size(polylines, 2))', attr);
+
 clearvars idx interface_id interface_idx mi mx phase_id_pair crystal_id_pair;
 
 %% triple junctions
