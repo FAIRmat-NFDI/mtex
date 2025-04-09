@@ -33,14 +33,22 @@ for phase_idx = 1:1:n_phases
     attr = io_attributes();
     attr.add('NX_class', 'NXphase');
     ret = h5w.nexus_write_group(grpnm, attr);
+
+    dsnm = [grpnm '/name'];
     attr = io_attributes();
+    ret = h5w.nexus_write(dsnm, ebsd_orig.mineralList{phase_idx}, attr);
 
     dsnm = [grpnm '/phase_id'];
+    attr = io_attributes();
     ret = h5w.nexus_write(dsnm, int32(phase_id), attr);
     % in NeXus 0 is used for not indexed, Cstyle first i.e. 0th phase
-    dsnm = [grpnm '/name'];
-    ret = h5w.nexus_write(dsnm, ebsd_orig.mineralList{phase_idx}, attr);
-   
+
+    dsnm = [grpnm '/index_offset'];
+    attr = io_attributes();
+    ret = h5w.nexus_write(dsnm, uint32(1), attr);
+    % respecting the assumption that for MTex phase 0
+    % is always notIndexed and boundary !
+    
     % additional information for phases that have a point group
     if ~strcmp(ebsd_orig.mineralList{phase_idx}, 'notIndexed')
         grpnm = [parent '/phase' num2str(phase_id) '/unit_cell'];

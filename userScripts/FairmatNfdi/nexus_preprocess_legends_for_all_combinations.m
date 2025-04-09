@@ -1,5 +1,4 @@
 clear; clc;
-
 % proj_vector = [vector3d.X, vector3d.Y, vector3d.Z];
 % proj_name = ['x', 'y', 'z'];
 point_groups = { ...
@@ -33,6 +32,7 @@ for cs = 1:1:length(point_groups)
         % remove the intermediately created figure
         sz = size(im);
         low_level = uint8(zeros(fliplr(sz)));
+        % TODO::this must not be y-flipped !
         for x = 1:sz(2)
             for y = 1:sz(1)
                 idx = y + (x - 1) * sz(1);
@@ -57,6 +57,7 @@ for cs = 1:1:length(point_groups)
         delete(png_fnm);
         sz = size(im);
         low_level = uint8(zeros(fliplr(sz)));
+        % TODO::this must not be y-flipped !
         for x = 1:sz(2)
             for y = 1:sz(1)
                 idx = y + (x - 1) * sz(1);

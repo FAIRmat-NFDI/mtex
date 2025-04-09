@@ -4,7 +4,7 @@ function status = nexus_write_ebsd_microstructure(ebsd_orig, fpath, parent, perf
 % ebsd_orig: array of one EBSD object per scan point
 % fpath: path and filename of NeXus/HDF5 results file
 % parent: parent HDF5 group below which to write
-ebsd_orig = ebsd_raw;  % TODO remove in production
+% ebsd_orig = ebsd_raw;  % TODO remove in production
 
 %% generate discretization of crystal interface network
 % the idea with this function here is to show how irrespective how the
@@ -38,26 +38,6 @@ grains = calcGrains(ebsd_orig('indexed'), 'boundary', 'tight', 'angle', disorien
 % for the Forsterite example this tried to allocate a 294GB matrix, hence 
 % grains_mcl = calcGrains(ebsd('indexed'), 'boundary', ...
 %     'tight', 'mcl', [1.24 50], 'soft', [0.2 0.3]*degree);
-
-%% store phases
-for phase_id = 1:1:length(ebsd_orig.mineralList)
-    grpnm = [parent '/microstructure1/phase' num2str(ebsd_orig.phaseMap{phase_id})];
-    attr = io_attributes();
-    attr.add('NX_class', 'NXphase');
-    ret = h5w.nexus_write_group(grpnm, attr);
-
-    dsnm = [grpnm '/name'];
-    attr = io_attributes();
-    ret = h5w.nexus_write(dsnm, ebsd_orig.mineralList{phase_id}, attr);
-    dsnm = [grpnm '/phase_id'];
-    attr = io_attributes();
-    ret = h5w.nexus_write(dsnm, int32(ebsd_orig.phaseMap{phase_id}), attr);
-    dsnm = [grpnm '/index_offset'];
-    attr = io_attributes();
-    ret = h5w.nexus_write(dsnm, uint32(1), attr);
-    % respecting the assumption that for MTex phase 0 is always notIndexed
-    % and boundary !
-end
 
 %% store discretization of crystal interface network
 % some of these vertices represent triplePoints
