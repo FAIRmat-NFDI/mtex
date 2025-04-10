@@ -1,23 +1,20 @@
 function status = nexus_write_ebsd_odf(ebsd_orig, fpath, parent, perform_io)
 % Generate default ODF plots for H5Web and write data to NeXus/HDF5 file
 
-% ebsd_orig:
+% ebsd_orig = ebsd_raw;
+% fpath = ofpath;
+% parent = '/entry1/roi1/ebsd/indexing';
 % fpath: path and filename of NeXus/HDF5 results file
 % parent: parent HDF5 group below which to write
-n_resolution = 1.0;  % of ODF plot
+n_resolution = 0.5;  % of ODF plot
 
 if ~perform_io
     return;
 end
 h5w = HdfFiveSeqHdl(fpath);
 
-grpnm = [parent '/odf1'];
-attr = io_attributes();
-attr.add('NX_class', 'NXmicrostructure_odf');
-ret = h5w.nexus_write_group(grpnm, attr);
-
-phase_id = 0;
-for phase_idx = 1:1:length(ebsd_orig.mineralList)
+phase_id = 1;
+for phase_idx = 2:1:length(ebsd_orig.mineralList)
     % TODO: add a map for all those points not indexed
     if min(ebsd_orig.phaseMap) == -1
         n_count = sum(sum(ebsd_orig.phase == (phase_id - 1)));
@@ -29,13 +26,13 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
 
     if ~strcmp(ebsd_orig.mineralList{phase_idx}, 'notIndexed') & n_count > 0
 
-        grpnm = [parent '/odf/odf1/odf' num2str(phase_id)];
+        grpnm = [parent '/phase' num2str(phase_id) '/odf1'];
         attr = io_attributes();
         attr.add('NX_class', 'NXmicrostructure_odf');
-        % attr.add('comment', 'Orientation distribution function 10deg, 2.5deg resolution');
         ret = h5w.nexus_write_group(grpnm, attr);
+        % attr.add('comment', 'Orientation distribution function 10deg, 2.5deg resolution');
 
-        grpnm = [parent '/odf/odf1/odf' num2str(phase_id) '/configuration'];
+        grpnm = [parent '/phase' num2str(phase_id) '/odf1/configuration'];
         attr = io_attributes();
         attr.add('NX_class', 'NXobject');
         ret = h5w.nexus_write_group(grpnm, attr);
@@ -48,11 +45,6 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         kernel_hw = 5.*degree;
         kernel_type = SO3DeLaValleePoussinKernel('halfwidth', kernel_hw);
         odf_reso = 2.5*degree;
-        dsnm = [grpnm '/phase_name'];
-        attr = io_attributes();
-        ret = h5w.nexus_write(dsnm, phase_name, attr);
-        dsnm = [grpnm '/phase_id'];
-        ret = h5w.nexus_write(dsnm, uint32(phase_id), attr);
         dsnm = [grpnm '/crystal_symmetry_point_group'];
         ret = h5w.nexus_write(dsnm, cs.pointGroup, attr);
         dsnm = [grpnm '/specimen_symmetry_point_group'];
@@ -154,7 +146,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         % % % header = '%% alpha   beta    gamma   value';
         % % dat = [d, v(:)].';
 
-        grpnm = [parent '/odf/odf1/odf' num2str(phase_id) '/phi_two_plot'];
+        grpnm = [parent '/phase' num2str(phase_id) '/odf1/phi_two_plot'];
         attr = io_attributes();
         attr.add('NX_class', 'NXdata');
         attr.add('signal', 'intensity');
@@ -166,7 +158,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
 
         dsnm = [grpnm '/title'];
         attr = io_attributes();
-        ret = h5w.nexus_write(dsnm, ['ODF ' phase_name], attr);
+        ret = h5w.nexus_write(dsnm, ['Orientation Distribution Function ' phase_name], attr);
 
         dsnm = [grpnm '/intensity'];
         attr = io_attributes();
@@ -175,8 +167,8 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         % attr.add('CLASS', 'IMAGE');
         % attr.add('IMAGE_VERSION', '1.2');
         % attr.add('SUBCLASS_VERSION', int64(15));
-        % ##MK::TODO with single precision only half as much space
-        % ##MK::TODO should be sufficient for EBSD database demonstrator
+        % TODO with single precision only half as much space
+        % TODO should be sufficient for EBSD database demonstrator
         ret = h5w.nexus_write(dsnm, single(interp_values), attr);
 
         dsnm = [grpnm '/varphi_one'];
@@ -220,7 +212,7 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
         kth = 10;
         delta = 10.*degree;
 
-        grpnm = [parent '/odf/odf1/odf' num2str(phase_id) '/kth_extrema'];
+        grpnm = [parent '/phase' num2str(phase_id) '/odf1/kth_extrema'];
         attr = io_attributes();
         attr.add('NX_class', 'NXobject');
         ret = h5w.nexus_write_group(grpnm, attr);
@@ -247,7 +239,10 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
 
         % classical volume fraction with classical disorientation threshold
 
-        V = volume(odf, components, delta);  % fraction * 100.; % in percent
+        V = zeros([1, length(maxima)]);
+        for i = 1:1:length(maxima)
+            V(i) = volume(odf, maxima(i), delta);  % fraction * 100.; % in percent
+        end
         % modernized normalization of the volume fraction
         % V = volume(odf, components, delta) ./ ...
         %    volume(uniformODF(odf.CS), double(components), delta);
@@ -262,6 +257,6 @@ for phase_idx = 1:1:length(ebsd_orig.mineralList)
 
     phase_id = phase_id + 1;
 end
-disp('NeXus/HDF5 exporting of orientation distribution functions was successful');
+disp('NeXus/HDF5 exporting of ODF: OK');
 status = logical(1);
 end
