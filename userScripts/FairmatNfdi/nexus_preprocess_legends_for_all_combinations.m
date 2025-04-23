@@ -50,7 +50,7 @@ for cs = 1:1:length(point_groups)
         else
             prefix = '';
         end
-        png_fnm = ['temporary_tsl' prefix num2str(cs) '.png'];  % '_' num2str(proj_idx) '.png'];
+        png_fnm = ['temporary_tsl_' prefix num2str(cs) '.png'];  % '_' num2str(proj_idx) '.png'];
         exportgraphics(gcf, png_fnm, 'Resolution', 300);
         close all hidden;
         im = imread(png_fnm);
