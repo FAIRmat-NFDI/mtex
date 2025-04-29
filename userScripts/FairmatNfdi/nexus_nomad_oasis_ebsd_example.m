@@ -23,6 +23,8 @@ load('userScripts/FairmatNfdi/ipf_lgds.mat');
 ipf_lgd_tsl_pg_map = containers.Map();
 ipf_lgd_mtx_pg_map = containers.Map();
 % https://orix.readthedocs.io/en/latest/tutorials/inverse_pole_figures.html
+% customization for specific low-symmetry point groups for which TSL
+% has no as ipf legends that are as detailed as those provided by MTex
 ipf_lgd_tsl_pg_map('121') = '2';
 ipf_lgd_mtx_pg_map('121') = '2';
 ipf_lgd_tsl_pg_map('1m1') = 'm';
@@ -35,14 +37,43 @@ ipf_lgd_tsl_pg_map('3m1') = '3m';
 ipf_lgd_mtx_pg_map('3m1') = '3m';
 ipf_lgd_tsl_pg_map('-3m1') = '-3m';
 ipf_lgd_mtx_pg_map('-3m1') = '-3m';
-% TODO::add other low-symmetry point groups that are pre- and suffix with 1
+% flip ipf_lgd vertically to have them showing up correctly aligned
+% like the IPF RGB colored OIM maps, so far this was only possible
+% when setting y-flip on by default
+disp(['Mapping MTex point group names to closest TSL: OK']);
+k = ipf_lgd_tsl_dct.keys;
+v = ipf_lgd_tsl_dct.values;
+for pg = 1:1:32
+    tmp = ipf_lgd_tsl_dct(k{pg});
+    ny = size(tmp, 3);
+    flp = uint8(zeros(size(tmp)));
+    for y = 1:1:ny
+        flp(:, :, ny - y + 1) = tmp(:, :, y);
+    end
+    ipf_lgd_tsl_dct(k{pg}) = flp;
+end
+clearvars k v;
+k = ipf_lgd_mtx_dct.keys;
+v = ipf_lgd_mtx_dct.values;
+for pg = 1:1:32
+    tmp = ipf_lgd_mtx_dct(k{pg});
+    ny = size(tmp, 3);
+    flp = uint8(zeros(size(tmp)));
+    for y = 1:1:ny
+        flp(:, :, ny - y + 1) = tmp(:, :, y);
+    end
+    ipf_lgd_mtx_dct(k{pg}) = flp;
+end
+clearvars k v;
+disp(['Precomputed IPF legends for all point groups flipped along y: OK']);
 
-thatone = 'CHANGEME';
-mtexdir = [thatone '/mtextoolbox/mtex'];
-configdir = [thatone];
-thatone = 'CHANGEME';
-inputdir = [thatone '/unpacked'];
-outputdir = [thatone '/mtex'];
+
+project_directory = '/home/kaiobach/Research/hu_hu_hu/sprint28/bookkeeping_scidat_nomad_em_paper';
+target_directory = '/media/kaiobach/production/scidat_nomad_em';
+mtexdir = [pwd];
+configdir = [project_directory];
+inputdir = [target_directory '/unpacked'];
+outputdir = [target_directory '/mtex'];
 % addpath('userScripts/FairmatNfdi/tests');
 addpath('data/EBSD');
 addpath(mtexdir);

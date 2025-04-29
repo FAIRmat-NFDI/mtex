@@ -67,7 +67,7 @@ classdef HdfFiveSeqHdl
         end
 %% nexus_write_group
         function r = nexus_write_group(obj, grpnm, attrs)
-            disp(['grp: ' grpnm]);
+            % disp(['grp: ' grpnm]);
             obj.fileid = H5F.open(obj.h5resultsfn, 'H5F_ACC_RDWR', 'H5P_DEFAULT');
             if H5I.is_valid(obj.fileid)
                 clean_abs_path = clean_h5_path(grpnm);
@@ -272,7 +272,7 @@ classdef HdfFiveSeqHdl
             end
         end
         function r = nexus_write(obj, dsnm, val, attrs, varargin)
-            disp(['dst: ' dsnm]);
+            % disp(['dst: ' dsnm]);
             if ~isa(dsnm, "char") || length(dsnm) == 0
                 if obj.verbose
                     disp('Argument dsnm must not be an empty character array!');

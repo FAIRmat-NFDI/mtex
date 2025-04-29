@@ -2,8 +2,8 @@ function status = nexus_write_ebsd_microstructure(ebsd_orig, fpath, parent, perf
 % Generate extracted grains, grain- and phase boundary and triple point geometry
 
 % ebsd_orig: array of one EBSD object per scan point
-% fpath: path and filename of NeXus/HDF5 results file
-% parent: parent HDF5 group below which to write
+% fpath = ofpath; path and filename of NeXus/HDF5 results file
+% parent = '/entry1/roi1/ebsd/indexing'; parent HDF5 group below which to write
 % ebsd_orig = ebsd_raw;  % TODO remove in production
 
 %% generate discretization of crystal interface network
@@ -30,6 +30,7 @@ disorientation_threshold = 15.0*degree;
 % is extremely slow
 disp(['calcGrains ...']);
 grains = calcGrains(ebsd_orig('indexed'), 'boundary', 'tight', 'angle', disorientation_threshold);
+% plot(grains)
 % for the Forsterite example grain 2842 is the largest
 % for subtle orientation gradients, fast multi-scale clustering, https://doi.org/10.1016/j.ultramic.2013.04.009
 % for the Forsterite example this is not useful due to interfaces strongly ragged

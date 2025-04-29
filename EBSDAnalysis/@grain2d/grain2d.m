@@ -163,7 +163,7 @@ classdef grain2d < phaseList & dynProp
       % determine a normal direction such that the area is positive
       grains.N = perp(grains.allV - grains.allV(1));
       grains.N.antipodal = false;
-      if sum(grains.area) < 0, grains.N = -grains.N; end
+      if sum(grains.area('2d')) < 0, grains.N = -grains.N; end
 
       % check for 3d plane
       d=dot(grains.allV(1),grains.N);
