@@ -12,6 +12,14 @@ if ~perform_io
 end
 h5w = HdfFiveSeqHdl(fpath);
 
+
+scan_unit = 'n/a';
+if strcmp(ebsd_orig.scanUnit, 'um')
+    scan_unit = 'µm';
+else
+    scan_unit = lower(ebsd_orig.scanUnit);
+end
+
 n_phases = length(ebsd_orig.CSList);
 if n_phases ~= length(ebsd_orig.mineralList)
     status = logical(0);
@@ -20,9 +28,20 @@ end
 
 n_count_orig_total = length(ebsd_orig);
 % total number of scan points in the original mapping
-dsnm = [parent, '/number_of_scan_points'];
+dsnm = [parent '/number_of_scan_points'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint64(n_count_orig_total), attr);
+dsnm = [parent '/unit_cell'];
+attr = io_attributes();
+attr.add("units", scan_unit);
+ret = h5w.nexus_write(dsnm, ebsd_orig.unitCell.xy, attr);
+dsnm = [parent '/pixel_shape'];
+attr = io_attributes();
+if length(ebsd_orig.unitCell.x) == 4
+    ret = h5w.nexus_write(dsnm, 'square', attr);
+elseif length(ebsd_orig.unitCell.x) == 6
+    ret = h5w.nexus_write(dsnm, 'hexagon', attr);
+end
 
 phase_id = 0;
 for phase_idx = 1:1:n_phases

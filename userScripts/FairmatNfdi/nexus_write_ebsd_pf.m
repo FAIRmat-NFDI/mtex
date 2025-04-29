@@ -11,7 +11,7 @@ if ~perform_io
 end
 h5w = HdfFiveSeqHdl(fpath);
 
-grpnm = [parent, '/pf1'];
+grpnm = [parent '/pf1'];
 attr = io_attributes();
 attr.add('NX_class', 'NXmicrostructure_pf');
 ret = h5w.nexus_write_group(grpnm, attr);
