@@ -6,6 +6,11 @@
 % an example that shows how to process MTex class instances to map
 % information content conceptually on NeXus class instances
 % to work towards standardization in the field of texture analysis
+% versioning, make sure that before committing the code with which
+% the processing queue was computed that one runs
+% git describe --dirty --tags --long --abbrev=8 --match '*[0-9]*' >mtex-version.txt
+% in the mtex home directory to document which version was used for the
+% queue
 
 %% init
 clear; clc;
