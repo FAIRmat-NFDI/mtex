@@ -12,12 +12,16 @@ ret = h5w.nexus_close();
 
 h5w = HdfFiveSeqHdl(nexus_fpath);
 
-parent = 'microstructure';
-grpnm = parent;
+grpnm = '/entry1';
+attr = io_attributes();
+attr.add('NX_class', 'NXentry');
+ret = h5w.nexus_write_group(grpnm, attr);
+grpnm = ['/entry1/microstructure'];
 attr = io_attributes();
 attr.add('NX_class', 'NXmicrostructure');
 ret = h5w.nexus_write_group(grpnm, attr);
 
+parent = '/entry1/microstructure';
 grpnm = [parent '/cg_point'];
 attr = io_attributes();
 attr.add('NX_class', 'NXcg_point');
@@ -33,7 +37,7 @@ attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
 dsnm = [parent  '/cg_point/position'];
 attr = io_attributes();
-attr.add( "units", "1");
+% attr.add("units", "1");
 ret = h5w.nexus_write(dsnm, double(grains.allV), attr);
 
 %% find unique triangles that represent the interface network
