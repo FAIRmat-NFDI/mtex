@@ -1,30 +1,35 @@
 %% header
-% Markus Kühbach, Humboldt-Universität zu Berlin, Department of Physics
-% NOMAD Oasis, FAIRmat 2024/05/21
+% Markus Kühbach, Humboldt-Universität zu Berlin, Department of Physics,
+% NOMAD Oasis, FAIRmat
 
 %% context
-% an example that shows how to process MTex class instances to map
-% information content conceptually on NeXus class instances
-% to work towards standardization in the field of texture analysis
-% versioning, make sure that before committing the code with which
-% the processing queue was computed that one runs
+% an example that shows how to process MTex class instances such to
+% export and map data and metadata conceptually on NeXus class instances
+% to work towards standardization in the field of texture analysis,
+
+%% versioning
+% make sure that before using the code for production runs to run
 % git describe --dirty --tags --long --abbrev=8 --match '*[0-9]*' >mtex-version.txt
-% in the mtex home directory to document which version was used for the
-% queue
+% in the mtex home directory to document which version and commit this to
+% to know with which specific code the production run was performed
 
 %% init
 clear; clc;
+
 %% for Linux might need to use qhull
 setMTEXpref('voronoiMethod','qhull');
 % see https://github.com/mtex-toolbox/mtex/discussions/2083 for details
+
 %% load preprocessed color maps for all point groups
 load('userScripts/FairmatNfdi/ipf_lgds.mat');
-%% define custom mappings of (mis)spelled point groups used in EBSD maps
+
+%% define custom mappings for point group whose name differs between TSL/MTex
 ipf_lgd_tsl_pg_map = containers.Map();
 ipf_lgd_mtx_pg_map = containers.Map();
 % https://orix.readthedocs.io/en/latest/tutorials/inverse_pole_figures.html
 % customization for specific low-symmetry point groups for which TSL
-% has no as ipf legends that are as detailed as those provided by MTex
+% has no as ipf legends that are as detailed and perfectly colored
+% as those provided by MTex
 ipf_lgd_tsl_pg_map('121') = '2';
 ipf_lgd_mtx_pg_map('121') = '2';
 ipf_lgd_tsl_pg_map('1m1') = 'm';
@@ -43,7 +48,7 @@ ipf_lgd_mtx_pg_map('-3m1') = '-3m';
 disp(['Mapping MTex point group names to closest TSL: OK']);
 k = ipf_lgd_tsl_dct.keys;
 v = ipf_lgd_tsl_dct.values;
-for pg = 1:1:32
+for pg = 1:1:length(point_groups)
     tmp = ipf_lgd_tsl_dct(k{pg});
     ny = size(tmp, 3);
     flp = uint8(zeros(size(tmp)));
@@ -55,7 +60,7 @@ end
 clearvars k v;
 k = ipf_lgd_mtx_dct.keys;
 v = ipf_lgd_mtx_dct.values;
-for pg = 1:1:32
+for pg = 1:1:length(point_groups)
     tmp = ipf_lgd_mtx_dct(k{pg});
     ny = size(tmp, 3);
     flp = uint8(zeros(size(tmp)));
@@ -64,28 +69,24 @@ for pg = 1:1:32
     end
     ipf_lgd_mtx_dct(k{pg}) = flp;
 end
-clearvars k v;
+clearvars k v pg tmp ny flp y;
 disp(['Precomputed IPF legends for all point groups flipped along y: OK']);
-
 
 project_directory = 'CHANGEME';
 target_directory = 'CHANGEME';
+project_directory = '/home/kaiobach/Research/hu_hu_hu/sprint28/bookkeeping_scidat_nomad_em_paper';
+target_directory = '/media/kaiobach/production/scidat_nomad_em';
 mtexdir = [pwd];
 configdir = [project_directory];
 inputdir = [target_directory '/unpacked'];
 outputdir = [target_directory '/mtex'];
-% addpath('userScripts/FairmatNfdi/tests');
 addpath('data/EBSD');
 addpath(mtexdir);
 addpath(configdir);
 addpath(inputdir);
 addpath(outputdir);
-% diary 'diary.log'
 mtex_pref = configure_mtex_preferences();
 mtex_plot_default = plottingConvention();
-% disp(getMTEXpref('xAxisDirection'));
-% disp(getMTEXpref('zAxisDirection'));
-% diary off
 
 %% load configuration from dataset extraction Python script
 perform_io = 1;
@@ -95,25 +96,26 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
     mime_type = ebsd_mime_types_to_use_mtex{mime_type_idx};
     disp(mime_type);
     cfg_tbl = configure_examples( ...
-        [project_directory '/harvest.examples.10.em.' mime_type '.unpack.csv'], ...
+        [project_directory '/harvest.examples.' ...
+         case_id '.em.' mime_type '.unpack.csv'], ...
         [2, Inf]);
-    n_size = size(cfg_tbl);
-    n_rows = n_size(1);
-    clearvars n_size;
 
-    for row_idx = 1:1:n_rows
-        clearvars -except mtexdir configdir inputdir outputdir mtex_pref ...
-        perform_id case_id cfg_tbl n_rows ebsd_mime_types_to_use_mtex ...
-        perf_file_name row_idx issues;
+    for row_idx = 1:1:2  % size(cfg_tbl, 1)
+        clearvars -except configdir inputdir ipf_lgd_mtx_dct ipf_lgd_mtx_pg_map ...
+            ipf_lgd_tsl_dct ipf_lgd_tsl_pg_map mtex_plot_default mtex_pref ...
+            mtexdir outputdir point_groups project_directory target_directory ...
+            perform_io case_id ebsd_mime_types_to_use_mtex mime_type_idx ...
+            mime_type cfg_tbl row_idx;
     % try
         use = cfg_tbl{row_idx, 1};
         if use ~= 1
             continue;
         end
+        % if ~ismember(skip_these_map_ids, row_idx)
+        %     continue;
+        % end
         ifpath_main = cfg_tbl{row_idx, 4}{1};
         ifpath_supp = cfg_tbl{row_idx, 6}{1};
-        % ifpath_main = 'data/EBSD/Forsterite.ctf';
-        % ofpath = 'userScripts/FairmatNfdi/test.nxs';
         if strcmp(ifpath_main, '')
             continue;
         end
@@ -134,19 +136,18 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
         disp(['ifpath_supp: ' ifpath_supp]);
         disp(['ofpath: ' ofpath]);
         
-        % if ~ismember(skip_these_map_ids, row_idx)
-        %     continue;
-        % end
-        % parent = '/entry1/roi1/ebsd/indexing';
+        ifpath_main = 'data/EBSD/Forsterite.ctf';
+        ofpath = 'userScripts/FairmatNfdi/test.nxs';
+        parent = '/entry1/roi1/ebsd/indexing';
 
         tic;
-
         status = nexus_write_init(ofpath, perform_io);
         status = nexus_write_mtex_preferences( ...
                 ofpath, ...
                 '/entry1/roi1/ebsd/indexing', ...
                 perform_io);
 
+        reference_frame_convention = 's2e';
         if strcmp(reference_frame_convention, 's2e')
             % assuming just setting 2 is a very strong if not a wrong assumption
             if strcmp(mime_type, 'crc')
@@ -182,8 +183,7 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
             ofpath, ...
             '/entry1/roi1/ebsd/indexing', ...
             perform_io);
-        % grid type, positions, euler, phase, quality descriptor
-
+        
         % prepare a default plot on a square grid but represented
         % as an implicit array instead of an EBSDsquare object
         ebsd_sqr_roi_hweb = nexus_squarify_ebsd( ...
@@ -211,8 +211,6 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
             ipf_lgd_tsl_pg_map, ...
             ipf_lgd_mtx_pg_map);
 
-        % skip for now computations which will increase the file size
-        % substantially, i.e. ODF, PF, and microstructure
         status = nexus_write_ebsd_microstructure( ...
             ebsd_raw, ...
             ofpath, ...
@@ -225,7 +223,8 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
             '/entry1/roi1/ebsd/indexing', ...
             perform_io);
 
-        %% the next function has not been tested enough
+        % this next function has not been tested enough
+        % we do not need it also because ODF gets reported 
         % status = nexus_write_ebsd_pf( ...
         %       ebsd_raw, ...
         %       ofpath, ...
@@ -233,7 +232,6 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
         %       perform_io);
         % end
 
-        dt = toc;
         h5w = HdfFiveSeqHdl(ofpath);
         attr = io_attributes();
         attr.add('NX_class', 'NXcs_profiling');
@@ -242,21 +240,11 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
         dsnm = [grpnm '/total_elapsed_time'];
         attr = io_attributes();
         attr.add('units', 's');
+        dt = toc;
         h5w.nexus_write(dsnm, double(dt), attr);
-
-        % disp(['Analysis took ' num2str(dt) ' s']);
-        % writelines(ofpath, perf_file_name, WriteMode="append");
-        % writelines(strcat(replace(string( ...
-        %     datetime('now', 'TimeZone', 'UTC'), ...
-        %     'yyyy-MM-dd HH:mm:ss.SSSSSSSSS'), ' ', 'T'), '+00:00'), ...
-        %     perf_file_name, WriteMode="append");
     end
     % catch
-    %     issues(length(issues)+1) = row_idx;
-    %     writelines('\n', perf_file_name, WriteMode="append");
-    %     writelines(strcat(replace(string( ...
-    %         datetime('now', 'TimeZone', 'UTC'), ...
-    %         'yyyy-MM-dd HH:mm:ss.SSSSSSSSS'), ' ', 'T'), '+00:00'), ...
-    %         perf_file_name, WriteMode="append");  % overwrite");
     % end
 end
+
+% for obsolete code functionalities inspect earlier commits

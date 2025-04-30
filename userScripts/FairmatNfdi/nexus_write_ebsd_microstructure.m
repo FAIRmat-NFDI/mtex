@@ -1,10 +1,9 @@
 function status = nexus_write_ebsd_microstructure(ebsd_orig, fpath, parent, perform_io)
 % Generate extracted grains, grain- and phase boundary and triple point geometry
 
-% ebsd_orig: array of one EBSD object per scan point
+% ebsd_orig = ebsd_raw;  % array of one EBSD object per scan point
 % fpath = ofpath; path and filename of NeXus/HDF5 results file
-% parent = '/entry1/roi1/ebsd/indexing'; parent HDF5 group below which to write
-% ebsd_orig = ebsd_raw;  % TODO remove in production
+% parent = '/entry1/roi1/ebsd/indexing'; % parent HDF5 group below which to write
 
 %% generate discretization of crystal interface network
 % the idea with this function here is to show how irrespective how the
@@ -24,12 +23,20 @@ else
 end
 
 disorientation_threshold = 15.0*degree;
+discretization_threshold = 1;
 % classical 15. high-angle to low-angle grain boundary
 % use smaller values to segment sub-grain boundary network
 % do not call like this [grains, ebsd_orig.grainId] as this
 % is extremely slow
+
 disp(['calcGrains ...']);
-grains = calcGrains(ebsd_orig('indexed'), 'boundary', 'tight', 'angle', disorientation_threshold);
+% [grains,ebsd_orig.grainId,ebsd_orig.mis2mean] 
+% [grains, ebsd_orig.grainId] 
+grains = calcGrains( ...
+    ebsd_orig('indexed'), ...
+    'boundary', 'tight', ...
+    'angle', disorientation_threshold, ...
+    'minPixel', discretization_threshold);
 % plot(grains)
 % for the Forsterite example grain 2842 is the largest
 % for subtle orientation gradients, fast multi-scale clustering, https://doi.org/10.1016/j.ultramic.2013.04.009
@@ -64,10 +71,17 @@ ret = h5w.nexus_write_group(grpnm, attr);
 dsnm = [grpnm '/algorithm'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, 'disorientation_clustering', attr);
+dsnm = [grpnm '/comments'];
+attr = io_attributes();
+ret = h5w.nexus_write(dsnm, 'indexed, boundary, tight', attr);
 dsnm = [grpnm '/disorientation_threshold'];
 attr = io_attributes();
 attr.add('units', '°');
 ret = h5w.nexus_write(dsnm, disorientation_threshold / pi * 180., attr);
+dsnm = [grpnm '/discretization_threshold'];
+attr = io_attributes();
+ret = h5w.nexus_write(dsnm, discretization_threshold, attr);
+
 
 %% instantiate storage of representation of the primitives
 grpnm = [parent '/microstructure1'];
@@ -159,18 +173,22 @@ attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
 
 %% store grain descriptors
-dsnm = [grpnm '/area'];  % which type of area all pixels, polygon area?
+dsnm = [grpnm '/area_by_pixel'];  % which type of area all pixels, polygon area?
 area_per_ebsd_pixel = polyshape(ebsd_orig.unitCell.xy).area;  % clock-wise winding order
-if length(ebsd_orig.unitCell) ~= 4
-    error('TODO::Check correct size of that hexagonal Wigner-Seitz cell !');
-end
+% if length(ebsd_orig.unitCell) ~= 4
+%     error('TODO::Check correct size of that hexagonal Wigner-Seitz cell !');
+% end
 attr = io_attributes();
 attr.add('units', [scan_unit, '^2']);
 ret = h5w.nexus_write(dsnm, double(grains.numPixel * area_per_ebsd_pixel), attr);
 clearvars area_per_ebsd_pixel;
+
+dsnm = [grpnm '/area_by_mtex'];
+attr = io_attributes();
+attr.add('units', [scan_unit, '^2']);
+ret = h5w.nexus_write(dsnm, double(grains.area('2d')), attr);
 dsnm = [grpnm '/indices_phase'];
 attr = io_attributes();
-% ##MK::TODO implement case that phases might be not indexed
 ret = h5w.nexus_write(dsnm, uint32(grains.phaseId), attr);
 % evaluate if grain has boundary contact
 % convenience, can be logically/topologically inferred from entry1/interfaces
@@ -182,7 +200,7 @@ dsnm = [grpnm '/orientation_spread'];
 attr = io_attributes();
 attr.add( 'units', '°');
 ret = h5w.nexus_write(dsnm, double(grains.GOS / pi * 180.), attr);
-
+% TODO ADD GROD
 grpnm = [parent '/microstructure1/crystals/orientation'];
 attr = io_attributes();
 attr.add('NX_class', 'NXrotations');
@@ -190,15 +208,20 @@ ret = h5w.nexus_write_group(grpnm, attr);
 dsnm = [grpnm '/parameterization'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, 'quaternion', attr);
-dsnm = [grpnm '/rotation'];
+dsnm = [grpnm '/mean_rotation'];
 attr = io_attributes();
-quat = double(zeros([4, length(grains.meanRotation.a)]));
-quat(1,:) = double(grains.meanRotation.a');
-quat(2,:) = double(grains.meanRotation.b');
-quat(3,:) = double(grains.meanRotation.c');
-quat(4,:) = double(grains.meanRotation.d');
-ret = h5w.nexus_write(dsnm, quat, attr);
+quat = nan([4, length(grains)]);
+quat(1,:) = grains.meanRotation.a';
+quat(2,:) = grains.meanRotation.b';
+quat(3,:) = grains.meanRotation.c'
+quat(4,:) = grains.meanRotation.d';
+% per grain.meanOrientation nothing but Euler angles of meanRotation
+% quaternion that we have above ?
+ret = h5w.nexus_write(dsnm, double(quat), attr);
 clearvars quat;
+
+% https://mtex-toolbox.github.io/GrainOrientationParameters.html
+% gam = ebsd_orig.grainMean(ebsd_orig.KAM, grains);
 
 %% interface facets which discretize the segments of the polygons
 % which describe the crystallite and ROI boundar(ies) as polylines

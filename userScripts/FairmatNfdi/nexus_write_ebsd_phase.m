@@ -31,7 +31,7 @@ n_count_orig_total = length(ebsd_orig);
 dsnm = [parent '/number_of_scan_points'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint64(n_count_orig_total), attr);
-dsnm = [parent '/unit_cell'];
+dsnm = [parent '/pixel_unit_cell'];
 attr = io_attributes();
 attr.add("units", scan_unit);
 ret = h5w.nexus_write(dsnm, ebsd_orig.unitCell.xy', attr);
@@ -41,6 +41,8 @@ if length(ebsd_orig.unitCell.x) == 4
     ret = h5w.nexus_write(dsnm, 'square', attr);
 elseif length(ebsd_orig.unitCell.x) == 6
     ret = h5w.nexus_write(dsnm, 'hexagon', attr);
+else
+    ret = h5w.nexus_write(dsnm, 'other', attr);
 end
 
 phase_id = 0;
