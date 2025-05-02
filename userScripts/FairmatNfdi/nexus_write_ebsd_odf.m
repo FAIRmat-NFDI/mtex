@@ -9,6 +9,8 @@ function status = nexus_write_ebsd_odf(ebsd_orig, fpath, parent, perform_io)
 if ~perform_io
     return;
 end
+odf_tic = tic;
+
 h5w = HdfFiveSeqHdl(fpath);
 
 phase_id = 1;
@@ -208,7 +210,7 @@ for phase_idx = 2:1:length(ebsd_orig.mineralList)
         attr = io_attributes();
         attr.add('units', '°');
         ret = h5w.nexus_write(dsnm, e1_e2_e3, attr);
-        clearvars e1_e2_e3 maxima;
+        clearvars e1_e2_e3;
         dsnm = [grpnm '/intensity'];
         attr = io_attributes();
         attr.add('comment', 'odf intensity normalized to random odf');
@@ -223,13 +225,12 @@ for phase_idx = 2:1:length(ebsd_orig.mineralList)
         % modernized normalization of the volume fraction
         % V = volume(odf, components, delta) ./ ...
         %    volume(uniformODF(odf.CS), double(components), delta);
-        clearvars V;
         attr = io_attributes();
         attr.add('comment1', 'NX_DIMENSIONLESS');
         attr.add('comment2', 'Components may overlap with the search region defined by theta !');
         attr.add('comment3', 'Therefore, volume fractions may not add up to 1. !');
         ret = h5w.nexus_write(dsnm, double(V), attr);
-        clearvars kth delta;
+        clearvars kth delta maxima V;
 
         % modern analysis of non circular components that are close
         % together via a crawler
@@ -257,6 +258,13 @@ for phase_idx = 2:1:length(ebsd_orig.mineralList)
 
     phase_id = phase_id + 1;
 end
+dsnm = ['/entry1/profiling/odf_elapsed_time'];
+odf_wall_clock = toc(odf_tic);
+attr = io_attributes();
+attr.add('units', 's');
+h5w.nexus_write(dsnm, double(odf_wall_clock), attr);
+
 disp('NeXus/HDF5 exporting of ODF: OK');
 status = logical(1);
+
 end

@@ -33,7 +33,7 @@ attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint64(n_count_orig_total), attr);
 dsnm = [parent '/pixel_unit_cell'];
 attr = io_attributes();
-attr.add("units", scan_unit);
+attr.add('units', scan_unit);
 ret = h5w.nexus_write(dsnm, ebsd_orig.unitCell.xy', attr);
 dsnm = [parent '/pixel_shape'];
 attr = io_attributes();

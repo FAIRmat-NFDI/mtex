@@ -9,7 +9,7 @@ function status = nexus_write_ebsd_microstructure(ebsd_orig, fpath, parent, perf
 % the idea with this function here is to show how irrespective how the
 % grains were reconstructed, we can then export the geometry description
 % using NeXus classes
-
+ms_tic = tic;
 if ~perform_io
     return;
 end
@@ -92,7 +92,7 @@ dsnm = [grpnm '/discretization_threshold'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, discretization_threshold, attr);
 
-% TODO this implementation currently supports 32-bit wide identifier
+% this implementation currently supports 32-bit wide identifier
 % for integer valued quantities, the support can be extended by
 % changing the reporting type from (u)int32 to (u)int64
 % typically though a width of 32 bits allows to store 2^32 identifier
@@ -118,6 +118,7 @@ end
 % summary statistics can be computed
 
 %% instantiate storage of representation of the primitives
+disp(['Primitives ...']);
 grpnm = [parent '/microstructure1'];
 dsnm = [grpnm '/dimensionality'];
 attr = io_attributes();
@@ -140,7 +141,7 @@ ret = h5w.nexus_write(dsnm, uint32(1), attr);
 dsnm = [grpnm '/position'];
 attr = io_attributes();
 attr.add('units', scan_unit);
-ret = h5w.nexus_write(dsnm, double(grains.allV.xy), attr);
+ret = h5w.nexus_write(dsnm, double(grains.allV.xy'), attr);
 
 %% polylines, representing individual interface facets
 % problem the term facet is used for both a discretization of an interface
@@ -154,8 +155,8 @@ dsnm = [grpnm '/dimensionality'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(2), attr);
 dsnm = [grpnm '/cardinality'];
-attr = io_attributes();
 polylines = grains.boundary.F;
+attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(size(polylines, 1)), attr);
 dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
@@ -163,14 +164,13 @@ ret = h5w.nexus_write(dsnm, uint32(1), attr);
 dsnm = [grpnm '/number_of_vertices'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(2*ones([1, size(polylines, 1)]))', attr);
-clearvars polylines;
 dsnm = [grpnm '/polylines'];
 attr = io_attributes();
 attr.add('use_these', [parent '/microstructure1/cg_point']);
-dsnm = [grpnm '/length'];
 polylines = grains.boundary.F';
 ret = h5w.nexus_write(dsnm, uint32(reshape(polylines, ...
     [1, 2*length(polylines)])), attr);
+dsnm = [grpnm '/length'];
 p_u = grains.allV(polylines(1, :), :);
 p_v = grains.allV(polylines(2, :), :);
 facet_length = hypot((p_u.x - p_v.x), (p_u.y - p_v.y));
@@ -180,9 +180,11 @@ end
 attr = io_attributes();
 attr.add('units', scan_unit);
 ret = h5w.nexus_write(dsnm, facet_length, attr);
-clearvars polylines p_u p_v facet_length;
+clearvars p_u p_v facet_length;
+disp(['Primitives: OK']);
 
 %% store crystals/grains
+disp(['Crystals ...']);
 grpnm = [parent '/microstructure1/crystals'];
 attr = io_attributes();
 attr.add('NX_class', 'NXobject');
@@ -194,10 +196,10 @@ dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
 dsnm = [grpnm '/area_by_pixel'];  % which type of area all pixels, polygon area?
-area_per_ebsd_pixel = polyshape(ebsd_orig.unitCell.xy).area;  % clock-wise winding order?
+% area_per_ebsd_pixel = polyshape(ebsd_orig.unitCell.xy).area;  % clock-wise winding order?
 attr = io_attributes();
 attr.add('units', [scan_unit, '^2']);
-ret = h5w.nexus_write(dsnm, double(grains.numPixel * area_per_ebsd_pixel), attr);
+ret = h5w.nexus_write(dsnm, double(grains.numPixel), attr);  %  * area_per_ebsd_pixel
 clearvars area_per_ebsd_pixel;
 dsnm = [grpnm '/area_by_mtex'];
 attr = io_attributes();
@@ -220,9 +222,9 @@ grpnm = [parent '/microstructure1/crystals/orientation'];
 attr = io_attributes();
 attr.add('NX_class', 'NXrotations');
 ret = h5w.nexus_write_group(grpnm, attr);
-dsnm = [grpnm '/parameterization'];
-attr = io_attributes();
-ret = h5w.nexus_write(dsnm, 'quaternion', attr);
+% dsnm = [grpnm '/parameterization'];
+% attr = io_attributes();
+% ret = h5w.nexus_write(dsnm, 'quaternion', attr);
 dsnm = [grpnm '/rotation_quaternion'];
 attr = io_attributes();
 quat = nan([4, length(grains)]);
@@ -239,7 +241,7 @@ ret = h5w.nexus_write(dsnm, double(quat), attr);
 % as a solution meanOrientation is collected in the loop that collects
 % per boundary misorientation
 clearvars quat;
-
+disp(['Crystals: OK']);
 % https://mtex-toolbox.github.io/GrainOrientationParameters.html
 % gam = ebsd_orig.grainMean(ebsd_orig.KAM, grains);
 
@@ -258,6 +260,7 @@ clearvars quat;
 % [val, idx] = max(grains.area('2d'));
 
 %% polyline segment to interface patches
+disp(['Interfaces ...']);
 grpnm = [parent '/microstructure1/interfaces'];
 attr = io_attributes();
 attr.add('NX_class', 'NXobject');
@@ -270,12 +273,33 @@ ret = h5w.nexus_write_group(grpnm, attr);
 dsnm = [grpnm '/number_of_interfaces'];
 attr = io_attributes();
 pairs = grains.boundary.grainId';
-segment_to_interface_lu = uint64(min(pairs)) + uint64(2^32) * uint64(max(pairs));
+% look-up table, interface segments vs patches
+% a patch is build from at least one but typically multiple segment(s)
+segment_to_patch = uint64(min(pairs)) + uint64(2^32) * uint64(max(pairs));
 clearvars pairs;
-unique_interfaces = unique(segment_to_interface_lu);
-hash_to_interface_idx = containers.Map( ...
-    num2cell(unique_interfaces'), ...
-    uint32(1:1:length(unique_interfaces)));
+unique_interfaces = unique(segment_to_patch);
+interface_lu_to_interface_idx = containers.Map();
+% reindex the interface patches
+for i = 1:1:length(unique_interfaces)
+    lu_key = num2str(unique_interfaces(i));
+    interface_lu_to_interface_idx(lu_key) = i;
+    % = num2str(...
+    % num2cell(unique_interfaces'), ...
+    % uint32(1:1:length(unique_interfaces)));
+end
+indices_patch = int64(zeros([1, length(grains.boundary)])) - 1;
+for i = 1:1:length(grains.boundary)
+    lu_key = num2str(segment_to_patch(i));
+    if isKey(interface_lu_to_interface_idx, lu_key)
+        indices_patch(i) = interface_lu_to_interface_idx(lu_key);
+    else
+        disp([num2str(i) ', ' lu_key]);
+        error(['Unable to find lu_key in interface_lu_to_interface_idx !']);
+    end
+end
+if any(indices_patch < 0)
+    error(['Indices patch are inconsistent !']);
+end
 % includes interfaces of crystals to the edge of the ROI / boundary
 crystal_id_pair = uint32(zeros([2, length(unique_interfaces)]));
 mx = unique_interfaces ./ uint64(2^32);
@@ -284,6 +308,14 @@ crystal_id_pair(1, :) = mi;
 crystal_id_pair(2, :) = mx;
 clearvars mi mx;
 ret = h5w.nexus_write(dsnm, uint32(length(unique_interfaces)), attr);
+
+grpnm = [parent '/microstructure1/cg_polyline'];
+dsnm = [grpnm '/indices_interfaces'];
+attr = io_attributes();
+attr.add('use_these', [parent '/microstructure1/interfaces']);
+ret = h5w.nexus_write(dsnm, uint32(indices_patch), attr);
+
+grpnm = [parent '/microstructure1/interfaces'];
 dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
@@ -296,7 +328,7 @@ ret = h5w.nexus_write(dsnm, uint32(crystal_id_pair), attr);
 % discretization of the boundary of the ROI !
 clearvars unique_interfaces;
 
-disp(['Identify misorientation for interface patches...']);
+disp(['Interfaces misorientation ...']);
 % compute misorientation for interface patches (not individual segments)
 % as all segments of the patch for 2d have the same misorientation
 % boundary plane of course is a per segment quantity but this is stored
@@ -308,6 +340,7 @@ disp(['Identify misorientation for interface patches...']);
 mean_ori_quaternion = nan([4, length(grains)]);
 misori = containers.Map();
 for i = 1:1:length(grains)
+    % cannot just filter by grains with ROI edge contact as also these may have still boundaries with grains inside the ROI
     bnd = grains(i).boundary;
     mean_ori_quaternion(1, i) = grains(i).meanOrientation.a;
     mean_ori_quaternion(2, i) = grains(i).meanOrientation.b;
@@ -368,20 +401,22 @@ attr = io_attributes();
 attr.add('units', '°');
 ret = h5w.nexus_write(dsnm, double(misori_angle), attr);
 clearvars misori_euler misori_angle;
-disp(['Identify misorientation for interface patches: OK']);
+disp(['Interface misorientation: OK']);
 
-
+grpnm = [parent '/microstructure1/interfaces'];
 dsnm = [grpnm '/indices_phase'];
 attr = io_attributes();
 % check that for each facet with the same interface_hash
 % the phase_id pair is exactly the same!
-phase_id_pair = int64(zeros(size(crystal_id_pair))) - 1;% mark unknown with -1
+phase_id_pair = int64(zeros(size(crystal_id_pair))) - 1;
+% subtract 1 to mark all values as unknowns first so that one can
+% check if all have been visited
 mi = uint32(min(grains.boundary.phaseId'));
 mx = uint32(max(grains.boundary.phaseId'));
 for idx = 1:1:size(grains.boundary.phaseId, 1)
     % never zero unless 0 + (2^32 * 0) not possible by virtue of construction?
-    interface_id = segment_to_interface_lu(idx);
-    interface_idx = hash_to_interface_idx(interface_id);
+    lu_key = num2str(segment_to_patch(idx));
+    interface_idx = interface_lu_to_interface_idx(lu_key);
     % mi = min(uint32(grains.boundary.phaseId(idx, :)));
     % mx = max(uint32(grains.boundary.phaseId(idx, :)));
     % in the case of mi == mx we have a homophase interface
@@ -390,12 +425,14 @@ for idx = 1:1:size(grains.boundary.phaseId, 1)
     % in all other cases we have heterophase interface
     if phase_id_pair(1, interface_idx) == -1 ...
             & phase_id_pair(2, interface_idx) == -1
+        % set those that we have not visited
         phase_id_pair(1, interface_idx) = mi(idx);
         phase_id_pair(2, interface_idx) = mx(idx);
     else
-        % test consistency and throw if there are double assignments
+        % those we have visited assure that we are still consistent
         if phase_id_pair(1, interface_idx) == mi(idx) ...
                 & phase_id_pair(2, interface_idx) == mx(idx)
+            continue;
         else
             error(['Resetting values in a phase_id_pair ' ...
                 num2str(idx) ' is not allowed !']);
@@ -415,11 +452,13 @@ ret = h5w.nexus_write(dsnm, phase_id_pair, attr);
 % TODO::export indices_polylines segments
 dsnm = [grpnm '/indices_polylines'];
 attr = io_attributes();
+attr.add('use_these', [parent '/microstructure1/cg_polyline']);
 ret = h5w.nexus_write(dsnm, uint32(1:1:size(polylines, 2))', attr);
-
-clearvars idx interface_id interface_idx mi mx phase_id_pair crystal_id_pair;
+clearvars i idx interface_id interface_idx mi mx phase_id_pair crystal_id_pair;
+disp(['Interfaces: OK']);
 
 %% triple junctions
+disp(['Triple junctions ...']);
 grpnm = [parent '/microstructure1/triple_junctions'];
 attr = io_attributes();
 attr.add('NX_class', 'NXobject');
@@ -430,31 +469,29 @@ ret = h5w.nexus_write(dsnm, uint32(size(grains.triplePoints.id, 1)), attr);
 dsnm = [grpnm '/index_offset'];
 attr = io_attributes();
 ret = h5w.nexus_write(dsnm, uint32(1), attr);
-
 dsnm = [grpnm '/indices_crystal'];
 attr = io_attributes();
 attr.add('use_these', [parent '/microstructure1/crystals']);
 ret = h5w.nexus_write(dsnm, uint32(grains.triplePoints.grainId)', attr);
-
 dsnm = [grpnm '/indices_polyline'];
 attr = io_attributes();
 attr.add('use_these', [parent '/microstructure1/cg_polyline']);
 ret = h5w.nexus_write(dsnm, uint32(grains.triplePoints.boundaryId)', attr);
-
 dsnm = [grpnm '/indices_interface'];
 % the adjoining interface, (also see above comment) not necessary
 attr = io_attributes();
 attr.add('use_these', [parent '/microstructure1/interfaces']);
+% again subtract 1 to assure and allow a check that we have all visited and
+% have all consistent
 interface_ids = int64(zeros([3, size(grains.triplePoints.boundaryId, 1)]) - 1);
 bnd_idxs = grains.triplePoints.boundaryId';
-a_bnd_hsh = segment_to_interface_lu(bnd_idxs(1, :));
-b_bnd_hsh = segment_to_interface_lu(bnd_idxs(2, :));
-c_bnd_hsh = segment_to_interface_lu(bnd_idxs(3, :));
-clearvars bnd_idxs;
-for idx = 1:1:size(grains.triplePoints.boundaryId, 1)
-    a_bnd = hash_to_interface_idx(a_bnd_hsh(idx));
-    b_bnd = hash_to_interface_idx(b_bnd_hsh(idx));
-    c_bnd = hash_to_interface_idx(c_bnd_hsh(idx));
+for idx = 1:1:size(bnd_idxs, 2)
+    a_bnd_lu_key = num2str(segment_to_patch(bnd_idxs(1, idx)));
+    b_bnd_lu_key = num2str(segment_to_patch(bnd_idxs(2, idx)));
+    c_bnd_lu_key = num2str(segment_to_patch(bnd_idxs(3, idx)));
+    a_bnd = interface_lu_to_interface_idx(a_bnd_lu_key);
+    b_bnd = interface_lu_to_interface_idx(b_bnd_lu_key);
+    c_bnd = interface_lu_to_interface_idx(c_bnd_lu_key);
     if all(interface_ids(1:3, idx) == -1)
         interface_ids(1, idx) = a_bnd;
         interface_ids(2, idx) = b_bnd;
@@ -463,22 +500,30 @@ for idx = 1:1:size(grains.triplePoints.boundaryId, 1)
         if interface_ids(1, idx) == a_bnd ...
                 & interface_ids(2, idx) == b_bnd ...
                 & interface_ids(3, idx) == c_bnd
+            continue;
         else
-            disp([num2str(idx) ' problem !']);
+            error(['At least one triple junction is incorrectly handled !']);
         end
     end
 end
 % check that no index remains -1
 if min(min(interface_ids)) >= 0 & max(max(interface_ids)) < int64(2^32)
+    % cast from int64 to uint32 is safe on both sides
+    % only when both constraints are met !
     interface_ids = uint32(interface_ids);
 else
     error(['At least on interface_id is incorrectly >= 2^32 !']);
 end
-clearvars idx a_bnd b_bnd c_bnd a_bnd_hsh b_bnd_hsh c_bnd_hsh;
+clearvars idx a_bnd_lu_key b_bnd_lu_key c_bnd_lu_key a_bnd b_bnd c_bnd;
 ret = h5w.nexus_write(dsnm, interface_ids, attr);
-clearvars interface_ids;
+clearvars interface_ids hash_to_interface_id segment_to_patch ret;
+disp(['Triple junctions: OK']);
 
-clearvars hash_to_interface_id segment_to_interface_lu ret;
+dsnm = ['/entry1/profiling/microstructure_elapsed_time'];
+ms_wall_clock = toc(ms_tic);
+attr = io_attributes();
+attr.add('units', 's');
+h5w.nexus_write(dsnm, double(ms_wall_clock), attr);
 
 disp('NeXus/HDF5 exporting of microstructure: OK');
 status = logical(1);

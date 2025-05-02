@@ -140,7 +140,8 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
         ofpath = 'userScripts/FairmatNfdi/test.nxs';
         parent = '/entry1/roi1/ebsd/indexing';
 
-        tic;
+        gtic = tic;
+        load_tic = tic;
         status = nexus_write_init(ofpath, perform_io);
         status = nexus_write_mtex_preferences( ...
                 ofpath, ...
@@ -169,8 +170,16 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
             ebsd_raw = EBSD.load(input);
         end
 
+        h5w = HdfFiveSeqHdl(ofpath);
+        dsnm = ['/entry1/profiling/load_elapsed_time'];
+        load_wall_clock = toc(load_tic);
+        attr = io_attributes();
+        attr.add('units', 's');
+        h5w.nexus_write(dsnm, double(load_wall_clock), attr);
+
         % ebsd_raw 2D EBSD scan point set, arbitrary ROI shapes
         % plot(ebsd_raw);
+        ebsd_tic = tic;
 
         status = nexus_write_ebsd_phase( ...
             ebsd_raw, ...
@@ -211,6 +220,13 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
             ipf_lgd_tsl_pg_map, ...
             ipf_lgd_mtx_pg_map);
 
+        h5w = HdfFiveSeqHdl(ofpath);
+        dsnm = ['/entry1/profiling/ebsd_elapsed_time'];
+        ebsd_wall_clock = toc(ebsd_tic);
+        attr = io_attributes();
+        attr.add('units', 's');
+        h5w.nexus_write(dsnm, double(ebsd_wall_clock), attr);
+
         status = nexus_write_ebsd_microstructure( ...
             ebsd_raw, ...
             ofpath, ...
@@ -233,15 +249,11 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
         % end
 
         h5w = HdfFiveSeqHdl(ofpath);
-        attr = io_attributes();
-        attr.add('NX_class', 'NXcs_profiling');
-        grpnm = '/entry1/profiling';
-        h5w.nexus_write_group(grpnm, attr);
-        dsnm = [grpnm '/total_elapsed_time'];
+        dsnm = ['/entry1/profiling/total_elapsed_time'];
+        wall_clock = toc(gtic);
         attr = io_attributes();
         attr.add('units', 's');
-        dt = toc;
-        h5w.nexus_write(dsnm, double(dt), attr);
+        h5w.nexus_write(dsnm, double(wall_clock), attr);
     end
     % catch
     % end
