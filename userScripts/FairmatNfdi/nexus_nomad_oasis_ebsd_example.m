@@ -17,7 +17,7 @@
 clear; clc;
 
 %% for Linux might need to use qhull
-setMTEXpref('voronoiMethod','qhull');
+% setMTEXpref('voronoiMethod','qhull');
 % see https://github.com/mtex-toolbox/mtex/discussions/2083 for details
 
 %% load preprocessed color maps for all point groups
@@ -74,8 +74,6 @@ disp(['Precomputed IPF legends for all point groups flipped along y: OK']);
 
 project_directory = 'CHANGEME';
 target_directory = 'CHANGEME';
-project_directory = '/home/kaiobach/Research/hu_hu_hu/sprint28/bookkeeping_scidat_nomad_em_paper';
-target_directory = '/media/kaiobach/production/scidat_nomad_em';
 mtexdir = [pwd];
 configdir = [project_directory];
 inputdir = [target_directory '/unpacked'];
@@ -91,7 +89,9 @@ mtex_plot_default = plottingConvention();
 %% load configuration from dataset extraction Python script
 perform_io = 1;
 case_id = '10';
-ebsd_mime_types_to_use_mtex = {'ctf', 'ang', 'osc', 'crc'};
+ebsd_mime_types_to_use_mtex = {'osc', 'ang', 'osc', 'ctf', 'crc'};
+% ang only the first four
+
 for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
     mime_type = ebsd_mime_types_to_use_mtex{mime_type_idx};
     disp(mime_type);
@@ -100,7 +100,7 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
          case_id '.em.' mime_type '.unpack.csv'], ...
         [2, Inf]);
 
-    for row_idx = 1:1:2  % size(cfg_tbl, 1)
+    for row_idx = 1:1:size(cfg_tbl, 1)
         clearvars -except configdir inputdir ipf_lgd_mtx_dct ipf_lgd_mtx_pg_map ...
             ipf_lgd_tsl_dct ipf_lgd_tsl_pg_map mtex_plot_default mtex_pref ...
             mtexdir outputdir point_groups project_directory target_directory ...
@@ -130,12 +130,13 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
             ''); 
         ofpath = [outputdir '/' token '.mtex.h5'];
         clearvars token;
-        disp(['row_idx: ' int2str(row_idx) ...
-            ' reference_frame_convention: ' reference_frame_convention]);
+        disp(['row_idx: ' int2str(row_idx)]);
         disp(['ifpath_main: ' ifpath_main]);
         disp(['ifpath_supp: ' ifpath_supp]);
         disp(['ofpath: ' ofpath]);
         
+        % for debugging with a simple multi-phase EBSD
+        mime_type = 'ctf';
         ifpath_main = 'data/EBSD/Forsterite.ctf';
         ofpath = 'userScripts/FairmatNfdi/test.nxs';
         parent = '/entry1/roi1/ebsd/indexing';
@@ -147,8 +148,9 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
                 ofpath, ...
                 '/entry1/roi1/ebsd/indexing', ...
                 perform_io);
-
+        
         reference_frame_convention = 's2e';
+        disp(['reference_frame_convention: ' reference_frame_convention]);
         if strcmp(reference_frame_convention, 's2e')
             % assuming just setting 2 is a very strong if not a wrong assumption
             if strcmp(mime_type, 'crc')

@@ -23,7 +23,7 @@ else
 end
 
 disorientation_threshold = 15.0*degree;
-discretization_threshold = 1;
+discretization_threshold = 5;
 % classical 15. high-angle to low-angle grain boundary
 % use smaller values to segment sub-grain boundary network
 % do not call like this [grains, ebsd_orig.grainId] as this
@@ -363,45 +363,47 @@ attr = io_attributes();
 ret = h5w.nexus_write(dsnm, double(mean_ori_quaternion), attr);
 clearvars mean_ori_quaternion;
 % stage 2
-misori_euler = nan([3, size(crystal_id_pair, 2)]);
-misori_angle = nan([1, size(crystal_id_pair, 2)]);
-% decode misorientation and sort out back correctly
-% crystal_id_pair, 1 and 2 store mi and mx respectively, in order of interface_id
-for i=1:1:length(crystal_id_pair)
-    if all(crystal_id_pair(:, i) > 0)
-        lu_key = num2str(uint64(crystal_id_pair(1, i)) + uint64(2^32) * uint64(crystal_id_pair(2, i)));
-        if isKey(misori, lu_key)
-            val = misori(lu_key);
-            misori_euler(1, i) = val.phi1 / degree;
-            misori_euler(2, i) = val.Phi / degree;
-            misori_euler(3, i) = val.phi2 / degree;
-            misori_angle(1, i) = val.angle / degree;
-        else
-            error('Stage 2 decode misorientation lu_key is not a key!');
+if 1 == 0
+    misori_euler = nan([3, size(crystal_id_pair, 2)]);
+    misori_angle = nan([1, size(crystal_id_pair, 2)]);
+    % decode misorientation and sort out back correctly
+    % crystal_id_pair, 1 and 2 store mi and mx respectively, in order of interface_id
+    for i=1:1:length(crystal_id_pair)
+        if all(crystal_id_pair(:, i) > 0)
+            lu_key = num2str(uint64(crystal_id_pair(1, i)) + uint64(2^32) * uint64(crystal_id_pair(2, i)));
+            if isKey(misori, lu_key)
+                val = misori(lu_key);
+                misori_euler(1, i) = val.phi1 / degree;
+                misori_euler(2, i) = val.Phi / degree;
+                misori_euler(3, i) = val.phi2 / degree;
+                misori_angle(1, i) = val.angle / degree;
+            else
+                error('Stage 2 decode misorientation lu_key is not a key!');
+            end
+            clearvars lu_key val;
         end
-        clearvars lu_key val;
+        % uniq = uint64(str2num(k{1}));
+        % mx = uniq ./ uint64(2^32);
+        % mi = uniq - (uint64(2^32) .* uint64(mx));
     end
-    % uniq = uint64(str2num(k{1}));
-    % mx = uniq ./ uint64(2^32);
-    % mi = uniq - (uint64(2^32) .* uint64(mx));
+    grpnm = [parent '/microstructure1/interfaces/misorientation'];
+    attr = io_attributes();
+    attr.add('NX_class', 'NXrotations');
+    ret = h5w.nexus_write_group(grpnm, attr);
+    % dsnm = [grpnm '/parameterization'];
+    % attr = io_attributes();
+    % ret = h5w.nexus_write(dsnm, 'euler', attr);
+    dsnm = [grpnm '/misorientation_euler'];
+    attr = io_attributes();
+    attr.add('units', '°');
+    ret = h5w.nexus_write(dsnm, double(misori_euler), attr);
+    dsnm = [grpnm '/misorientation_angle'];
+    attr = io_attributes();
+    attr.add('units', '°');
+    ret = h5w.nexus_write(dsnm, double(misori_angle), attr);
+    clearvars misori_euler misori_angle;
+    disp(['Interface misorientation: OK']);
 end
-grpnm = [parent '/microstructure1/interfaces/misorientation'];
-attr = io_attributes();
-attr.add('NX_class', 'NXrotations');
-ret = h5w.nexus_write_group(grpnm, attr);
-% dsnm = [grpnm '/parameterization'];
-% attr = io_attributes();
-% ret = h5w.nexus_write(dsnm, 'euler', attr);
-dsnm = [grpnm '/misorientation_euler'];
-attr = io_attributes();
-attr.add('units', '°');
-ret = h5w.nexus_write(dsnm, double(misori_euler), attr);
-dsnm = [grpnm '/misorientation_angle'];
-attr = io_attributes();
-attr.add('units', '°');
-ret = h5w.nexus_write(dsnm, double(misori_angle), attr);
-clearvars misori_euler misori_angle;
-disp(['Interface misorientation: OK']);
 
 grpnm = [parent '/microstructure1/interfaces'];
 dsnm = [grpnm '/indices_phase'];
