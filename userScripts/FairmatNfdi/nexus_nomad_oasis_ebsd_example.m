@@ -89,10 +89,10 @@ mtex_plot_default = plottingConvention();
 %% load configuration from dataset extraction Python script
 perform_io = 1;
 case_id = '10';
-ebsd_mime_types_to_use_mtex = {'osc', 'ang', 'osc', 'ctf', 'crc'};
+ebsd_mime_types_to_use_mtex = {'ang', 'osc', 'ctf', 'crc'};
 % ang only the first four
 
-for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
+for mime_type_idx = 1:1:length(ebsd_mime_types_to_use_mtex)
     mime_type = ebsd_mime_types_to_use_mtex{mime_type_idx};
     disp(mime_type);
     cfg_tbl = configure_examples( ...
@@ -136,10 +136,10 @@ for mime_type_idx = 1:1:1  % length(ebsd_mime_types_to_use_mtex)
         disp(['ofpath: ' ofpath]);
         
         % for debugging with a simple multi-phase EBSD
-        mime_type = 'ctf';
-        ifpath_main = 'data/EBSD/Forsterite.ctf';
-        ofpath = 'userScripts/FairmatNfdi/test.nxs';
-        parent = '/entry1/roi1/ebsd/indexing';
+        % mime_type = 'ctf';
+        % ifpath_main = 'data/EBSD/Forsterite.ctf';
+        % ofpath = 'userScripts/FairmatNfdi/test.nxs';
+        % parent = '/entry1/roi1/ebsd/indexing';
 
         gtic = tic;
         load_tic = tic;

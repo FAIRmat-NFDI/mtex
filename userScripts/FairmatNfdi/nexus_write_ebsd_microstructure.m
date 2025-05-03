@@ -198,7 +198,6 @@ ret = h5w.nexus_write(dsnm, uint32(1), attr);
 dsnm = [grpnm '/area_by_pixel'];  % which type of area all pixels, polygon area?
 % area_per_ebsd_pixel = polyshape(ebsd_orig.unitCell.xy).area;  % clock-wise winding order?
 attr = io_attributes();
-attr.add('units', [scan_unit, '^2']);
 ret = h5w.nexus_write(dsnm, double(grains.numPixel), attr);  %  * area_per_ebsd_pixel
 clearvars area_per_ebsd_pixel;
 dsnm = [grpnm '/area_by_mtex'];
@@ -278,18 +277,12 @@ pairs = grains.boundary.grainId';
 segment_to_patch = uint64(min(pairs)) + uint64(2^32) * uint64(max(pairs));
 clearvars pairs;
 unique_interfaces = unique(segment_to_patch);
-interface_lu_to_interface_idx = containers.Map();
 % reindex the interface patches
-for i = 1:1:length(unique_interfaces)
-    lu_key = num2str(unique_interfaces(i));
-    interface_lu_to_interface_idx(lu_key) = i;
-    % = num2str(...
-    % num2cell(unique_interfaces'), ...
-    % uint32(1:1:length(unique_interfaces)));
-end
+interface_lu_to_interface_idx = dictionary(unique_interfaces, 1:1:length(unique_interfaces));
+
 indices_patch = int64(zeros([1, length(grains.boundary)])) - 1;
 for i = 1:1:length(grains.boundary)
-    lu_key = num2str(segment_to_patch(i));
+    lu_key = segment_to_patch(i);
     if isKey(interface_lu_to_interface_idx, lu_key)
         indices_patch(i) = interface_lu_to_interface_idx(lu_key);
     else
@@ -336,74 +329,82 @@ disp(['Interfaces misorientation ...']);
 % two-staged computation of per-interface misorientation
 % a convenient call like bnd = grains.boundary.misorientation does not
 % work because different phases and ROI boundaries need to be dealt with
-% stage 1 get pairings
-mean_ori_quaternion = nan([4, length(grains)]);
-misori = containers.Map();
+
+% stage 1 get adjacent grains' meanOrientation for all unique surface patches
 for i = 1:1:length(grains)
     % cannot just filter by grains with ROI edge contact as also these may have still boundaries with grains inside the ROI
-    bnd = grains(i).boundary;
-    mean_ori_quaternion(1, i) = grains(i).meanOrientation.a;
-    mean_ori_quaternion(2, i) = grains(i).meanOrientation.b;
-    mean_ori_quaternion(3, i) = grains(i).meanOrientation.c;
-    mean_ori_quaternion(4, i) = grains(i).meanOrientation.d;    
-    [pairs, idx] = unique(bnd.grainId, 'rows');
-    for j = 1:1:size(pairs, 1)
-        if all(pairs(j, :) > 0)  % no misorientation for boundary segments in contact with the edge
-            lu_key = num2str(uint64(min(pairs(j, :))) + uint64(2^32) * uint64(max(pairs(j, :))));
-            if ~isKey(misori, lu_key)
-                misori(lu_key) = bnd(idx(j)).misorientation;
-            end
-        end
-    end
-    clearvars bnd pairs idx j lu_key;
+    mean_orientation(i) = grains(i).meanOrientation;
 end
+mean_ori_quat = nan([4, length(mean_orientation)]);
+mean_ori_quat(1, :) = mean_orientation.a;
+mean_ori_quat(2, :) = mean_orientation.b;
+mean_ori_quat(3, :) = mean_orientation.c;
+mean_ori_quat(4, :) = mean_orientation.d;
 grpnm = [parent '/microstructure1/crystals/orientation'];
 dsnm = [grpnm '/orientation_quaternion'];
 attr = io_attributes();
-ret = h5w.nexus_write(dsnm, double(mean_ori_quaternion), attr);
-clearvars mean_ori_quaternion;
-% stage 2
-if 1 == 0
-    misori_euler = nan([3, size(crystal_id_pair, 2)]);
-    misori_angle = nan([1, size(crystal_id_pair, 2)]);
-    % decode misorientation and sort out back correctly
-    % crystal_id_pair, 1 and 2 store mi and mx respectively, in order of interface_id
-    for i=1:1:length(crystal_id_pair)
-        if all(crystal_id_pair(:, i) > 0)
-            lu_key = num2str(uint64(crystal_id_pair(1, i)) + uint64(2^32) * uint64(crystal_id_pair(2, i)));
-            if isKey(misori, lu_key)
-                val = misori(lu_key);
-                misori_euler(1, i) = val.phi1 / degree;
-                misori_euler(2, i) = val.Phi / degree;
-                misori_euler(3, i) = val.phi2 / degree;
-                misori_angle(1, i) = val.angle / degree;
-            else
-                error('Stage 2 decode misorientation lu_key is not a key!');
-            end
-            clearvars lu_key val;
-        end
-        % uniq = uint64(str2num(k{1}));
-        % mx = uniq ./ uint64(2^32);
-        % mi = uniq - (uint64(2^32) .* uint64(mx));
+ret = h5w.nexus_write(dsnm, double(mean_ori_quat), attr);
+clearvars i mean_ori_quat;
+
+% stage 2 compute misorientation explicitly
+% but do not for performance reasons here reassign these values
+% back to each interface segment cuz there is typically at least one
+% order of magnitude more segments than patches
+% not reassigning them back is done only for performance optimization!
+pairs = uint32(unique(grains.boundary.grainId, 'rows'));
+j = 1;
+% misori_euler_slow = nan([3, length(pairs)]);
+% misori_angle_slow = nan([1, length(pairs)]);
+for i = 1:1:length(pairs)
+    % cannot just filter by grains with ROI edge contact as also these may have still boundaries with grains inside the ROI
+    if all(pairs(i, :) > 0)  % no misorientation for boundary segments in contact with the edge
+        mi = min(pairs(i, :));
+        mx = max(pairs(i, :));
+        % trg(j) = i;
+        p(j) = mean_orientation(mi);
+        q(j) = mean_orientation(mx);
+        % misori_slow = inv(mean_orientation(mi)) * mean_orientation(mx);
+        % misori_euler_slow(1, i) = misori_slow.phi1 / degree;
+        % misori_euler_slow(2, i) = misori_slow.Phi / degree;
+        % misori_euler_slow(3, i) = misori_slow.phi2 / degree;
+        % misori_angle_slow(1, i) = misori_slow.angle / degree;
+        lu_keys(j) = uint64(mi) + uint64(2^32) * uint64(mx);
+        j = j + 1;
+        % clearvars misori;
     end
-    grpnm = [parent '/microstructure1/interfaces/misorientation'];
-    attr = io_attributes();
-    attr.add('NX_class', 'NXrotations');
-    ret = h5w.nexus_write_group(grpnm, attr);
-    % dsnm = [grpnm '/parameterization'];
-    % attr = io_attributes();
-    % ret = h5w.nexus_write(dsnm, 'euler', attr);
-    dsnm = [grpnm '/misorientation_euler'];
-    attr = io_attributes();
-    attr.add('units', '°');
-    ret = h5w.nexus_write(dsnm, double(misori_euler), attr);
-    dsnm = [grpnm '/misorientation_angle'];
-    attr = io_attributes();
-    attr.add('units', '°');
-    ret = h5w.nexus_write(dsnm, double(misori_angle), attr);
-    clearvars misori_euler misori_angle;
-    disp(['Interface misorientation: OK']);
 end
+misori_fast = inv(p) .* q;
+clearvars pairs j i mi mx p q;
+% misori = dictionary(lu_keys, inv(p) .* q);
+% be careful only collection of misorientations for disjoint crystals!
+% not stored in the order of the interfaces!
+% using MTex here only to compare these misorientations!
+misori_euler_fast = nan([3, length(lu_keys)]);
+misori_angle_fast = nan([1, length(lu_keys)]);
+misori_euler_fast(1, :) = misori_fast(1, :).phi1 ./ degree;
+misori_euler_fast(2, :) = misori_fast(1, :).Phi ./ degree;
+misori_euler_fast(3, :) = misori_fast(1, :).phi2 ./ degree;
+misori_angle_fast(1, :) = misori_fast(1, :).angle ./ degree;
+clearvars misori_fast;
+
+grpnm = [parent '/microstructure1/interfaces/misorientation'];
+attr = io_attributes();
+attr.add('NX_class', 'NXcollection');
+ret = h5w.nexus_write_group(grpnm, attr);
+dsnm = [grpnm '/misorientation_euler'];
+attr = io_attributes();
+attr.add('units', '°');
+ret = h5w.nexus_write(dsnm, double(misori_euler_fast), attr);
+dsnm = [grpnm '/misorientation_angle'];
+attr = io_attributes();
+attr.add('units', '°');
+ret = h5w.nexus_write(dsnm, double(misori_angle_fast), attr);
+dsnm = [grpnm '/min_max_lookup_key'];
+attr = io_attributes();
+attr.add('comment', 'Misorientation between disjoint crystals, hashing function uint64(mi) + uint64(2^32) * uint64(mx)');
+ret = h5w.nexus_write(dsnm, uint64(lu_keys), attr);
+clearvars misori_euler_fast misori_angle_fast;
+disp(['Interface misorientation: OK']);
 
 grpnm = [parent '/microstructure1/interfaces'];
 dsnm = [grpnm '/indices_phase'];
@@ -417,7 +418,7 @@ mi = uint32(min(grains.boundary.phaseId'));
 mx = uint32(max(grains.boundary.phaseId'));
 for idx = 1:1:size(grains.boundary.phaseId, 1)
     % never zero unless 0 + (2^32 * 0) not possible by virtue of construction?
-    lu_key = num2str(segment_to_patch(idx));
+    lu_key = segment_to_patch(idx);
     interface_idx = interface_lu_to_interface_idx(lu_key);
     % mi = min(uint32(grains.boundary.phaseId(idx, :)));
     % mx = max(uint32(grains.boundary.phaseId(idx, :)));
@@ -488,9 +489,9 @@ attr.add('use_these', [parent '/microstructure1/interfaces']);
 interface_ids = int64(zeros([3, size(grains.triplePoints.boundaryId, 1)]) - 1);
 bnd_idxs = grains.triplePoints.boundaryId';
 for idx = 1:1:size(bnd_idxs, 2)
-    a_bnd_lu_key = num2str(segment_to_patch(bnd_idxs(1, idx)));
-    b_bnd_lu_key = num2str(segment_to_patch(bnd_idxs(2, idx)));
-    c_bnd_lu_key = num2str(segment_to_patch(bnd_idxs(3, idx)));
+    a_bnd_lu_key = segment_to_patch(bnd_idxs(1, idx));
+    b_bnd_lu_key = segment_to_patch(bnd_idxs(2, idx));
+    c_bnd_lu_key = segment_to_patch(bnd_idxs(3, idx));
     a_bnd = interface_lu_to_interface_idx(a_bnd_lu_key);
     b_bnd = interface_lu_to_interface_idx(b_bnd_lu_key);
     c_bnd = interface_lu_to_interface_idx(c_bnd_lu_key);
