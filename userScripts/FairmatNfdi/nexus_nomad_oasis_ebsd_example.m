@@ -92,7 +92,49 @@ case_id = '10';
 ebsd_mime_types_to_use_mtex = {'ang', 'osc', 'ctf', 'crc'};
 % ang only the first four
 
-for mime_type_idx = 1:1:length(ebsd_mime_types_to_use_mtex)
+% ang, 93 Error in hdf5lib 
+% ang, 105, 106 Error in SO3FunHarmonic/volume
+% osc, 51, 53, 89, 104:131 (project 063), 161:166, 168, 170:185 Index exceeds array bounds. Error in EBSD/calcGrains, empty maps
+% osc, 52 broken osc file
+% osc, 85, 86 all chunk dimensions must be positive
+% osc, 209 Dimensions of arrays being concatenated are not consistent.
+% ctf, 17:20, The logical indices contain a true value outside of the array
+% bounds.:2172
+% ctf, 30:32, 337:338, 1241, 1244, 1245, 1329:1331, 2021, 2114:2123, 2159:2160, 2167, 2170:2172 Operands to the logical AND (&&) and OR (||) operators must be convertible to logical scalar values. Use the ANY or ALL
+% ctf, 352:354 could not detect file format
+% ctf, 400 Error using dataread Buffer overflow (bufsize = 4095) while reading string from file (row 1, field 1).
+% ctf, 696, 856 all chunk dimensions must be positive
+% ctf, 2161 Index in position 1 exceeds array bounds. Index must not exceed <int>. Error in nexus_write_ebsd_phase_ipf (line 94)
+% ctf, 953, 2029, 2109, Index in position 1 exceeds array bounds. Index must not exceed Error in nexus_write_ebsd_microstructure (line 360)
+% ctf, 954, 957 segfault jcvoronoi when starting up
+% ctf, 1438:1443 (project 198), 1915:1922 (project 233), 2114 EBSD format 'CTF' does not match the data
+% TODO jumping over 33:144 for these it seems odf (nc) needs to be switched off
+% TODO jumping over 339:350 for these it seems odf (nc) needs to be switched off
+% TODO jumping over 954:956 forgotten, started with wrong indexing
+% TODO jumping over 955:963 for these it seems odf (nc) needs to be switched off
+% TODO ctf projects 217, 284 4D datasets
+% TODO ctf 400:900 (project 067) is a serial section that should be fused to a 3D dataset
+% TODO ctf many from (project 091) is a serial section that should be fused to a 3D dataset
+% TODO crc project 203 is a serial section
+% TODO crc project 204 is an additive manufacturing different places
+% thus sampling three use cases, time-dependent, spatially correlated FIB, spatially correlated non FIB
+% TODO crc project 002 12:40
+% TODO 51 euler angles too large 
+
+% crc 4,6:8, 54, 224 Operands to the logical AND (&&) and OR (||) operators must be convertible to logical scalar values. Use the ANY or ALL
+% crc 55,57, 58, Error in H5P.set_chunk (line 36), Error in H5P.set_chunk (line 36)
+% crc, 133:134, 136:138, 159, 225:227:242, 312, 357 Unrecognized function or variable 'Title'. Error in loadEBSD_crc>localCPRParser (line 123)
+% TODO: crc 232:242 (project 052) 293:307
+% crc, 314 Index in position 1 exceeds array bounds. Index must not exceed 1.
+% crc, 336 too small EBSD map Unrecognized function or variable 'p'. Error in nexus_write_ebsd_microstructure (line 376)
+% crc, 340, Error using reshape Product of known dimensions, 25715, not
+% divisible into total number of elements, 7293510. Error in loadEBSD_crc>localCRCLoader (line 78)
+% crc, 923, Error using assert For monoclinic lattices the angles with the
+% symmetry axis have to be 90 degree Error in calcAxis (line 40)
+% crc, 949 CC BY 4.0 NC SA, https://opendata.ukaea.uk/doi/?id=by8y-tj18&br=2023
+
+row_idx_s = 951;
+for mime_type_idx = 4:1:4  %length(ebsd_mime_types_to_use_mtex)
     mime_type = ebsd_mime_types_to_use_mtex{mime_type_idx};
     disp(mime_type);
     cfg_tbl = configure_examples( ...
@@ -100,12 +142,12 @@ for mime_type_idx = 1:1:length(ebsd_mime_types_to_use_mtex)
          case_id '.em.' mime_type '.unpack.csv'], ...
         [2, Inf]);
 
-    for row_idx = 1:1:size(cfg_tbl, 1)
+    for row_idx = row_idx_s:1:size(cfg_tbl, 1)
         clearvars -except configdir inputdir ipf_lgd_mtx_dct ipf_lgd_mtx_pg_map ...
             ipf_lgd_tsl_dct ipf_lgd_tsl_pg_map mtex_plot_default mtex_pref ...
             mtexdir outputdir point_groups project_directory target_directory ...
             perform_io case_id ebsd_mime_types_to_use_mtex mime_type_idx ...
-            mime_type cfg_tbl row_idx;
+            mime_type cfg_tbl row_idx_s row_idx;
     % try
         use = cfg_tbl{row_idx, 1};
         if use ~= 1
@@ -140,6 +182,31 @@ for mime_type_idx = 1:1:length(ebsd_mime_types_to_use_mtex)
         % ifpath_main = 'data/EBSD/Forsterite.ctf';
         % ofpath = 'userScripts/FairmatNfdi/test.nxs';
         % parent = '/entry1/roi1/ebsd/indexing';
+     
+        % check ctf header line of 'Channel Text File' to spot problems
+        if strcmp(mime_type, 'ctf')
+            header = textread(ifpath_main,'%s', 1, ...
+                'delimiter', newline, 'whitespace','');
+            if ~startsWith("Channel Text File", header{1})
+                continue;
+            end
+        
+            % if row_idx >= 352 && row_idx <= 400
+            if (row_idx >= 1458 && row_idx <= 1716) ...
+                    || (row_idx >= 1749 && row_idx <= 1909) ...
+               || (row_idx >= 2030 && row_idx <= 2108)
+                % 217 and 284 in-situ studies respectively
+                % if mod(row_idx, 2) == 0
+                continue;
+                % end
+            end
+        end
+        if strcmp(mime_type, 'crc')
+            if (row_idx >= 419 && row_idx <= 645) ...
+               || (row_idx >= 666 && row_idx <= 922)
+                continue;
+            end
+        end
 
         gtic = tic;
         load_tic = tic;
@@ -148,7 +215,7 @@ for mime_type_idx = 1:1:length(ebsd_mime_types_to_use_mtex)
                 ofpath, ...
                 '/entry1/roi1/ebsd/indexing', ...
                 perform_io);
-        
+
         reference_frame_convention = 's2e';
         disp(['reference_frame_convention: ' reference_frame_convention]);
         if strcmp(reference_frame_convention, 's2e')
