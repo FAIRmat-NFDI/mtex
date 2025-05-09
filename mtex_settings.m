@@ -10,7 +10,7 @@ function mtex_settings
 %------------------------------------------------------------------------
 
 %% default global plotting options
-% here you can define default plott options
+% here you can define default plot options
 
 % default fontsize
 % the next lines try to set the fontsize depending on the screen resolution
@@ -24,15 +24,9 @@ set(0,'DefaultAxesFontSize',fontSize);
 set(0,'DefaultLegendFontSize',fontSize);
 try set(0,'defaultPolarAxesFontSize',fontSize); end %#ok<TRYNC> 
 
-% default plotting of the coordinate axes
-setMTEXpref('xAxisDirection','north');
-setMTEXpref('zAxisDirection','outOfPlane');
-
-setMTEXpref('bAxisDirection','east');
-setMTEXpref('aAxisDirection',''); % undefined
-
-%setMTEXpref('bAxisDirection',''); % undefined
-%setMTEXpref('aAxisDirection','east');
+% default plotting of specimen coordinates
+pC = plottingConvention(zvector,xvector);
+pC.makeDefault;
 
 % default figure size, possible values are a factor between 0 and 1 or
 % 'tiny', 'small', 'normal', 'large', 'huge'
@@ -47,7 +41,7 @@ setMTEXpref('showCoordinates','off')
 % how to annotate pole figure plots
 % the following line add X and Y to the plot
 % you may want to replace this by 'RD' and 'ND'
-pfAnnotations = @(varargin) text([vector3d.X,vector3d.Y],{'X','Y'},...
+pfAnnotations = @(varargin) text([vector3d.X,vector3d.Y,vector3d.Z],{'X','Y','Z'},...
   'BackgroundColor','w','tag','axesLabels',varargin{:});
 
 % you can uncomment the following line to disable the annotations
@@ -71,11 +65,6 @@ set(0,'DefaultLineMarkerSize',markerSize);
 % default annotation style
 setMTEXpref('annotationStyle',...
   {'marker','s','MarkerEdgeColor','w','MarkerFaceColor','k','hitTest','off'});
-
-% on some systems Matlab has problems displaying RGB maps with opengl. This
-% tries to turn it off to overcome this problem. You might try to set this
-% to false as this gives usually better graphics performance.
-setMTEXpref('openglBug',false)
 
 %% Euler angle convention
 % default Euler angle convention
@@ -109,7 +98,7 @@ set(0,'DefaultAxesColorOrder',colors.rgb)
 setMTEXpref('SaveToFile',false)
 
 %% Default Path to data files
-% modify following pathes according to your needs, if your files are located at
+% modify following paths according to your needs, if your files are located at
 % different path
 
 setMTEXpref('CIFPath',       fullfile(mtexDataPath,'cif'));
@@ -214,7 +203,7 @@ setMTEXpref('maxS2Bandwidth',512);
 setMTEXpref('maxSO3Bandwidth',64);
 
 %% degree character
-% MTEX sometimes experences problems when printing the degree character
+% MTEX sometimes experiences problems when printing the degree character
 % reenter the degree character here in this case
 
 degreeChar = native2unicode([194 176],'UTF-8');

@@ -51,6 +51,10 @@ W
 
 [M,~,W] = calcTaylor(epsilon,sS.symmetrise)
 
+% evaluate the Taylor factor at an arbitrary orientation
+M.eval(ori)
+W.eval(ori)
+
 %%
 % The following code reproduces Fig. 5 of the paper of Bunge, H. J. (1970).
 % Some applications of the Taylor theory of polycrystal plasticity.
@@ -58,7 +62,7 @@ W
 % http://doi.org/10.1002/crat.19700050112
 
 % set up an phi1 section plot
-sP = phi1Sections(cs,specimenSymmetry('222'));
+sP = phi1Sections(cs);
 sP.phi1 = (0:10:90)*degree;
 
 % plot the Taylor factor
@@ -90,11 +94,8 @@ mtexColorbar
 mtexdata csl
 
 % compute grains
-grains = calcGrains(ebsd('indexed'));
+grains = calcGrains(ebsd('indexed'),'minPixel',3);
 grains = smooth(grains,5);
-
-% remove small grains
-grains(grains.grainSize <= 2) = []
 
 %%
 % and apply the Taylor model to each grain of our data set
@@ -124,9 +125,9 @@ sSGrains = grains.meanOrientation .* sS(bMaxId);
 
 % visualize slip direction and slip plane for each grain
 hold on
-quiver(grains,sSGrains.b,'autoScaleFactor',0.5,'displayName','Burgers vector')
+quiver(grains,sSGrains.b,'autoScaleFactor',0.7,'displayName','Burgers vector','project2plane')
 hold on
-quiver(grains,sSGrains.trace,'autoScaleFactor',0.5,'displayName','slip plane trace')
+quiver(grains,sSGrains.trace,'autoScaleFactor',0.7,'displayName','slip plane trace')
 hold off
 
 %%
@@ -136,7 +137,7 @@ hold off
 
 figure(2)
 plot(sSGrains.b)
-
+text([xvector,yvector,zvector],'labeled','BackGroundcolor','w')
 
 %% Texture evolution during rolling
 

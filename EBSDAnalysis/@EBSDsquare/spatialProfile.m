@@ -17,7 +17,7 @@ function [ebsd,distList] = spatialProfile(ebsd,lineXY,varargin)
 %  xy - list of spatial coordinates |[x(:) y(:)]| 
 %
 % Output
-%  ebsdLine - @EBSD restrcited to the line of interest
+%  ebsdLine - @EBSD restricted to the line of interest
 %  dist - double distance along the line to the initial point
 %
 % Example
@@ -31,7 +31,7 @@ function [ebsd,distList] = spatialProfile(ebsd,lineXY,varargin)
 %   % select line coordinates
 %   x = [15.5 27]; y = [20.5 11];
 %
-%   % draw line with some transluency
+%   % draw line with some translucency
 %   line(x,y,'color',[0.5 0.5 0.5 0.5],'linewidth',10)
 %
 %   % restrict ebsd data to this line
@@ -41,7 +41,7 @@ function [ebsd,distList] = spatialProfile(ebsd,lineXY,varargin)
 %   ori = ebsdLine.orientations;
 %
 %   figure
-%   % plot misorienation angle along the profile
+%   % plot misorientation angle along the profile
 %   plot(dist,angle(ori,ori(1))./degree,'linewidth',2)
 %   xlabel('line'), ylabel('misorientation angle')
 
@@ -50,7 +50,7 @@ if nargin >= 3 && isnumeric(varargin{1})
   lineXY = [lineXY(:),varargin{1}(:)];
 end
 
-[i,j] = xy2ind(ebsd,lineXY);
+[i,j] = pos2ind(ebsd,lineXY);
 
 [i,j] = bresenham(i(1),j(1),i(2),j(2));
 
@@ -59,11 +59,7 @@ i(isOutside) = []; j(isOutside) = [];
 
 idList = sub2ind(size(ebsd),i,j);
 
-% make distList
-xy = [ebsd.subSet(idList).prop.x ebsd.subSet(idList).prop.y];
-dist = sqrt( (xy(1,1)-xy(2:end,1)).^2 + (xy(1,2)-xy(2:end,2)).^2);
-distList = [0; dist];
-
 ebsd = ebsd.subSet(idList);
 
-
+% make distList
+distList = norm(ebsd.pos(1) - ebsd.pos(1:end));

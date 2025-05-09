@@ -7,26 +7,23 @@ classdef EBSD < phaseList & dynProp & dynOption
   %
   % Syntax
   %
-  %   prop.xy = xy;
+  %   pos = vector3d(x,y,z);
   %   prop.mad = mad;
   %   CSList = {'notIndexed',CS1,CS2,CS3};
   %   rot = rotation.byEuler(phi1,Phi,phi2);
   %
-  %   ebsd = EBSD(rot,phaseId,CSList,prop)
-  %   ebsd = EBSD(rot,phaseId,CSList,prop,'unitCell',unitCell)
+  %   ebsd = EBSD(pos,rot,phaseId,CSList,prop)
+  %   ebsd = EBSD(pos,rot,phaseId,CSList,prop,'unitCell',unitCell)
   %
   % Input
+  %  pos         - @vector3d
   %  rot         - @rotation
   %  phaseId     - phase as index to CSList
   %  CS1,CS2,CS3 - @crystalSymmetry
-  %  prop        - struct with properties, xy is mandatory
-  %  unitCell    - vertices a single pixel
+  %  prop        - struct with properties (optional)
   %
   % Options
-  %  phase    - specifying the phase of the EBSD object
-  %  options  - struct with fields holding properties for each orientation
-  %  xy       - spatial coordinates n x 2, where n is the number of input orientations
-  %  unitCell - for internal use
+  %  unitCell - @vector3d
   %
   % Class Properties
   %  id        - unique id of each pixel
@@ -35,7 +32,7 @@ classdef EBSD < phaseList & dynProp & dynOption
   %  phase     - phase of each pixel as imported 
   %  phaseMap  - convert between phase = phaseMap(phaseId)
   %  rotations - @rotation of each pixel
-  %  x, y      - coordinates of the center of each pixel 
+  %  pos       - @vector3d, coordinates of the center of each pixel 
   %  scanUnit  - unit of the x,y coordinates (um is default)
   %  prop      - auxiliary properties, e.g., MAD, BC, mis2mean
   %  isIndexed - is pixel indexed or not
@@ -52,63 +49,101 @@ classdef EBSD < phaseList & dynProp & dynOption
   properties
     id = []               % unique id's starting with 1    
     rotations = rotation  % rotations without crystal symmetry
+    pos = vector3d        % positions of the EBSD measurements
   end
-  
+
+  properties (Dependent = true)
+    xyz           %
+    x             %
+    y             %
+    z             %  
+    orientations  % rotation including symmetry
+    grainId       % id of the grain to which the EBSD measurement belongs to
+    mis2mean      % misorientation to the mean orientation of the corresponding grain   
+  end
+
   % general properties
   properties
     scanUnit = 'um'       % unit of the x,y coordinates
-    unitCell = []         % cell associated to a measurement
+    unitCell = vector3d   % cell associated to a measurement
+    N = zvector           % normal direction of the measurement plane
   end
    
   properties (Dependent = true)
-    orientations    % rotation including symmetry
-    grainId         % id of the grain to which the EBSD measurement belongs to
-    mis2mean        % misorientation to the mean orientation of the corresponding grain
+    dPos       % spacing of the positions
+    rot2Plane  % rotation to xy plane
+    how2plot   % plotting convention    
+    plottingConvention % plotting convention    
   end
-  
+
   properties (Access = protected)
     A_D = []        % adjacency matrix of the measurement points
   end
   
   methods
     
-    function ebsd = EBSD(rot,phases,CSList,prop,varargin)
+    function ebsd = EBSD(pos,rot,phases,CSList,prop,varargin)
       
       if nargin == 0, return; end            
       
       % copy constructor
-      if isa(rot,'EBSD')
-        ebsd.id = rot.id(:);
-        ebsd.rotations = rot.rotations(:);
-        ebsd.phaseId = rot.phaseId(:);
-        ebsd.phaseMap = rot.phaseMap;
-        ebsd.CSList = rot.CSList;
-        ebsd.unitCell = rot.unitCell;
-        ebsd.scanUnit = rot.scanUnit;
-        ebsd.A_D = rot.A_D;
-        for fn = fieldnames(rot.prop)'
-          ebsd.prop.(char(fn))= rot.prop.(char(fn))(:);
+      if isa(pos,'EBSD')
+        ebsd.id = pos.id(:);
+        ebsd.rotations = pos.rotations(:);
+        ebsd.pos = pos.pos(:);
+        ebsd.phaseId = pos.phaseId(:);
+        ebsd.phaseMap = pos.phaseMap;
+        ebsd.CSList = pos.CSList;
+        ebsd.unitCell = pos.unitCell;
+        ebsd.scanUnit = pos.scanUnit;
+        ebsd.A_D = pos.A_D;
+        for fn = fieldnames(pos.prop)'
+          ebsd.prop.(char(fn))= pos.prop.(char(fn))(:);
         end
-        ebsd.opt = rot.opt;
+        ebsd.opt = pos.opt;
 
         ebsd = ebsd.subSet(~isnan(ebsd.phaseId));
         return
       end
       
+      % extract spatial coordinates
+      if ~isa(pos,"vector3d")
+        if size(pos,2)==3
+          pos = vector3d.byXYZ(pos);
+        else
+          pos = vector3d(pos(:,1),pos(:,2),0);
+        end
+      end
+      ebsd.pos = pos;
+
       ebsd.rotations = rotation(rot);
-      ebsd = ebsd.init(phases,CSList);      
+      if check_option(varargin,'phaseMap')
+        ebsd.phaseId = phases;
+        ebsd.CSList = CSList;
+        ebsd.phaseMap = get_option(varargin,'phaseMap');
+      else
+        ebsd = ebsd.init(phases,CSList);
+      end
+      
       ebsd.id = (1:numel(phases)).';
             
       % extract additional properties
       ebsd.prop = prop;
-                  
+
+      % remove nan positions
+      ebsd = ebsd.subSet(~isnan(ebsd.pos));
+
       % get unit cell
-      if check_option(varargin,'unitCell')
-        ebsd.unitCell = get_option(varargin,'unitCell',[]);
-      else
-        ebsd = ebsd.updateUnitCell;
-      end
-      
+      ebsd = ebsd.updateUnitCell(get_option(varargin,'unitCell'));
+            
+      ebsd.N = perp(ebsd.unitCell);
+
+      % orientations of not indexed pixels should be nan
+      ebsd.rotations(~ebsd.isIndexed) = nan;
+
+      % phase of nan orientations should be notIndexed
+      ebsd.phaseId(isnan(ebsd.rotations)) = 1;
+
     end
     
     % --------------------------------------------------------------
@@ -117,6 +152,39 @@ classdef EBSD < phaseList & dynProp & dynOption
       [varargout{1:nargout}] = size(ebsd.id,varargin{:});
     end
     
+
+    function x = get.x(ebsd)
+      x = ebsd.pos.x;
+    end
+
+    function ebsd = set.x(ebsd,x)
+      ebsd.pos.x = x;
+    end
+
+    function y = get.y(ebsd)
+      y = ebsd.pos.y;
+    end
+
+    function ebsd = set.y(ebsd,y)
+      ebsd.pos.y = y;
+    end
+
+    function z = get.z(ebsd)
+      z = ebsd.pos.z;
+    end
+
+    function ebsd = set.z(ebsd,z)
+      ebsd.pos.z = z;
+    end
+
+    function xyz = get.xyz(ebsd)
+      xyz = ebsd.pos.xyz;
+    end
+
+    function ebsd = set.xyz(ebsd,xyz)
+      ebsd.pos = vector3d.byXYZ(xyz);
+    end
+
     function ori = get.mis2mean(ebsd)      
       ori = ebsd.prop.mis2mean;
       try
@@ -144,9 +212,9 @@ classdef EBSD < phaseList & dynProp & dynOption
       try
         grainId = ebsd.prop.grainId;
       catch
-        error('No grainId stored in the EBSD variable. \n%s\n\n%s\n',...
-          'Use the following command to store the grainId within the EBSD data',...
-          '[grains,ebsd.grainId] = calcGrains(ebsd)')
+        mtexError(' No grainId stored in the EBSD variable. \n%s\n\n%s\n',...
+          ' Use the following command to store grainIds within EBSD data',...
+          ' [grains,ebsd.grainId] = calcGrains(ebsd)')
       end
     end
     
@@ -161,16 +229,30 @@ classdef EBSD < phaseList & dynProp & dynOption
       else
         error('The list of grainId has to have the same size as the list of ebsd data.')
       end
+
+      % EBSD data that do not belong to a grain are set to notIndexed
+      ebsd.phaseId(ebsd.grainId == 0) = 1;
+
+      % phaseId should be the same within one grain 
+      ind = ebsd.grainId>0;
+      grain2phaseId = majorityVote(ebsd.grainId(ind),ebsd.phaseId(ind));
+      ebsd.phaseId(ind) = grain2phaseId(ebsd.grainId(ind));
+      
     end
       
+    function out = hasGrainId(ebsd)
+      out = isfield(ebsd.prop,'grainId');
+    end
+
     function ori = get.orientations(ebsd)
       if isempty(ebsd)
         ori = orientation;
       else
         ori = orientation(ebsd.rotations,ebsd.CS);
+        ori.SS.how2plot = ebsd.how2plot;
         
         % set not indexed orientations to nan
-        if ~all(ebsd.isIndexed), ori(~ebsd.isIndexed) = NaN; end
+        if ~all(ebsd.isIndexed(:)), ori(~ebsd.isIndexed) = NaN; end
         
       end
     end
@@ -190,34 +272,67 @@ classdef EBSD < phaseList & dynProp & dynOption
             
     end
            
-%     function dx = get.dx(ebsd)
-%       uc = ebsd.unitCell;
-%       if size(uc,1) == 4
-%         dx = max(uc(:,1)) - min(uc(:,1));
-%       elseif size(uc,1) == 6
-%         dx = max(uc(:,1)) - min(uc(:,1));
-%       else
-%         dx = inf;
-%       end
-%     end
-%     
-%     function dy = get.dy(ebsd)
-%       uc = ebsd.unitCell;
-%       if size(uc,1) == 4
-%         dy = max(uc(:,2)) - min(uc(:,2));
-%       elseif size(uc,1) == 6
-%         dy = max(uc(:,2)) - min(uc(:,2));
-%       else
-%         dy = inf;
-%       end
-%     end
+    function d = get.dPos(ebsd)
+      d = min(norm(ebsd.unitCell(1) - ebsd.unitCell(2:end)));
+    end
+
+    function rot = get.rot2Plane(ebsd)
+      if angle(ebsd.N, vector3d.Z,'antipodal')==0
+        rot = rotation.id;
+      else
+        rot = rotation.map(ebsd.N,vector3d.Z);
+      end
+    end
+
+    function pC = get.plottingConvention(ebsd)
+      pC = ebsd.pos.how2plot;
+    end
+    
+    function ebsd = set.plottingConvention(ebsd,pC)
+      ebsd.pos.how2plot = pC;
+    end
+
+    function pC = get.how2plot(ebsd)
+      pC = ebsd.pos.how2plot;
+    end
+    
+    function ebsd = set.how2plot(ebsd,pC)
+      ebsd.pos.how2plot = pC;
+    end
     
   end
   
   methods (Static = true)
     
     [ebsd,interface,options] = load(fname,varargin)
-    
+
+    function ebsd = loadobj(s)
+      % called by Matlab when an object is loaded from an .mat file
+      % this overloaded method ensures compatibility with older MTEX
+      % versions
+      
+      % transform to class if not yet done
+      if isa(s,'EBSD')
+        ebsd = s; 
+      else
+        ebsd = EBSD(vector3d,s.rot,s.phaseId,s.CSList,s.prop);
+        ebsd.opt = s.opt;
+        ebsd.scanUnit = s.scanUnit;
+      end
+      
+      % ensure pos is set correctly
+      if isfield(ebsd.prop,'x')
+        ebsd.pos = vector3d(s.prop.x,s.prop.y,0);
+        ebsd.prop = rmfield(ebsd.prop,{'x','y'});
+      end
+            
+      % ensure unitCell is vector3d
+      if ~isa(ebsd.unitCell,'vector3d')
+        ebsd.unitCell = vector3d(ebsd.unitCell(:,1),ebsd.unitCell(:,2),0);
+      end
+
+    end
+
   end
       
 end

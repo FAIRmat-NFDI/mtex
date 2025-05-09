@@ -1,4 +1,6 @@
 classdef SO3vonMisesFisherKernel < SO3Kernel
+% von Mises Fisher kernel on the orientation space
+%
 % The von Mises Fisher kernel $\psi_{\kappa}\in L^2(\mathcal{SO}(3))$ 
 % is a nonnegative function depending on a parameter $\kappa>0$ and 
 % is defined by its Chebyshev series
@@ -16,7 +18,7 @@ classdef SO3vonMisesFisherKernel < SO3Kernel
 % functions of first kind
 %
 % $$ \mathcal I_n (\kappa) = \frac1{\pi} \int_0^{\pi} \mathrm e^{\kappa \,
-% \cos \omega} \, \cos n\omega \, \mathrm d\omega $$.%
+% \cos \omega} \, \cos n\omega \, \mathrm d\omega $$.
 %
 % Syntax
 %   psi = SO3vonMisesFisherKernel(100)

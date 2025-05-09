@@ -1,9 +1,9 @@
 classdef pfSections < ODFSections
 
   properties
-    h1        % the pole figure which is splitted up
+    h1        % the pole figure which is split up
     h2        %
-    omega
+    omega     % the parameter that defines the splitting sections
     sR
     referenceField
   end
@@ -14,9 +14,9 @@ classdef pfSections < ODFSections
 
   methods
 
-    function oS = pfSections(CS1,CS2,varargin)
+    function oS = pfSections(CS1,varargin)
 
-      oS = oS@ODFSections(CS1,CS2);
+      oS = oS@ODFSections(CS1,varargin{:});
 
       if isa(CS1,'crystalSymmetry')
         oS.h1 = CS1.cAxisRec; % c*
@@ -28,9 +28,9 @@ classdef pfSections < ODFSections
 
       oS.maxOmega = get_option(varargin,'maxOmega',2*pi / CS1.nfold(oS.h1));
       if angle(oS.h1,-oS.h1) < 1e-2
-        oS.sR = CS2.fundamentalSector('upper',varargin{:});
+        oS.sR = oS.CS2.fundamentalSector('upper',varargin{:});
       else
-        oS.sR = CS2.fundamentalSector(varargin{:});
+        oS.sR = oS.CS2.fundamentalSector(varargin{:});
       end
 
       % get sections
@@ -48,7 +48,7 @@ classdef pfSections < ODFSections
 
     function ori = makeGrid(oS,varargin)
 
-      oS.plotGrid = plotS2Grid(oS.sR,varargin{:});
+      oS.plotGrid = plotS2Grid(oS.sR,varargin{:},oS.SS.how2plot);
       oS.gridSize = (0:numel(oS.omega)) * length(oS.plotGrid);
 
       ori = orientation.nan(oS.plotGrid.size(1),oS.plotGrid.size(2),numel(oS.omega),oS.CS1,oS.CS2);
@@ -126,7 +126,7 @@ classdef pfSections < ODFSections
 
       % translate rotational data into tangential data
       if iscell(data) && isa(data{1},'quaternion')
-        [v2,sec2] = project(oS,data{1},'noSymmetry');
+        [v2,sec2] = project(oS,data{1},'noSymmetry'); %#ok<PRJET>
         data{1} = v2 - v;
         data{1}(sec2 ~= sec)=NaN;
       end

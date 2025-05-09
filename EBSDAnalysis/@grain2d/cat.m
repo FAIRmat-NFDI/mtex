@@ -18,12 +18,13 @@ for k = 2:numel(varargin)
   if isempty(ng), continue; end
   grains.id = [grains.id; ng.id];
   grains.phaseId = [grains.phaseId; ng.phaseId];
-  grains.grainSize = [grains.grainSize; ng.grainSize];
+  grains.numPixel = [grains.numPixel; ng.numPixel];
   grains.poly = [grains.poly; ng.poly];
   grains.inclusionId = [grains.inclusionId; ng.inclusionId];
   grains.boundary = [grains.boundary; ng.boundary];
   grains.innerBoundary = [grains.innerBoundary; ng.innerBoundary];
 
-  
+  assert(angle(ng.N, grains.N,'antipodal')<1e-5,...
+    'Concatenating grains with different normals is not supported');
   
 end

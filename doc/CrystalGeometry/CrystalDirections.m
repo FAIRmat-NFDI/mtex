@@ -41,12 +41,21 @@ plot(m,'labeled','grid')
 annotate([a,b,c],'label',{'a','b','c'},'backgroundcolor','w','textAboveMarker')
 
 %%
-% Note that MTEX by default aligns spherical projections of crystal
-% directions such that the b-axis points towards east and the z-axis points
-% out of the plane. This behaviour can be changed by the commands
-% |plota2east|, |plota2north|, |plota2west|, |plota2south|, |plotb2east|,
-% |plotb2north|, |plotb2west|, |plotb2south|, or |plotaStar2East|.
-%
+% Note that for triclinic and monoclinic symmetries MTEX aligns spherical
+% projections of crystal directions such that the b-axis points towards
+% east and c* points out of the plane. This behavior can be changed by
+% altering the <plottingConvention.plottingConvention.html plotting
+% convention> stored in |cs.how2plot|. E.g. we might want to have the
+% a-axis to point to east
+
+% change the plotting convention
+cs.how2plot.east = cs.aAxis;
+
+plot(m,'labeled','grid')
+
+annotate([a,b,c],'label',{'a','b','c'},'backgroundcolor','w','textAboveMarker')
+
+
 %% Crystal Lattice Planes
 %
 % A crystal lattice plane $(hkl)$ is commonly described by its normal
@@ -78,7 +87,7 @@ hold off
 % In the case of trigonal and hexagonal crystal symmetry often four digit
 % Miller indices $[UVTW]$ and $(HKIL)$ are used, as they make it more easy
 % to identify symmetrically equivalent directions. This notation is
-% redundant as the first three Miller indeces always sum up to zero, i.e.,
+% redundant as the first three Miller indices always sum up to zero, i.e.,
 % $U + V + T = 0$ and $H + K + I = 0$. The syntax is
 
 % import trigonal Quartz lattice structure

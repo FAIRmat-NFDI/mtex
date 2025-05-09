@@ -32,9 +32,18 @@ classdef (InferiorClasses = {?rotation,?quaternion}) quadratureSO3Grid < orienta
 % See also
 % regularSO3Grid  SO3FunHarmonic/quadrature
 
+% TODO: Save storage with: Define quadratureSO3Grid as own class with 
+% properties 
+%   bandwidth
+%   CS
+%   SS
+%   scheme = 'ClenshawCurtis'
+% end
+% and methods SLeft, SRight, orientation
+% and reconstruct orientations if needed (subsref function)
 
 properties
-  weights =[]
+  weights = []
   scheme = 'ClenshawCurtis'
   iuniqueGrid
   ifullGrid
@@ -74,7 +83,7 @@ methods
     end
 
     % check whether it is suitable
-    quadratureSO3Grid.check_bandwidth(N,SRight,SLeft,scheme)
+    quadratureSO3Grid.check_bandwidth(N,SRight,SLeft,scheme);
   
     % Do not use 'antipodal' for evaluation or quadrature grid
     varargin = delete_option(varargin,'antipodal');
@@ -96,7 +105,7 @@ methods
     % Construct quadrature nodes
     nodes = regularSO3Grid(scheme,'bandwidth',2*N,SRightNew,SLeftNew,varargin{:},'ABG');
     nodes.CS = SRight; nodes.SS = SLeft;
-    [u,inodes,iu] = uniqueQuadratureSO3Grid(nodes,N,scheme);
+    [u,inodes,iu] = quadratureSO3Grid.uniqueQuadratureSO3Grid(N,scheme,nodes.CS,nodes.SS);
     SO3G.CS = SRight;
     SO3G.SS = SLeft;
     SO3G.a = u.a; SO3G.b = u.b;
@@ -150,24 +159,33 @@ end
 
 methods (Static = true, Hidden = true)
 
-  function check_bandwidth(N,SRight,SLeft,scheme)
-    % check for suiting bandwidth
+  function [bwSmall,bwLarge] = adjust_bandwidth(N,SRight,SLeft)
+    % compute the nearest bandwidth that is suitable to the symmetries for 
+    % fast computations of the adjoint SO3-Fourier/Wigner transform inside 
+    % of the SO3FunHarmonic.quadrature method
     [~,~,g] = fundamentalRegionEuler(SRight,SLeft,'ABG');
     LCM = lcm((1+double(round(2*pi/g/SRight.multiplicityZ) == 4))*SRight.multiplicityZ,SLeft.multiplicityZ);
-    t1 = N;
-    while mod(2*t1+2,LCM)~=0
-      t1 = t1-1;
+    bwSmall = N;
+    while mod(2*bwSmall+2,LCM)~=0
+      bwSmall = bwSmall-1;
     end
-    t2 = N;
-    while mod(2*t2+2,LCM)~=0
-      t2 = t2+1;
+    bwLarge = N;
+    while mod(2*bwLarge+2,LCM)~=0
+      bwLarge = bwLarge+1;
     end
-    if t1~=N
-    error(['When trying to evaluate the function on ' ,scheme,...
-           ' quadrature grid with bandwidth %i using the symmetries, ' ...
-           'an error was detected. The specified bandwidth does not fit the ' ...
-           'symmetries. Use bandwidth %i or %i instead.'],N,t1,t2);
-    end 
+  end
+
+  function check_bandwidth(N,SRight,SLeft,scheme)
+    % check whether the bandwidth is suitable to the symmetries for fast
+    % computations of the adjoint SO3-Fourier/Wigner transform inside of 
+    % the SO3FunHarmonic.quadrature method
+    [bwSmall,bwLarge] = quadratureSO3Grid.adjust_bandwidth(N,SRight,SLeft);
+    if bwSmall~=N
+      error(['When trying to evaluate the function on ' ,scheme,...
+             ' quadrature grid with bandwidth %i using the symmetries, ' ...
+             'an error was detected. The specified bandwidth does not fit the ' ...
+             'symmetries. Use bandwidth %i or %i instead.'],N,bwSmall,bwLarge);
+    end
   end
 
   function w = fclencurt2(n)
@@ -181,7 +199,8 @@ methods (Static = true, Hidden = true)
 
   end
 
-
+  [u,inodes,iu] = uniqueQuadratureSO3Grid(N,scheme,varargin);
+  
 end
 
 end

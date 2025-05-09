@@ -133,7 +133,7 @@ hold off
 % We observe how the gradients all points towards the closest local
 % maximum. This is actually the foundation of the
 % <SO3Fun.steepestDescent.html steepest descent algorithm> used by MTEX in
-% the commands <SO3Fun.max.html |max(odf)|> and <SO3Fun.max.html
+% the commands <SO3Fun.max.html |max(odf)|> and <SO3Fun.calcComponents.html
 % |calcComponents(odf)|>
 %
 %%
@@ -154,9 +154,8 @@ mtexColorbar
 % The fact that the curl of a vector field is zero is actually equivalent
 % to the fact that the vector field is the gradient of some potential
 % field, which can be computed by the command
-% <SO3VectorField.antiderivate.html |antiderivative(g)|> and coincides exactly
-% with the original ODF |odf|.
-% 
+% <SO3VectorField.antiderivate.html |antiderivative(g)|> and coincides
+% exactly with the original ODF |odf|.
 
 odf2 = g.antiderivative
 
@@ -227,7 +226,7 @@ y = vector3d.byPolar(sin(3*nodes.angle), nodes.phi2+pi/2);
 
 %%
 % Now the actual command to get |SO3VF1| of type |SO3VectorFieldHarmonic|
-SO3VF1 = SO3VectorFieldHarmonic.approximation(nodes, y)
+SO3VF1 = SO3VectorFieldHarmonic.approximate(nodes, y,'bandwidth',16)
 
 %%
 % *Definition via function handle*

@@ -45,14 +45,17 @@ switch s(1).type
 
     s(1).subs = {subsind(ebsd,s(1).subs)};
         
-    if isempty(b)
+    if isempty(b) % we are going to remove some points
       
-      ebsd = subsasgn@dynProp(ebsd,s(1),[]);
-      ebsd.rotations = subsasgn(ebsd.rotations,s(1),[]);
-      ebsd.id = subsasgn(ebsd.id,s(1),[]);
-      ebsd.phaseId = subsasgn(ebsd.phaseId,s(1),[]);      
+      if any(s(1).subs{1}) % maybe there is nothing to do?
+        ebsd = subsasgn@dynProp(ebsd,s(1),[]);
+        ebsd.pos = subsasgn(ebsd.pos,s(1),[]);
+        ebsd.rotations = subsasgn(ebsd.rotations,s(1),[]);
+        ebsd.id = subsasgn(ebsd.id,s(1),[]);
+        ebsd.phaseId = subsasgn(ebsd.phaseId,s(1),[]);
       
-      ebsd = EBSD(ebsd);
+        ebsd = EBSD(ebsd);
+      end
       
     elseif ischar(b)
       
@@ -67,6 +70,7 @@ switch s(1).type
     else
       
       ebsd = subsasgn@dynProp(ebsd,s(1),b);
+      ebsd.pos = subsasgn(ebsd.pos,s(1),b.pos);
       ebsd.rotations = subsasgn(ebsd.rotations,s(1),b.rotations);
       ebsd.id = subsasgn(ebsd.id,s(1),b.id);
       ebsd.phaseId = subsasgn(ebsd.phaseId,s(1),b.phaseId);
@@ -81,16 +85,12 @@ switch s(1).type
       
       ebsd = subsasgn@dynOption(ebsd,s,b);
       
-    elseif ebsd.isProperty(s(1).subs) % otherwise a property
+    elseif ebsd.isProperty(s(1).subs) && ~any(strcmp(s(1).subs,{'mis2mean','grainId'})) 
+      % or an dynamic property
       
       ebsd = subsasgn@dynProp(ebsd,s,b);
       
-      % maybe we should update the unit cell
-      if any(strcmp(s(1).subs,{'x','y'}))
-        ebsd = ebsd.updateUnitCell;
-      end
-      
-    else
+    else % otherwise
       
       ebsd = builtin('subsasgn',ebsd,s,b);
       

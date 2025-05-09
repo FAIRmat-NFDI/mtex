@@ -16,7 +16,7 @@ function [traces, rel, cSize] = calcTraces(grains, clusterId, varargin)
 %  cSize  - cluster size, , same size as traces
 %
 % Options
-%  minClusterSize - minimum grainSize required for trace computation (default: 100)
+%  minClusterSize - minimum numPixel required for trace computation (default: 100)
 %  shape - characteristic shape based algorithm
 %  calliper - use shortest calliper instead of eigenvectors
 %  hist  - circular histogram based algorithm
@@ -31,7 +31,7 @@ function [traces, rel, cSize] = calcTraces(grains, clusterId, varargin)
 % generate clusters
 if nargin == 1 || ~isnumeric(clusterId), clusterId = ones(length(grains),1); end
 notZero = all(clusterId>0,2);
-cSize = accumarray(clusterId(notZero,:),grains.grainSize(notZero));
+cSize = accumarray(clusterId(notZero,:),grains.numPixel(notZero));
 ic = find(cSize > get_option(varargin,'minClusterSize',100));
 
 % prepare output
@@ -40,7 +40,9 @@ omega = nan(sz);
 rel = zeros(sz);
 
 % extract grain geometry
-V = grains.boundary.V;
+rot = grains.rot2Plane;
+V = rot .* grains.boundary.allV;
+V = V.xyz;
 F = grains.boundary.F;
 I_BG = grains.boundary.I_FG;
 grainId = grains.id;
@@ -133,4 +135,4 @@ for i = 1:length(ic)
 
 end
 
-traces = vector3d.byPolar(pi/2,omega,'antipodal');
+traces = inv(rot) .* vector3d.byPolar(pi/2,omega,'antipodal');

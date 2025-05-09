@@ -14,6 +14,7 @@ function h = text(v,varargin)
 %
 % Options
 %  textColor - rgb or color name
+%  textAboveMarker - display the text above the marker
 %
 % See also
 
@@ -50,11 +51,11 @@ fs = getMTEXpref('FontSize');
 varargin = delete_option(varargin,'parent',1);
 
 if check_option(varargin,'textAboveMarker')
-  aboveBelow = -5;
+  aboveBelow = -1;
 elseif check_option(varargin,'autoAlignText')
   aboveBelow = 0;
 else % textBelowMarker
-  aboveBelow = 5;
+  aboveBelow = 1;
 end
 
 for j = 1:numel(sP)
@@ -78,16 +79,13 @@ for j = 1:numel(sP)
 
   if length(v)>1 && isscalar(strings), strings = repmat(strings,length(v),1); end
   
-  % 
-  M = get(sP(j).hgt,'matrix');
-  
   % print labels  
   for i = 1:length(strings)
     
     if isnan(x(i)), continue; end
     
     s = strings{i};
-    if ~ischar(s), s = char(s,interpreter);end
+    if ~ischar(s) && ~isstring(s), s = char(s,interpreter);end
 
     if strcmpi(interpreter,'LaTeX') && ~isempty(regexp(s,'[\\\^_]','ONCE'))
       s = ['$' s '$']; %#ok<AGROW>
@@ -96,14 +94,13 @@ for j = 1:numel(sP)
     if check_option(varargin,'addMarkerSpacing')
       
       xy = [x(i),y(i)];
-      tag = {'UserData',xy,'tag'};
-      
-      xy = M(1:2,1:2) *  xy.';
-      
-      if xy(2) > mean(sP(j).bounds([2 4])) + 0.1 + aboveBelow
-        tag = [tag,'setAboveMarker'];
-      else        
-        tag = [tag,'setBelowMarker'];
+            
+      if aboveBelow == -1 || (aboveBelow == 0 && ...
+          xor(sP(j).ax=="reverse",...
+          xy(2) > mean(sP(j).bounds([2 4])) + 0.1))
+        tag = {'UserData',xy,'tag','setAboveMarker'};
+      else
+        tag = {'UserData',xy,'tag','setBelowMarker'}; 
       end
     else
       tag = {};
@@ -111,12 +108,12 @@ for j = 1:numel(sP)
     
     h = [h,optiondraw(text(x(i),y(i),s,'interpreter',interpreter,...
       'HorizontalAlignment','center','VerticalAlignment','middle',...
-      tag{:},'margin',0.001,'parent',sP(j).hgt),'FontSize',fs,varargin{2:end})]; %#ok<AGROW>
+      tag{:},'margin',0.001,'parent',sP(j).ax),'FontSize',fs,varargin{2:end})]; %#ok<AGROW>
     
-    if check_option(varargin,'textcolor')
-      h.Color = str2rgb(get_option(varargin,'textcolor'));
-    end
-    
+  end
+
+  if check_option(varargin,'textcolor')
+    [h.Color] = deal(str2rgb(get_option(varargin,'textcolor')));
   end
 
   % finish plot

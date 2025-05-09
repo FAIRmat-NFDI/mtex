@@ -15,7 +15,7 @@ ebsd = ebsd(inpolygon(ebsd,[5 2 10 5]*10^3));
 ebsd = ebsd('indexed');
 
 % reconstruct grains
-[grains, ebsd.grainId] = calcGrains(ebsd,'angle',5*degree);
+[grains, ebsd.grainId] = calcGrains(ebsd,'angle',5*degree,'minPixel',5);
 
 % smooth them
 grains = smooth(grains,5);
@@ -37,9 +37,9 @@ hold off
 selectInteractive(grains,'lineColor','gold')
 
 % this simulates a mouse click
-pause(0.1)
+pause(1)
 simulateClick(9000,3500)
-pause(0.1)
+pause(1)
 
 global indSelected;
 grains(indSelected)
@@ -159,7 +159,7 @@ grains('forsterite')
 % Logical indexing allows also for more complex queries, e.g. selecting all
 % grains perimeter larger than 6000 and at least 600 measurements within
 
-condition = grains.perimeter>6000 & grains.grainSize >= 600;
+condition = grains.perimeter>6000 & grains.numPixel >= 600;
 
 selected_grains = grains(condition)
 
@@ -172,7 +172,7 @@ plot(selected_grains)
 % |calcGrains|> returns also two other output arguments.
 
 plot(grains)
-largeGrains = grains(grains.grainSize > 50);
+largeGrains = grains(grains.numPixel > 50);
 
 text(largeGrains,largeGrains.id)
 

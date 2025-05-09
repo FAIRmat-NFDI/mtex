@@ -27,21 +27,6 @@ function gB = rotate(gB,rot,varargin)
 % Output
 %  gB - @grainBoundary
 
-if isa(rot,'double'), rot = rotation.byAxisAngle(vector3d.Z,rot); end
-
-center = get_option(varargin,'center',[0,0]);
-  
-gB = gB - center;
-  
-% store coordinates as vector3d
-V = vector3d(gB.V(:,1),gB.V(:,2),0);
-  
-% rotate vertices
-V = rot * V;
-    
-% store back
-gB.V = [V.x,V.y];
-  
-gB = gB + center;
+gB.triplePoints = rotate(gB.triplePoints,rot,varargin{:});
 
 end

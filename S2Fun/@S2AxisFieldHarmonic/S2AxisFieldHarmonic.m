@@ -1,17 +1,17 @@
 classdef S2AxisFieldHarmonic < S2AxisField
-% a class represeneting a axis field on the sphere
+% a class representing a axis field on the sphere
 
 properties
-  sF;
+  sF
 end
 
 properties(Dependent = true, Access = protected)
-  xx;
-  xy;
-  yy;
-  xz;
-  yz;
-  zz;
+  xx
+  xy
+  yy
+  xz
+  yz
+  zz
 end
 
 properties(Dependent = true)
@@ -24,6 +24,16 @@ methods
     % initialize a spherical vector field
     if nargin == 0, return; end
 
+    % do approximation in case of function input
+    if isa(sF,'S2AxisFieldHarmonic')
+      sVF = sF;
+      return
+    elseif isa(sF,'S2AxisField') || isa(sF,'function_handle')
+      sVF = S2AxisFieldHarmonic.quadrature(sF,varargin{:});
+      return
+    end
+
+    % constructor
     if length(sF) == 6
       sVF.sF = sF(:);
     end
@@ -48,7 +58,8 @@ end
 
 methods(Static = true)
   sAF = quadrature(f, varargin)
-  sAF = approximation(v, y, varargin)
+  sAF = approximate(f, varargin)
+  sAF = interpolate(v, y, varargin)
   function sAF = normal
     sAF = S2AxisFieldHarmonic.quadrature(@(v) v(:),'bandwidth',2);
   end

@@ -14,9 +14,10 @@ mtexdata mylonite
 plot(ebsd)
 
 %%
-% The phase map shows a multi-phase rock specimen with Andesina, Quartz,
-% Biotite and Orthoclase. Lets restrict it to a smaller region of interest.
-% The rectangle is defined by [xmin, ymin, xmax-xmin, ymax-ymin].
+% The phase map displays a multi-phase rock specimen with phases such as
+% Andesine, Quartz, Biotite, and Orthoclase. We will now focus on a smaller
+% rectangular region of interest defined by the coordinates |[xmin, ymin,
+% xmax - xmin, ymax - ymin]|.
 
 region = [19000 1500 4000 1500];
 % overlay the selected region on the phase map
@@ -42,14 +43,14 @@ plot(grains.boundary,'color','k','linewidth',1.5)
 hold off
 
 %%
-% We may also visualize the different quarz orientations together with the
+% We may also visualize the different quartz orientations together with the
 % grain boundaries.
 
 % plot a phase map of three of the phases based on the grains data 
 plot(grains({'Andesina','Biotite','Orthoclase'}),'FaceAlpha',0.4)
 
 hold on
-% add the quarz orientations as ipf map based on EBSD data
+% add the quartz orientations as ipf map based on EBSD data
 plot(ebsd_region('Quartz'),ebsd_region('Quartz').orientations)
 
 % plot grain boundaries so that those in the Quartz are shown
@@ -58,34 +59,30 @@ legend off
 hold off
 
 %%
-% For the map created, most of the phases are coloured based on where they
-% exist, while only the Quartz phase is colored according to the
-% orientation. The quartz orientations are colured using the following ipf
-% color key
+% In this visualization most phases are displayed in uniform colors, while
+% Quartz is colored according to the ipf color key
 
 close all
 ipfKey = ipfColorKey(ebsd_region('Quartz'));
 plot(ipfKey)
 
-
 %%
-% Alternatively, we may colorize each quarz grain according to its mean
-% orientation.  Again, the other phases are colured based on where they
-% exist.
+% Alternatively, we can display each quartz grain according to its mean
+% orientation.
 
 plot(grains({'Andesina','Biotite','Orthoclase'}),'FaceAlpha',0.4)
 hold on
 plot(grains('Quartz'),grains('Quartz').meanOrientation)
 legend off
 
-
 %% Highlight specific boundaries
-% We can create a phase map with certain grain boundaries highlighted.  In
-% this case, we highlight where adjacent grains of Andesina and Orthoclase
-% have a misorientation with rotational axis close to the c-axis.
+% We can create a phase map with certain grain boundaries highlighted. In
+% this phase map, we highlight grain boundaries where neighboring grains of
+% Andesine and Orthoclase exhibit a misorientation with a rotational axis
+% close to the c-axis.
 
 close all
-% copy all boundaries between Andesina Orthoclase to a new variable
+% copy all boundaries between Andesina, Orthoclase to a new variable
 AOboundary = grains.boundary('Andesina','Orthoclase');
 % copy the misorientation angle of this boundary in radians to a new variable.
 angle = AOboundary.misorientation.angle;

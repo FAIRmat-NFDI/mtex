@@ -124,7 +124,26 @@ for k = 1 :length(EBSD_index) % TODO: find a good way to write out multiple data
     EBSDdata = struct;
     for thing = 1:length(EBSD_data.Datasets)
         sane_name = regexprep(EBSD_data.Datasets(thing).Name,genericNameFix{:});
+
+        % as of version 7.0 of the h5oina specifications, "low resolution"
+        % (7x7xN) pattern can be acquired/exported. The data is lzf compressed 
+        % and the default h5read with Matlab as of R2024b does not
+        % handle it.
+        % Installing the proper hdf5 plugin and setting HDF5_PLUGIN_PATH
+        % environment variable allows to read the data. However there's yet no
+        % automated way of a) setting the EV and b) installing the plugin
+        % (to be build against hdf5 1.14.4 as of R2024b or 1.10.8 for earlier Matlab versions)
+        % See here:
+        % https://www.mathworks.com/help/matlab/import_export/read-and-write-hdf5-datasets-using-dynamically-loaded-filters.html
+        % https://www.mathworks.com/matlabcentral/answers/880033-build-hdf5-filter-plugins-on-linux-using-matlab-hdf5-shared-library-or-gnu-export-map        
+        % plugin downloads here: https://github.com/HDFGroup/hdf5_plugins/releases/
+        % instructions for MSWindows: https://www.mathworks.com/matlabcentral/answers/393621-how-can-i-import-a-lzf-compressed-hdf5-dataset-in-matlab
+        
+        % until this is implemented in a user-friendly way, we skip loading it
+        if ~(strcmp(sane_name,'Processed_Virtual_Forescatter_Detector_Images') | ...
+             strcmp(sane_name,'Unprocessed_Virtual_Forescatter_Detector_Images'))
         EBSDdata.(sane_name)=double(h5read(fname,[EBSD_data.Name '/' EBSD_data.Datasets(thing).Name]));
+        end
     end
 
     %read EBSD header
@@ -276,9 +295,9 @@ for k = 1 :length(EBSD_index) % TODO: find a good way to write out multiple data
         % rounding errors instead of using the 'force' option
 
         langle = double(EBSDphases.(pN).Lattice_Angles');
-        if ~isempty(EBSDphases.(pN).Space_Group) & EBSDphases.(pN).Space_Group ~= 0
+        try ~isempty(EBSDphases.(pN).Space_Group) & EBSDphases.(pN).Space_Group ~= 0
             csm = crystalSymmetry('SpaceId',EBSDphases.(pN).Space_Group);
-        else
+        catch
             csm = crystalSymmetry(EBSDphases.(pN).Laue_Group);
         end
         if strcmp(csm.lattice,'trigonal') | strcmp(csm.lattice,'hexagonal')
@@ -294,21 +313,15 @@ for k = 1 :length(EBSD_index) % TODO: find a good way to write out multiple data
         %             'X||a*','Y||b', 'Z||C');
     end
 
-        
-    % check and fix conflicting mineral names
-    namePairs = nchoosek(2:numel(CS),2); %skip 1 because CS{1} is notIndexed
-    rpts=false(size(namePairs,1),1);
-    for n=1:size(namePairs,1)
-        rpts(n) = strcmpi(CS{namePairs(n,1)}.mineral,CS{namePairs(n,2)}.mineral);
-    end
-    namesRpt=namePairs(rpts,:);
-    % if there are repeated mineral names, append with _<number>
-    for p= 1:numel(namesRpt)
-        CS{namesRpt(p)}.mineral = [CS{namesRpt(p)}.mineral '_' num2str(p)]; 
-        %not an ideal solution if more than one mineral name has repeats
-        %since the numbering doesn't restart at 1, but it does guarantee
-        %unique mineral names
-    end
+  % extract phase names
+  phaseNames = cellfun(@(x) string(x.mineral),CS(2:end));
+  
+  % fix conflicting phase names
+  phaseNames = makeDisjoint(phaseNames);
+
+  % write back to CS
+  for i = 2:length(CS), CS{i}.mineral = char(phaseNames(i-1)); end
+   
 
     % write out first EBSD dataset
     % EBSDheader.Specimen_Orientation_Euler: this should be the convention to map
@@ -330,10 +343,15 @@ for k = 1 :length(EBSD_index) % TODO: find a good way to write out multiple data
     else
         rot = rotation.byEuler(EBSDdata.Euler'); %don't rotate - keep CS1 (default - acquisition surface0
     end
-
-
+    
+    if size(rot,2)>1
+        rot = transpose(rot);
+    end
+    
     % what data should we read, all or just the standard
     phase = EBSDdata.Phase;
+    pos = vector3d(EBSDdata.X,EBSDdata.Y,0);
+
     opt=struct;
     optList_std  = {'X' 'Y' 'Band_Contrast' 'Band_Slope' 'Bands' 'Mean_Angular_Deviation' 'Pattern_Quality'};
     optNames_std = {'x' 'y' 'bc' 'bs' 'bands' 'MAD' 'quality'};
@@ -375,8 +393,8 @@ for k = 1 :length(EBSD_index) % TODO: find a good way to write out multiple data
     if check_option(varargin,'CS')
         CS = get_option(varargin,'CS');
     end
-
-    ebsdtemp = EBSD(rot,phase,CS,opt,'unitCell',calcUnitCell([opt.x,opt.y]));
+        
+    ebsdtemp = EBSD(pos,rot,phase,CS,opt);
     ebsdtemp.opt.Header = EBSDheader;
 
     % if available, add Image data

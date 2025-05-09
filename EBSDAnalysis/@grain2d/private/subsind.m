@@ -1,6 +1,6 @@
 function ind = subsind(grains,subs)
 
-% dermine grains by x,y coordinates
+% determine grains by x,y coordinates
 if numel(subs)==2 && all(cellfun(@isnumeric, subs))
   ind = grains.findByLocation([subs{:}]);
   return
@@ -20,9 +20,8 @@ for i = 1:length(subs)
   
     ind = ind & grains.isIndexed;
   
-  elseif ischar(subs{i}) || iscellstr(subs{i})
-    
-    
+  elseif ischar(subs{i}) || iscellstr(subs{i}) || isstring(subs{i})
+
     phases = false(length(grains.phaseMap),1);
     mineralsSubs = ensurecell(subs{i});
     phaseNumbers = cellfun(@num2str,num2cell(grains.phaseMap(:)),'Uniformoutput',false);

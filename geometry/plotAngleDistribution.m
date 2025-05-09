@@ -18,7 +18,6 @@ function h = plotAngleDistribution(obj,varargin)
 [mtexFig,isNew] = newMtexFigure(varargin{:}); 
 mtexFig.keepAspectRatio = false;
 
-
 % compute angles
 plotType = 'line';
 if isa(obj,'symmetry')
@@ -28,7 +27,7 @@ else
   if ~isa(obj,'SO3Fun'), plotType = 'bar'; end
 end
 
-% seach for existing bar plots and adjust bar center
+% search for existing bar plots and adjust bar center
 h = findobj(mtexFig.gca,'type','bar','-or','type','hgGroup');
 h = flipud(h(:));
 
@@ -46,6 +45,8 @@ if ~isempty(h)
 
   if strcmp(plotType,'bar')
     delete(h); % remove old bars
+    % reset color order
+    mtexFig.gca.ColorOrderIndex = 1;
   
     % add a new column
     density(:,end+1) = 0;
@@ -97,11 +98,10 @@ if strcmp(plotType,'bar')
   xlim(mtexFig.gca,[0,max(bins)/degree])
 
   % update legend
-  lg = [lg;{[obj.CS.mineral '-' obj.SS.mineral]}];
-  for i=1:length(h)
-    set(h(i),'DisplayName',lg{i});
-  end
-
+  displayName = get_option(varargin,'DisplayName',[obj.CS.mineral '-' obj.SS.mineral]);
+  lg = [lg;{displayName}];
+  [h.DisplayName] = deal(lg{:});
+  
 else
 
   h = optiondraw(plot(omega/degree,faktor * max(0,density),...

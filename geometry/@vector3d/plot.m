@@ -12,7 +12,7 @@ function varargout = plot(v,varargin)
 % Input
 %   v - @vector3d
 %   value - values to be displayed
-%   rgb - 
+%   rgb - [r g b] list of colors
 %
 % Options
 %  Marker           - 'square', 'triangle', 'o','diamond' 
@@ -96,7 +96,11 @@ switch lower(plotType)
   
   case 'scatter'
   
-    [varargout{1:nargout}] = v.scatter(varargin{:});
+    if ishold && isappdata(gca,'mapPlot') 
+      [varargout{1:nargout}] = v.mapScatter(varargin{:});
+    else
+      [varargout{1:nargout}] = v.scatter(varargin{:});
+    end
     
   case 'smooth'
     

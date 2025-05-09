@@ -1,7 +1,7 @@
 classdef PoleFigure < dynProp & dynOption
 %
 % The class *PoleFigure* is used to store experimental pole figure
-% intensitied, i.e., XRD, synchrotron or neuron data. It provides several
+% intensities, i.e., XRD, synchrotron or neuron data. It provides several
 % <PoleFigureCorrection.html data correction methods> as well as the
 % <PoleFigure2ODF.html reconstruction of an orientation density function
 % (ODF)>. Importing pole figure data is explained in <PoleFigureImport.html
@@ -51,6 +51,7 @@ classdef PoleFigure < dynProp & dynOption
     r                   % specimen directions
     intensities         % diffraction intensities
     antipodal
+    how2plot            % plotting convention
   end
   
   methods
@@ -84,7 +85,11 @@ classdef PoleFigure < dynProp & dynOption
       pf.SS = getClass(varargin,'specimenSymmetry',pf.SS);
       
     end
-    
+
+    function n = numArgumentsFromSubscript(varargin)
+      n = 0;
+    end
+
     function pf = set.CS(pf,CS)
       
       for i = 1:length(pf.allH)
@@ -93,11 +98,20 @@ classdef PoleFigure < dynProp & dynOption
     end
         
     function CS = get.CS(pf)
-      
       CS = pf.allH{1}.CS;
-      
     end
     
+    function pC = get.how2plot(pf)
+      pC = pf.allR{1}.how2plot;
+    end
+
+    function pf = set.how2plot(pf,pC)
+      for k=1:length(pf.allR)
+        pf.allR{k}.how2plot = pC;
+      end
+      pf.SS.how2plot = pC;
+    end
+
     function h = get.h(pf)
       h = pf.allH;
       h = horzcat(h{:});

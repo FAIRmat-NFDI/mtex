@@ -1,4 +1,4 @@
-function ebsd = calcParentEBSD(job)
+function ebsd = calcParentEBSD(job,varargin)
 % reconstruct parent EBSD
 %
 % Syntax
@@ -6,6 +6,9 @@ function ebsd = calcParentEBSD(job)
 %
 % Input
 %  job - @parentGrainReconstructor
+%
+% Options
+%  exactOR - enforce exact orientation relationship
 %
 % Output
 %  ebsd - reconstructed parent @EBSD
@@ -30,17 +33,25 @@ grainIds(~isRecData) = 1;
 % consider only child pixels that have been reconstructed to parent
 % grains
 isNowParent = ebsd.phaseId == job.childPhaseId &...
-  job.grains.phaseId(grainIds) == job.parentPhaseId;
+  job.grains.phaseId(grainIds(:)) == job.parentPhaseId;
 
 % maybe there is nothing to do
 if nnz(isNowParent) == 0, return; end
 
 % compute parent orientation
-[ori,fit] = calcParent(ebsd(isNowParent).orientations,...
-  job.grains(ebsd.grainId(isNowParent)).meanOrientation,job.p2c);
+if check_option(varargin,'exactOR')
+
+  ori = calcParent(ebsd(isNowParent).orientations,...
+    job.grains(ebsd.grainId(isNowParent)).meanOrientation,job.p2c);
+else
+
+  ori = job.grains(ebsd.grainId(isNowParent)).meanOrientation;
+ 
+end
+
 
 % compute variantId
-[vId,pId] = calcVariantId(ori, ebsd(isNowParent).orientations,job.p2c);
+[vId,pId,~,fit] = calcVariantId(ori, ebsd(isNowParent).orientations,job.p2c);
 ebsd.prop.variantId = NaN(size(ebsd));
 ebsd.prop.variantId(isNowParent) = vId;
 ebsd.prop.packetId = NaN(size(ebsd));

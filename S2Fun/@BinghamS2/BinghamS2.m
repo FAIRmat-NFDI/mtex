@@ -1,8 +1,9 @@
 classdef BinghamS2 < S2Fun
   
   properties
-    a      % principle axes
-    Z      % smoothing parameters;
+    a  % principle axes
+    Z  % smoothing parameters
+    s  % reference system
   end
   
   properties (SetAccess=protected)
@@ -13,7 +14,7 @@ classdef BinghamS2 < S2Fun
   
   
   methods
-    function BS2 = BinghamS2(Z,a)
+    function BS2 = BinghamS2(Z,a,sym)
       %
       % Description
       %  defines a spherical Bingham distribution with shape parameters |Z|
@@ -40,6 +41,12 @@ classdef BinghamS2 < S2Fun
       else
         BS2.a = a.normalize;
       end
+
+      if nargin <= 2
+        BS2.s = specimenSymmetry;
+      else
+        BS2.s = sym;
+      end
       
       % compute normalization constant
       BS2.N = 4*pi./BS2.normalizationConst;
@@ -52,7 +59,7 @@ classdef BinghamS2 < S2Fun
     end
     
     
-    function N = normalizationConst(BS2)   % needs esternal mex
+    function N = normalizationConst(BS2)   % needs external mex
       %   calc normalization parameter
       N = numericalSaddlepointWithDerivatives(sort(-BS2.Z(:))+1)*exp(1);
       N = N(3);

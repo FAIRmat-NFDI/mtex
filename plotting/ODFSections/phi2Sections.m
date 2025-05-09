@@ -21,7 +21,7 @@ classdef phi2Sections < ODFSections
       %
       % Options
       %  sections - number of sections
-      %  phi2 - explicite section values
+      %  phi2     - explicit section values
       %
 
       oS = oS@ODFSections(varargin{:});
@@ -40,6 +40,7 @@ classdef phi2Sections < ODFSections
       oS.phi2 = get_option(varargin,'phi2',oS.phi2,'double');
 
       oS.updateTol(oS.phi2);
+
     end
 
     function ori = makeGrid(oS,varargin)
@@ -98,13 +99,13 @@ classdef phi2Sections < ODFSections
         % all others are distributed across all sections
         if any(ind1)
           secPos = [secPos, reshape(repmat(1:length(oS.phi2),1,nnz(ind1)),1,[])];
-          newPhi1 = bsxfun(@minus,phi1(ind1)+phi2(ind1),oS.phi2.');
+          newPhi1 = (phi1(ind1)+phi2(ind1)) - oS.phi2.';
           S2Pos = [S2Pos,reshape(vector3d.byPolar(1e-5,newPhi1),1,[])];
         end
         
         if any(ind2)
           secPos = [secPos, reshape(repmat(1:length(oS.phi2),1,nnz(ind2)),1,[])];
-          newPhi1 = bsxfun(@plus,phi1(ind2)-phi2(ind2), oS.phi2.');
+          newPhi1 = (phi1(ind2) - phi2(ind2)) + oS.phi2.';
           S2Pos = [S2Pos,reshape(vector3d.byPolar(pi-1e-5,newPhi1),1,[])];
         end
       end
@@ -117,12 +118,14 @@ classdef phi2Sections < ODFSections
 
     function h = plotSection(oS,ax,sec,v,data,varargin)
 
+      
       % plot data
       h = plot(v,data{:},oS.sR,'TR',[int2str(oS.phi2(sec)./degree),'^\circ'],...
-        'parent',ax,'projection','plain','xAxisDirection','east',...
-        'xlabel','$\varphi_1$','ylabel','$\Phi$','dynamicMarkerSize',...
-        'zAxisDirection','intoPlane',varargin{:},'doNotDraw');
+        'projection','plain','xlabel','$\varphi_1$','ylabel','$\Phi$',...
+        'parent',ax,'dynamicMarkerSize', varargin{:},'doNotDraw');
 
+      h.Parent.YDir = "reverse";
+      
     end
     
     function h = quiverSection(oS,ax,sec,v,data,varargin)

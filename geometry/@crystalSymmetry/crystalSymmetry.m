@@ -102,7 +102,6 @@ classdef crystalSymmetry < symmetry
     aAxisRec    % a*-axis reciprocal coordinate system
     bAxisRec    % b*-axis reciprocal coordinate system
     cAxisRec    % c*-axis reciprocal coordinate system
-    plotOptions
     X           % x-axis
     Y           % y-axis
     Z           % z-axis
@@ -176,7 +175,15 @@ classdef crystalSymmetry < symmetry
       if check_option(varargin,'density')
         s.opt.density = get_option(varargin,'density','');
       end
-      
+
+      % some defaults for the plotting convention
+      s.how2plot.outOfScreen = s.cAxisRec;
+      if id > 11 || id==0
+        s.how2plot.east = s.aAxis;
+      else
+        s.how2plot.east = s.bAxis;
+      end
+
     end
     
     function x = get.X(cs)
@@ -227,22 +234,6 @@ classdef crystalSymmetry < symmetry
       gamma = angle(cs.axes(1),cs.axes(2));
     end    
    
-    function opt = get.plotOptions(cs)
-      % rotate the aAxis or bAxis into the right direction
-      
-      if ~isempty(getMTEXpref('aStarAxisDirection',[]))
-        cor = pi/2*(NWSE(getMTEXpref('aStarAxisDirection',[]))-1);
-        rho = -cs.aAxisRec.rho + cor;
-      elseif ~isempty(getMTEXpref('bAxisDirection',[]))
-        rho = -cs.bAxis.rho + pi/2*(NWSE(getMTEXpref('bAxisDirection',[]))-1);
-      elseif ~isempty(getMTEXpref('aAxisDirection',[]))
-        rho = -cs.aAxis.rho + pi/2*(NWSE(getMTEXpref('aAxisDirection',[]))-1);
-      else
-        rho = 0;
-      end
-      opt = {'xAxisDirection',rho,'zAxisDirection','outOfPlane'};
-    end
-    
   end
   
   methods (Static = true)
@@ -267,22 +258,22 @@ classdef crystalSymmetry < symmetry
           end
         end
         cs = s;
-        return; 
+        if isa(s.how2plot,'plottingConvention'), return; end        
       end
       
-      if isfield(s,'rot')
+      if isfield(s,'rot') || isprop(s,'rot')
         rot = s.rot;
       else
         rot = rotation(s.a,s.b,s.c,s.d,s.i);
       end
       
-      if isfield(s,'axes')
+      if isfield(s,'axes')  || isprop(s,'axes')
         axes = s.axes;
       else
         axes = [];
       end
       
-      if isfield(s,'id')
+      if isfield(s,'id')  || isprop(s,'id')
         id = {'pointId',s.id};
       else
         id = {};
@@ -290,9 +281,9 @@ classdef crystalSymmetry < symmetry
             
       cs = crystalSymmetry(rot,id{:},axes);
       
-      if isfield(s,'mineral'), cs.mineral = s.mineral; end
-      if isfield(s,'color'), cs.color = s.color; end
-      if isfield(s,'opt'), cs.opt = s.opt; end
+      if isfield(s,'mineral') || isprop(s,'mineral'), cs.mineral = s.mineral; end
+      if isfield(s,'color') || isprop(s,'color'), cs.color = s.color; end
+      if isfield(s,'opt') || isprop(s,'opt'), cs.opt = s.opt; end
             
     end
     

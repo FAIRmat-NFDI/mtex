@@ -77,7 +77,7 @@ classdef crystalShape
       V = unique(V);
       
       % triangles of the convex hull of vertices
-      T = convhull(squeeze(double(V)));
+      T = convhull(V.xyz);
       
       % preallocate face list
       cS.F = nan(length(N),length(N));
@@ -153,6 +153,11 @@ classdef crystalShape
       E = [F(1:end-1),F(2:end)];
       E = E(~any(isnan(E),2),:);
       E = unique(sort(E,2),'rows');
+    end
+
+
+    function cS = reshape(cS,varargin)
+      % do nothing
     end
 
   end

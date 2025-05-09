@@ -1,7 +1,7 @@
 function display(ebsd,varargin)
 % standard output
 
-displayClass(ebsd,inputname(1));
+displayClass(ebsd,inputname(1),'moreInfo',char(ebsd.how2plot,'compact'));
 
 % empty ebsd set 
 if isempty(ebsd)
@@ -53,15 +53,20 @@ cprintf(matrix,'-L',' ','-Lc',...
   '-d','  ','-ic',true);
 
 disp(' ');
-disp(char(dynProp(ebsd.prop),'Id',ebsd.id,'Phase',ebsd.phase,...
+disp(char(dynProp(ebsd.prop),'Id',ebsd.id,'Phase',reshape(ebsd.phase,size(ebsd)),...
   'orientation',ebsd.rotations));
-disp([' Scan unit : ',ebsd.scanUnit]);
+disp(strong(" Scan unit") + " : " + ebsd.scanUnit);
+ext = ebsd.extent;
+disp(strong(" X x Y x Z") + " : [" + xnum2str(ext(1:2),'delimiter',', ') + "] x [" + ...
+  xnum2str(ext(3:4),'delimiter',', ') + "] x [" + xnum2str(ext(5:6),'delimiter',', ') + "]");
+disp(strong(" Normal vector") + ": (" + ...
+  char(round(ebsd.N,'accuracy',5*degree)) + ")");
 
 if min(ebsd.size) > 1
   if size(ebsd.unitCell,1) == 6
-  disp([' Grid size (hex): ',size2str(ebsd)]);
+    disp(strong(" Hex grid") + "     :" + size2str(ebsd));
   else
-  disp([' Grid size (square): ',size2str(ebsd)]);
+    disp(strong(" Square grid") + "  :" + size2str(ebsd));
   end
 end
 
@@ -70,3 +75,4 @@ dispStruct(ebsd.opt);
 
 disp(' ');
 
+end

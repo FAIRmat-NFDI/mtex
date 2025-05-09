@@ -5,13 +5,9 @@
 
 % import a demo data set
 mtexdata forsterite silent
-plotx2east
-
-% consider only indexed data for grain segmentation
-ebsd = ebsd('indexed');
 
 % perform grain segmentation
-[grains,ebsd.grainId,ebsd.mis2mean] = calcGrains(ebsd);
+[grains,ebsd.grainId,ebsd.mis2mean] = calcGrains(ebsd('indexed'),'minPixel',5);
 
 %% Phase maps
 % When using the <grain2d.plot.html |plot|> command without additional
@@ -20,8 +16,6 @@ ebsd = ebsd('indexed');
 
 close all
 plot(grains)
-
-grains('Fo').CS.color
 
 %%
 % Accordingly, changing the color stored in the crystal symmetry changes the
@@ -32,15 +26,14 @@ plot(grains)
 
 %%
 % The color can also been specified directly by using the option
-% |FaceColor|. Note, that this requires the color to be specified by RGB
-% values.
+% |FaceColor|.
 
 % detect the largest grain
 [~,id] = max(grains.area);
 
 % plot the grain in dark black with some transparency
 hold on
-plot(grains(id),'FaceColor','darkgray','FaceAlpha',0.5)
+plot(grains(id),'FaceColor','darkgray','FaceAlpha',0.7)
 hold off
 
 
@@ -99,16 +92,14 @@ setColorRange([1 5])
 % direction.
 
 % consider only elongated grains
-alongated_grains = grains(grains.aspectRatio > 1.5);
+alongated_grains = grains(grains.aspectRatio > 1.2);
 
-% get the grain elongation
-dir = alongated_grains.principalComponents;
-
-% transfer this into degree and project it into the interval [0,180]
-dir = mod(dir./degree,180);
+% angle of the long axis to (1 0 0)
+%omega = angle(alongated_grains.longAxis, vector3d.X, grains.N);
+omega = mod(alongated_grains.longAxis.rho, pi);
 
 % plot the direction
-plot(alongated_grains,dir,'micronbar','off')
+plot(alongated_grains,omega ./ degree,'micronbar','off')
 
 % change the default colormap to a circular one
 mtexColorMap HSV
@@ -145,14 +136,15 @@ hold off
 %% Visualizing directions
 % 
 % We may also visualize directions by arrows placed at the center of the
-% grains.
+% grains using the command <grain2d.quiver.html |quiver|>.
 
 % load some single phase data set
 mtexdata csl
 
 % compute and plot grains
-[grains,ebsd.grainId] = calcGrains(ebsd);
-plot(grains,grains.meanOrientation,'micronbar','off','figSize','large')
+[grains,ebsd.grainId] = calcGrains(ebsd,'minPixel',5);
+grains = smooth(grains,5);
+plot(grains,grains.meanOrientation,'micronbar','off','figSize','large','region',[50 300 100 250])
 
 % next we want to visualize the direction of the 100 axis
 dir = grains.meanOrientation * Miller(1,0,0,grains.CS);
@@ -168,13 +160,14 @@ hold off
 
 %% Labeling Grains
 % In the above example the vectors are centered at the centroids of the
-% grains. Other elements 
-
-% only the very big grains
-big_grains = grains(grains.grainSize>1000);
+% grains. We may also use the command <grain2d.text.html |text|> to display
+% an arbitrary text on top of each grain.
 
 % plot them
-plot(big_grains,big_grains.meanOrientation,'micronbar','off')
+plot(grains,grains.meanOrientation,'micronbar','off','region',[50 300 100 250])
+
+% only the big grains
+big_grains = grains(grains.numPixel>100);
 
 % plot on top their ids
 text(big_grains,int2str(big_grains.id))

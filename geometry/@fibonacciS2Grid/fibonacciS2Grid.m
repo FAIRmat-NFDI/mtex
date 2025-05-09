@@ -59,7 +59,7 @@ classdef fibonacciS2Grid < vector3d
       % define the golden ratio
       phi = (1+sqrt(5)) / 2;
       
-      % doing it in reverse results in incresing theta anlge
+      % doing it in reverse results in increasing theta angle
       idx = (n : -1 : -n)';
       rho = mod(2*pi/phi * idx, 2*pi); 
       sintheta = 2/(2*n+1) * idx;
@@ -74,7 +74,7 @@ classdef fibonacciS2Grid < vector3d
 
     % getters
     function filldist = get.filldist(fibgrid)
-      randvec = vector3d.rand(10000);
+      randvec = vector3d.rand(100000);
       [~, d] = fibgrid.find(randvec);
       filldist = max(d);
     end

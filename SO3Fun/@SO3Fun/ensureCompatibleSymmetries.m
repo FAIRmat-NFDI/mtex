@@ -39,8 +39,8 @@ end
 SO3F2 = varargin{1};
 
 if isnumeric(SO3F1) || isnumeric(SO3F2) || ...
-    (isa(SO3F1,'SO3FunRBF') && SO3F1.c0~=0 && isempty(SO3F1.weights)) || ...
-    (isa(SO3F2,'SO3FunRBF') && SO3F2.c0~=0 && isempty(SO3F2.weights))
+    (isa(SO3F1,'SO3FunRBF') && all(SO3F1.c0(:)~=0) && isempty(SO3F1.weights)) || ...
+    (isa(SO3F2,'SO3FunRBF') && all(SO3F2.c0(:)~=0) && isempty(SO3F2.weights))
   return
 end
 
@@ -50,16 +50,16 @@ end
 %       Possibly use LaueGroups or properGroups
 %       By changing that also update the code in SO3FunComposition.
 
-if isa(SO3F2,'S2FunHarmonicSym')
+if isa(SO3F2,'S2FunHarmonic')
   % compare symmetries in case of convolution with S2Fun
-  if SO3F1.SRight ~= SO3F2.s
+  if (isa(SO3F2,'S2FunHarmonicSym') && (SO3F1.SLeft ~= SO3F2.s)) || (~isa(SO3F2,'S2FunHarmonicSym') && (SO3F1.SLeft ~= specimenSymmetry))
     error('By convolution of a @SO3Fun with a @S2Fun the symmetries have to be compatible.')
   end
   return
 end
 
-if check_option(varargin,'conv_Left')
-  % compare symmetries in case of left sided convolution
+if check_option(varargin,'conv')
+  % compare symmetries in case of convolution
   em = SO3F1.SRight ~= SO3F2.SLeft;
 else
   % compare all symmetrys in case of +, -, *, /, cat, subsasgn

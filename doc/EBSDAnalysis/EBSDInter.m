@@ -16,7 +16,13 @@ mtexdata twins;
 % this command here is important :)
 ebsd = ebsd.project2FundamentalRegion(grains);
 
-plot(ebsd('indexed'),ebsd('indexed').orientations)
+plot(ebsd,ebsd.orientations)
+
+%%
+% In most cases it is useful to gridify the data before doing
+% interpolation.
+
+ebsd = ebsd.gridify
 
 %%
 % Now we can use the command <EBSD.interp.html |interp|> to interpolate the
@@ -26,7 +32,7 @@ x = 30.5; y = 5.5;
 e1 = interp(ebsd,x,y)
 
 %%
-% By default the command <EBSD.interp.html |interp|> performs inverse
+% By default the command <EBSDSquare.interp.html |interp|> performs inverse
 % distance interpolation. This is different to 
 
 e2 = ebsd('xy',x,y)
@@ -63,7 +69,7 @@ plot(ebsdNewGrid('indexed'),ebsdNewGrid('indexed').orientations)
 %
 % Another example is the change from a square to an hexagonal grid or vice
 % versa. In this case the command <EBSD.interp.html |interp|> is
-% implicitely called by the command <EBSD.gridify.html |gridify|>. In order
+% implicitly called by the command <EBSD.gridify.html |gridify|>. In order
 % to demonstrate this functionality we start by EBSD data on a hex grid
 
 mtexdata ferrite silent
@@ -75,9 +81,7 @@ plot(ebsd,ebsd.orientations)
 % smaller square unit cell corresponding to the hexagonal unit cell
 
 % define a square unit cell
-hexUnitCell = abs(round(ebsd.unitCell,4));
-minUnit = min(hexUnitCell(hexUnitCell>0));
-squnitCell = minUnit * [-1 -1;-1 1; 1 1; 1 -1];
+squnitCell = ebsd.dPos / 4 * vector3d([1 1 -1 -1],[1 -1 -1 1],0).';
 
 % use the square unit cell for gridify
 ebsd = ebsd.gridify('unitCell',squnitCell);

@@ -1,15 +1,29 @@
-function ebsd = loadEBSD_crc(fname,varargin)
+function ebsd = loadEBSD_crc(cprFile, crcFile, varargin)
 % interface for Oxford Channel-5 crc and cpr EBSD data files
 % 
-
-try
-  assertExt(fname,{'.cpr','.crc'})
+% try
+  %  if nargin > 4
+  %     for i = 1:1:nargin
+  %         if strcmp('fpath_cpr', varargin{i})
+  %             fpath_cpr = varargin{i+1};
+  %         elseif strcmp('fpath_crc', varargin{i})
+  %             fpath_crc = varargin{i+1};
+  %         end
+  %     end
+  %     assertExt(fpath_cpr, {'cpr'});
+  %     assertExt(fpath_crc, {'crc'});
+  %     cprFile = fpath_cpr;
+  %     crcFile = fpath_crc;
+  %     disp(cprFile);
+  %     disp(crcFile);
+  % else
+  %     assertExt(fname,{'.cpr','.crc'})
+  %     [path,file] = fileparts(fname);
+  %     cprFile = fullfile(path,[file '.cpr']);
+  %     crcFile = fullfile(path,[file '.crc']);
+  % end
   
-  [path,file] = fileparts(fname);
-  cprFile = fullfile(path,[file '.cpr']);
-  crcFile = fullfile(path,[file '.crc']);
-  
-  cpr = localCPRParser(cprFile);
+  cpr = localCPRParser(fullfile(cprFile));
   
   CS  = get_option(varargin,'CS',getCS(cpr));
   param = getJobParam(cpr);
@@ -20,16 +34,17 @@ try
   end
 
   loader  = localCRCLoader(crcFile,param);
-
-  q       = loader.getRotations();
-  phases  = loader.getColumnData('Phase');
-  options = loader.getOptions('ignoreColumns','phase');
   
-  ebsd = EBSD(q,phases,CS,options,'unitCell',param.unitCell);
+  rot       = loader.getRotations();
+  pos = vector3d(loader.getColumnData('x'),loader.getColumnData('y'),0);
+  phases  = loader.getColumnData('phase');
+  options = loader.getOptions('ignoreColumns',{'phase','x','y'});
+  
+  ebsd = EBSD(pos,rot,phases,CS,options,'unitCell',param.unitCell);
   ebsd.opt.cprInfo = cpr;
-catch %#ok<CTCH>
-  interfaceError(fname);
-end
+% catch %#ok<CTCH>
+%   interfaceError(fname);
+% end
 
 % change reference frame
 if check_option(varargin,'convertSpatial2EulerReferenceFrame')
@@ -70,7 +85,7 @@ d(type==4,:) = reshape(double(typecast(...
 d(type~=4,:) = double(data(1+ndx(type~=4),:));
 
 if params.cells
-  % append implicite coordinates
+  % append implicit coordinates
   
   d(end+1,:) = params.x;
   d(end+1,:) = params.y;

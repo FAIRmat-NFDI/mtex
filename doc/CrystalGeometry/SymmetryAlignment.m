@@ -6,9 +6,9 @@
 %
 %% Switching between different Alignment Options
 %
-% Since, especialy for lower symmetry groups, different conventions for
+% Since, especially for lower symmetry groups, different conventions for
 % aligning the crystal axes are used it might be necessary to transform
-% data, e.g, orientations or tensors, from one convention into another. 
+% data, e.g, orientations or tensors, from one convention into another.
 % This can be done using the command <tensor.transformReferenceFrame.html
 % transformReferenceFrame> as it illustrated below.
 %
@@ -31,7 +31,7 @@ cs_new = crystalSymmetry('mmm',[10.2296 5.9942 4.7646],'mineral','Olivin')
 
 %%
 % In order to represent the stiffness tensor |C| with respect to this
-% setupt we use the command <tensor.transformReferenceFrame.html
+% setup we use the command <tensor.transformReferenceFrame.html
 % transformReferenceFrame>.
 
 C_new = C.transformReferenceFrame(cs_new)

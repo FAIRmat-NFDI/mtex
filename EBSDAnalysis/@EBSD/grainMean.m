@@ -11,7 +11,7 @@ function meanProp = grainMean(ebsd, prop, varargin)
 %   plot(grains,meanPropG)
 %
 %   % compute average grain property for each EBSD pixel
-%   meanPropE = grainMean(ebsd, ebsd.ci, grains);
+%   meanPropE = grainMean(ebsd, ebsd.ci);
 %   plot(ebsd,meanPropE)
 %
 %   % take not the mean but the maximum per grain
@@ -35,7 +35,9 @@ function meanProp = grainMean(ebsd, prop, varargin)
 
 % check for grainId
 if isempty(ebsd.grainId)
-  error('There is no ebsd.grainId. Run calcGrains first.')
+  mtexError(' No grainId stored in the EBSD variable. \n%s\n\n%s\n',...
+          ' Use the following command to store grainIds within EBSD data',...
+          ' [grains,ebsd.grainId] = calcGrains(ebsd)')  
 end
 
 % some limits
@@ -47,7 +49,8 @@ prop(prop<llim | prop > ulim)=nan;
 hasGrain = ebsd.grainId>0;
 
 % get averaging method
-method = getClass(varargin,'function_handle',@(x) mean(x,1,"omitmissing"));
+%method = getClass(varargin,'function_handle',@(x) mean(x,1,"omitmissing"));
+method = getClass(varargin,'function_handle',@(x) mean(x,1,"omitnan"));
 
 % perform the averaging
 mP = accumarray(ebsd.grainId(hasGrain),prop(hasGrain),[],method);

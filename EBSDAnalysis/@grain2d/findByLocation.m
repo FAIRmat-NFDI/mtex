@@ -3,8 +3,9 @@ function id = findByLocation( grains, pos )
 %
 % Input
 %  grains - @grain2d
-%  xy     - list of [x(:) y(:)] coordinates, respectively [x(:) y(:) z(:)]
-%
+%  pos    - list of [x(:) y(:)] coordinates, respectively [x(:) y(:) z(:)]
+%           or @vector3d
+%  
 % Output
 %  grains - list of grainIds
 %
@@ -23,23 +24,39 @@ poly = grains.poly;
 % restrict vertices to available grains
 iV = unique([poly{:}]);
 
+% maybe input pos is a vector3d
+if isa(pos,'vector3d')
+    pos = pos.xyz;
+end
+
+V = grains.allV.xyz;
+if size(V,2) == 3
+  if size(pos,2)==2
+    pos = [pos,zeros(length(pos),1)];
+  end
+  mat = grains.rot2Plane.matrix;
+  V = (mat * V.').'; V = V(:,1:2);
+  pos = (mat * pos.').'; pos = pos(:,1:2);  
+end
+
 % and search for the closest vertex
 if size(pos,1) == 1
-  dist = sum((grains.V(iV,:) - pos).^2,2);
+  dist = sum((V(iV,:) - pos(1:size(V,2))).^2,2);
   [~,ind] = min(dist);
   closestVertex = iV(ind);
 else
-  closestVertex = iV(bucketSearch(grains.V(iV,:),pos));
+  closestVertex = iV(bucketSearch(V(iV,:),pos));
 end
 
 % list of candidates
 id = find(cellfun(@(x) any(ismember(closestVertex,x)), poly));
 poly = poly(id);
 
+
 % check whether pos is inside the candidates
 inside = false(size(id));
 for k=1:numel(poly)
-  V_k = grains.V(poly{k},:);
+  V_k = V(poly{k},:);
   for j=1:size(pos,1)
     inside(k) = inside(k) + inpolygon(pos(j,1),pos(j,2),V_k(:,1),V_k(:,2));
   end

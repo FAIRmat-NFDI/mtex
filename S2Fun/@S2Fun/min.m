@@ -29,21 +29,23 @@ function [value,pos] = min(sF, varargin)
 %  startingNodes - @vector3d
 %  tolerance     - minimum distance between two peaks
 %  resolution    - minimum step size 
-%  maxStepSize   - maximm step size
+%  maxStepSize   - maximum step size
 %
 
-sF = sF.truncate;
+if isa(sF,'S2FunHarmonic'), sF = sF.truncate; end
+if nargin > 1 && isa(varargin{1},'S2FunHarmonic'), varargin{1} = varargin{1}.truncate; end
+
 
 % pointwise minimum of two spherical functions
 if ( nargin > 1 ) && ( isa(varargin{1}, 'S2Fun') )
   f = @(v) min(sF.eval(v), varargin{1}.eval(v));
-  value = S2FunHarmonic.quadrature(f);
+  value = S2FunHarmonic.quadrature(f,sF.how2plot);
 
 % pointwise minimum of spherical harmonics
 elseif ( nargin > 1 ) && ~isempty(varargin{1}) && ( isa(varargin{1}, 'double') )
 
   f = @(v) min(sF.eval(v), varargin{1});
-  value = S2FunHarmonic.quadrature(f);
+  value = S2FunHarmonic.quadrature(f,sF.how2plot);
 
 elseif (nargin > 1) && isempty(varargin{1}) % third input is dimension
   
@@ -102,7 +104,7 @@ else % detect local or global minima
   if exist('sym','var') && isa(sym,'crystalSymmetry'), pos = Miller(pos, sym); end
 
   % perform local search
-  [value, pos] = steepestDescent(sF, pos, varargin{:}, 'maxTravel',2*res0);
+  [pos, value] = steepestDescent(sF, pos, varargin{:}, 'maxTravel',2*res0);
   
   % format output
   [value, I] = sort(value);

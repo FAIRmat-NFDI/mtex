@@ -4,7 +4,7 @@
 % Although $\varphi_2$ sections are most common to represent orientation
 % distribution functions they heavily suffer from geometrical distortions
 % of the orientation space. Lets illustrate this at a simple example.
-% The following $\varphi_2$ sections represent a hexagonal ODF composod
+% The following $\varphi_2$ sections represent a hexagonal ODF composed
 % from several unimodal components
 
 % the ODF is defined at the bottom of this script to be secret during the first read :)
@@ -43,9 +43,9 @@ close all
 plot(oS)
 
 %%
-% In the above plot each pixel correspondes to a unique orientation. Which
-% is specified by the position of the c-axis beeing in the position of the
-% pixel and the a-axis beeing aligned with the small arrow at this
+% In the above plot each pixel corresponds to a unique orientation. Which
+% is specified by the position of the c-axis being in the position of the
+% pixel and the a-axis being aligned with the small arrow at this
 % position. As an example lets consider the orientation
 
 ori1 = orientation.map(cs.cAxis,vector3d.Z,cs.aAxis,vector3d.X)
@@ -124,8 +124,8 @@ plotPDF(odf,[cs.cAxis,cs.aAxis])
 
 %%
 
-% They can be seen as the (001) pole figure splitted according to rotations
-% about the (001) axis. Lets have a look at the 001 pole figure
+% They can be seen as the (001) pole figure split according to rotations
+% about the (001) axis. Lets have a look at the (001) pole figure
 
 plotPDF(odf,Miller(0,0,0,1,cs))
 
@@ -137,12 +137,12 @@ plot(odf,'sections',6,'silent','sigma')
 
 %%
 % we can clearly distinguish the two spots in the middle indicating two
-% radial symmetric portions. On the other hand the spots at 001 appear in
-% every section indicating a fibre at position [001](100). Knowing that
-% sigma sections are nothing else then the splitted 001 pole figure they
-% are much more simple to interpret then usual phi2 sections.
+% radial symmetric portions. On the other hand the spots at (001) appear in
+% every section indicating a fiber at position [001](100). Knowing that
+% sigma sections are nothing else then the split (001) pole figure they are
+% much more simple to interpret than usual $\phi_2$ sections.
 
-%% Customizations
+%% Customization
 
 oS = sigmaSections(odf.CS,odf.SS);
 

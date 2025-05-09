@@ -3,6 +3,7 @@ classdef S2FunHarmonic < S2Fun
 
 properties
   fhat = []; % harmonic coefficients
+  s          % symmetry
 end
 
 properties (Dependent=true)
@@ -21,10 +22,11 @@ methods
     % convert arbitrary S2Fun or S2Kernel to S2FunHarmonic
     if isa(fhat,'S2FunHarmonic')
       sF.fhat = fhat.fhat;
-      truncate(sF);
+      sF.s = fhat.s;
+      sF = truncate(sF);
       return
-    elseif isa(fhat,'S2Fun')
-      sF = S2FunHarmonic.quadrature(fhat);
+    elseif isa(fhat,'S2Fun') || isa(fhat,'function_handle')
+      sF = S2FunHarmonic.quadrature(fhat, varargin{:});
       return
     elseif isa(fhat,'S2Kernel')
       psi = fhat;
@@ -33,16 +35,19 @@ methods
       for l = 0:bw
         sF.fhat(l^2+1+l) = 2*sqrt(pi)./sqrt(2*l+1)*psi.A(l+1); 
       end
+      sF.s = getClass(varargin,'symmetry',specimenSymmetry);
       return
     end
 
-    % construct S2FunHarmonic from fourier coefficient vector
+    % construct S2FunHarmonic from Fourier coefficients
     s = size(fhat);
     bandwidth = ceil(sqrt(s(1))-1); % Make entries to the next polynomial degree
     sF.fhat = [fhat; zeros([(bandwidth+1)^2-size(fhat, 1), s(2:end)])];
     
     sF.antipodal = check_option(varargin,'antipodal');
     
+    sF.s = getClass(varargin,'symmetry',specimenSymmetry);
+
     % truncate zeros
     %sF = sF.truncate;
 
@@ -67,8 +72,10 @@ methods
   end
 
   function out = get.antipodal(sF)
+    sF = reshape(sF,numel(sF));
     sF = truncate(sF);
-    out = all(norm(sF - sF.even) < 1e-5*norm(sF));
+    normF = sum(abs(sF.fhat-sF.even.fhat).^2);
+    out = all(sqrt(normF) < 1e-5*norm(sF));
   end
   
   function sF = set.antipodal(sF,value)
@@ -92,14 +99,14 @@ methods
 
   function sF = set.isReal(sF,value)
     if ~value, return; end
-    s = size(sF);
-    sF = reshape(sF,prod(s));
+    sz = size(sF);
+    sF = reshape(sF,prod(sz));
     ind = zeros((sF.bandwidth+1)^2,1);
     for l = 0:sF.bandwidth
       ind(l^2+1:(l+1)^2) = (l+1)^2:-1:l^2+1;
     end
     sF.fhat = 0.5*(sF.fhat+conj(sF.fhat(ind,:)));
-    sF=reshape(sF,s);
+    sF=reshape(sF,sz);
   end
 
   function d = size(sF, varargin)
@@ -116,9 +123,11 @@ methods
 end
 
 methods (Static = true)
-  sF = approximation(v, y, varargin);
+  sF = approximate(f, varargin);
   sF = quadrature(f, varargin);
-  sF = regularisation(nodes,y,lambda,varargin);
+  sF = adjoint(vec,values,varargin);
+  sF = interpolate(v, y, varargin);
+  sF = regularize(nodes,y,lambda,varargin);
 end
 
 end

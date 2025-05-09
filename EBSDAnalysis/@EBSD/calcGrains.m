@@ -38,10 +38,11 @@ function [grains,grainId,mis2mean] = calcGrains(ebsd,varargin)
 %
 % Options
 %  threshold, angle - array of threshold angles per phase of mis/disorientation in radians
+%  minPixel         - minimum number of pixels that form a grain
 %  boundary         - bounds the spatial domain ('convexhull', 'tight')
 %  maxDist          - maximum distance to for two pixels to be in one grain (default inf)
 %  fmc       - fast multiscale clustering method
-%  mcl       - markovian clustering algorithm
+%  mcl       - Markovian clustering algorithm
 %  custom    - use a custom property for grain separation
 %
 % Flags
@@ -62,12 +63,67 @@ function [grains,grainId,mis2mean] = calcGrains(ebsd,varargin)
 % See also
 % GrainReconstruction GrainReconstructionAdvanced
 
+% minimum number of pixels per grain
+minPixel = get_option(varargin,'minPixel',1);
+
+pos = ebsd.rot2Plane .* ebsd.pos(:);
+
+% next we switch algorithm depending on how sparse the indexed points are
+ext = ebsd.extent;
+uniArea = prod(norm(ebsd.unitCell([2,4])-ebsd.unitCell([1,3])));
+isSparse = nnz(ebsd.isIndexed) < 0.9 * prod(ext([2,4])-ext([1,3])) / uniArea;
+
+if minPixel > 1
+
+  if 1 || isSparse
+
+    % if we are later going to use the alphaShape algorithm we should 
+    % temporarily remove not indexed pixels here
+    if isa(ebsd,'EBSDsquare') || isa(ebsd,'EBSDhex')      
+      toRemove = ~ebsd.isIndexed(:);
+    else
+      toRemove = false(numel(pos),1);
+    end
+    [~,~,I_FD] = spatialDecomposition([pos.x(~toRemove), pos.y(~toRemove)],...
+      ebsd.unitCell,'quick',varargin{:});
+    if any(toRemove)
+      [f,d] = find(I_FD);
+      allD = 1:length(toRemove);
+      allD(toRemove) = [];
+      d = allD(d);
+      I_FD = sparse(f,d,1,max(f),length(ebsd));
+    end
+  else
+    [~,~,I_FD] = spatialDecomposition([pos.x(:), pos.y(:)],ebsd.unitCell,'unitcell',varargin{:});
+  end
+  [~,I_DG] = doSegmentation(I_FD,ebsd,varargin{:});
+
+  % number of pixels of each grain
+  numPixel = full(sum(I_DG,1));
+
+  % now we set pixels to not indexed that belong to too small grains
+  toRemove = ~(I_DG * (numPixel >= minPixel).');
+  ebsd.phaseId(toRemove) = 1;
+  pos(toRemove) = [];
+else
+  toRemove = false;
+end
+
 % subdivide the domain into cells according to the measurement locations,
 % i.e. by Voronoi tessellation or unit cell
 if isa(ebsd,'EBSDsquare') || isa(ebsd,'EBSDhex')
   [V,F,I_FD] = spatialDecompositionAlpha(ebsd,varargin{:});
 else
-  [V,F,I_FD] = spatialDecomposition([ebsd.prop.x(:), ebsd.prop.y(:)],ebsd.unitCell,varargin{:});
+  [V,F,I_FD] = spatialDecomposition([pos.x(:), pos.y(:)],ebsd.unitCell,varargin{:});
+
+  % we have to enlarge I_FD such that it fits the original EBSD set
+  if any(toRemove)
+    [f,d] = find(I_FD);
+    allD = 1:length(toRemove);
+    allD(toRemove) = [];
+    d = allD(d);    
+    I_FD = sparse(f,d,1,size(F,1),length(ebsd));    
+  end
 end
 % V - list of vertices
 % F - list of faces
@@ -86,7 +142,6 @@ I_DG = I_DG(:,notEmpty);
 % compute grain ids
 %[grainId,~] = find(I_DG.');
 grainId = full(I_DG * (1:size(I_DG,2)).');
-
 
 % phaseId of each grain
 phaseId = full(max(I_DG' * ...
@@ -111,7 +166,7 @@ end
 grains = grain2d( makeBoundary(Fext,I_FDext), ...
   poly, [], ebsd.CSList, phaseId, ebsd.phaseMap, varargin{:});
 
-grains.grainSize = full(sum(I_DG,1)).';
+grains.numPixel = full(sum(I_DG,1)).';
 grains.innerBoundary = makeBoundary(Fint,I_FDint);
 grains.scanUnit = ebsd.scanUnit;
 
@@ -120,12 +175,15 @@ if check_option(varargin,'removeQuadruplePoints') && qAdded > 0
   mergeQuadrupleGrains;
 end
 
+% rotate grains back
+grains = inv(ebsd.rot2Plane) * grains; %#ok<MINV>
+
 % calc mean orientations, GOS and mis2mean
 % ----------------------------------------
 
 [d,g] = find(I_DG);
 
-grainRange    = [0;cumsum(grains.grainSize)];        %
+grainRange    = [0;cumsum(grains.numPixel)];        %
 firstD        = d(grainRange(2:end));
 phaseId       = ebsd.phaseId;
 q             = quaternion(ebsd.rotations);
@@ -142,7 +200,7 @@ end
 % compute mean orientation and GOS
 if 0
   GOS = zeros(length(grains),1); %#ok<UNRCH>
-  doMeanCalc = find(grains.grainSize>1 & grains.isIndexed);
+  doMeanCalc = find(grains.numPixel>1 & grains.isIndexed);
   abcd = zeros(length(doMeanCalc),4);
   for k = 1:numel(doMeanCalc)
     qind = subSet(q,d(grainRange(doMeanCalc(k))+1:grainRange(doMeanCalc(k)+1)));
@@ -158,14 +216,15 @@ end
 % save 
 grains.prop.GOS = GOS;
 grains.prop.meanRotation = reshape(meanRotation,[],1);
-mis2mean = rotation.nan(size(ebsd));
-mis2mean(grainId>0) = inv(rotation(q(grainId>0))) .* grains.prop.meanRotation(grainId(grainId>0));
+%mis2mean = rotation.nan(size(ebsd));
+%mis2mean(grainId>0) = inv(rotation(q(grainId>0))) .* grains.prop.meanRotation(grainId(grainId>0));
+mis2mean = inv(rotation(q(grainId>0))) .* grains.prop.meanRotation(grainId(grainId>0));
 
 % assign variant and parent Ids for variant-based grain computation
 if check_option(varargin,'variants')
-    variantId = get_option(varargin,'variants');   
-    grains.prop.variantId = variantId(firstD,1);
-    grains.prop.parentId = variantId(firstD,2);
+  variantId = get_option(varargin,'variants');
+  grains.prop.variantId = variantId(firstD,1);
+  grains.prop.parentId = variantId(firstD,2);
 end
 
   function [A_Db,I_DG] = doSegmentation(I_FD,ebsd,varargin)
@@ -193,12 +252,7 @@ end
     [Dl,Dr] = find(triu(A_D,1));
 
     if check_option(varargin,'maxDist')
-      xyDist = sqrt((ebsd.prop.x(Dl)-ebsd.prop.x(Dr)).^2 + ...
-        (ebsd.prop.y(Dl)-ebsd.prop.y(Dr)).^2);
-
-      dx = sqrt(sum((max(ebsd.unitCell)-min(ebsd.unitCell)).^2));
-      maxDist = get_option(varargin,'maxDist',3*dx);
-      % maxDist = get_option(varargin,'maxDist',inf);
+      maxDist = get_option(varargin,'maxDist',3*ebsd.dPos);
     else
       maxDist = 0;
     end
@@ -208,23 +262,19 @@ end
     for p = 1:numel(ebsd.phaseMap)
   
       % neighbored cells Dl and Dr have the same phase
+      ndx = ebsd.phaseId(Dl) == p & ebsd.phaseId(Dr) == p;
+
+      % do not connect points to far away from each other
       if maxDist > 0
-        ndx = ebsd.phaseId(Dl) == p & ebsd.phaseId(Dr) == p & xyDist < maxDist;
-      else
-        ndx = ebsd.phaseId(Dl) == p & ebsd.phaseId(Dr) == p;
+        ndx = ndx & norm(ebsd.pos(Dl) - ebsd.pos(Dr)) < maxDist; 
       end
-  
-      connect(ndx) = true;
-  
-      % check, whether they are indexed
-      ndx = ndx & ebsd.isIndexed(Dl) & ebsd.isIndexed(Dr);
-  
+     
       % now check for the grain boundary criterion
-      if any(ndx)
-    
-        connect(ndx) = feval(['gbc_' gbc],...
+      if any(ndx) && isa(ebsd.CSList{p},'symmetry')    
+        connect(ndx) = feval("gbc_" + gbc,...
           ebsd.rotations,ebsd.CSList{p},Dl(ndx),Dr(ndx),gbcValue{p},varargin{:});
-   
+      else
+        connect(ndx) = 1;
       end
     end
 
@@ -311,7 +361,7 @@ end
     d = diff([0;fId]);
     fId = cumsum(d>0) + (d==0)*size(F,1);
             
-    %  ebsdInd - [Id1,Id2] list of adjecent EBSD pixels for each segment
+    %  ebsdInd - [Id1,Id2] list of adjacent EBSD pixels for each segment
     ebsdInd = zeros(size(F,1),2);
     ebsdInd(fId) = eId;
           
@@ -323,6 +373,7 @@ end
       .* ebsd.rotations(ebsdInd(isNotBoundary,1));
     
     gB = grainBoundary(V,F,ebsdInd,grainId,ebsd.phaseId,mori,ebsd.CSList,ebsd.phaseMap,ebsd.id);
+    gB.how2plot = ebsd.how2plot;
 
   end
 

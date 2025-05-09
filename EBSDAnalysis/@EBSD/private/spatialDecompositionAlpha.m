@@ -15,17 +15,15 @@ function [V,F,I_FD] = spatialDecompositionAlpha(ebsd,varargin)
 
 %  X, Y      - coordinates
 %  isIndexed - indexed pixels
-%  dx,dy     - spatial resolution
+%  dxy       - spatial resolution
 %  ext       - extension
-X = ebsd.prop.x;
-Y = ebsd.prop.y;
+X = ebsd.pos.x;
+Y = ebsd.pos.y;
 isIndexed = ebsd.isIndexed;
 ext = ebsd.extent;
 
 % get the alpha parameter
-dx = ebsd.dx;
-dy = ebsd.dy;
-dxy = sqrt(dx * dy);
+dxy = ebsd.dPos;
 alpha = dxy * get_option(varargin,'alpha',2.2);
 
 % extend raster by one row / column in all directions
@@ -96,7 +94,7 @@ switch lower(method)
 
   case 'qhull'
 
-    [V,D] = voronoin([x_,y_],{'Q5','Q6','Qs'});
+    [V,D] = voronoin([x_(:),y_(:)],{'Q5','Q6','Qs'});
 
   otherwise
   

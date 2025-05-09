@@ -38,11 +38,10 @@ for i = 1:length(r)
   mtexTitle(cax(1),char(r(i),'LaTeX'));
 
   % store geometry
-  set(cax,'tag','ipdf');
-  setappdata(cax,'inversePoleFigureDirection',r(i));
-  setappdata(cax,'CS',SO3F.CS);
-  setappdata(cax,'SS',SO3F.SS);
-
+  [cax.Tag] = deal('ipdf');
+  setAllAppdata(cax,'CS',SO3F.CS,'SS',SO3F.SS, ...
+    'inversePoleFigureDirection',r(i));
+  
 end
 
 if isNew % finalize plot
@@ -57,8 +56,8 @@ function txt = tooltip(~,event)
 
 [h_local,~,value] = getDataCursorPos(mtexFig);
 
-ax = get(event,'Target');
-while ~ismember(ax,mtexFig.children), ax = get(ax,'parent'); end
+ax = event.Target;
+while ~ismember(ax,mtexFig.children), ax = ax.Parent; end
 
 
 h_local = Miller(h_local,getappdata(ax,'CS'),'uvw');

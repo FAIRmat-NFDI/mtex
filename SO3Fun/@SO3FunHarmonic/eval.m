@@ -1,5 +1,5 @@
 function f = eval(SO3F,rot,varargin)
-% pointwise evaluation 
+% point-wise evaluation 
 %
 % Description
 % Evaluates the orientation dependent function $f$ on a given set of points using a
@@ -8,14 +8,21 @@ function f = eval(SO3F,rot,varargin)
 % NFFT at the end.
 %
 % Syntax
-%   f = eval(F,rot)
+%   f = eval(SO3F,rot)
 %
 % Input
-%   F - @SO3FunHarmonic
-%   rot - @rotation (evaluation nodes)
+%  SO3F - @SO3FunHarmonic
+%  rot - @rotation (evaluation nodes)
 %
 % Output
-%   f - double
+%  f - double [numrot x size(SO3F)]
+%
+% Options
+%  bandwidth - cut bandwidth of the harmonic series in evaluation process
+%
+% Flags
+%  nfsoft - use Nonequispace Fast Fourier Transform of the NFFT3 Toolbox (expensive precomputations)
+%  noNFFT - do direct evaluation of the harmonic series for every orientation (Works for very high bandwidth if the nfft runs out of memory, but gets expensive for many orientations. Hence number of orientations should be less than 100)
 %
 % See also
 % SO3FunHarmonic/evalNFSOFT SO3FunHarmonic/evalEquispacedFFT SO3FunHarmonic/evalSectionsEquispacedFFT
@@ -32,6 +39,15 @@ end
 % change evaluation method for quadratureSO3Grid
 if isa(rot,'quadratureSO3Grid') && strcmp(rot.scheme,'ClenshawCurtis')
   f = evalEquispacedFFT(SO3F,rot,varargin{:});
+  return
+end
+
+% Do direct computation for small number of orientations
+maxBW = 3*getMTEXpref('maxSO3Bandwidth');
+if SO3F.bandwidth<maxBW && (length(rot)<50 || check_option(varargin,'noNFFT'))
+  varargin{end+1} = 'direct';
+elseif SO3F.bandwidth>maxBW || check_option(varargin,'noNFFT')
+  f = directEval(SO3F,rot,varargin{:});
   return
 end
 
@@ -85,14 +101,18 @@ if isempty(plan)
     fftw_flag = int8(64);
     nfft_flag = int8(0);
   % nfft_cutoff parameter 
-    m = 4;
+    m = get_option(varargin,'cutoffParameter',4);
   % oversampling factor
     sigma = 3;
     fftw_size = 2*ceil(sigma/2*NN);
     fftw_size2 = 2*ceil(sigma/2*N2);
   % initialize nfft plan
-  plan = nfftmex('init_guru',{3,N2,NN,NN,M,fftw_size2,fftw_size,fftw_size,m,nfft_flag,fftw_flag});
-
+  if check_option(varargin,'direct')
+    plan = nfftmex('init_3d',N2,NN,NN,M);
+  else
+    plan = nfftmex('init_guru',{3,N2,NN,NN,M,fftw_size2,fftw_size,fftw_size,m,nfft_flag,fftw_flag});
+  end
+  
   % set rotations as nodes in plan
   nfftmex('set_x',plan,abg);
 
@@ -107,23 +127,29 @@ if check_option(varargin,'createPlan')
   return
 end
 
+% If SO3F is real valued we have the symmetry properties (*) and (**) for
+% the Fourier coefficients. We will use this to speed up computation.
+if SO3F.isReal
+  flags = 2^0+2^1+2^2+2^4;
+else
+  flags = 2^0+2^1+2^4;
+end
+
 f = zeros([length(rot) size(SO3F)]);
 for k = 1:length(SO3F)
 
-  % If SO3F is real valued we have the symmetry properties (*) and (**) for 
-  % the Fourier coefficients. We will use this to speed up computation.
-  if SO3F.isReal
-    flags = 2^0+2^1+2^2+2^4;
-  else
-    flags = 2^0+2^1+2^4;
-  end
-  ghat = wignerTrafo(SO3F(k),flags,'bandwidth',N);
+  ghat = wignerTrafo(SO3F.subSet(k),flags,'bandwidth',N);
 
   % set Fourier coefficients
   nfftmex('set_f_hat',plan,ghat(:));
 
-  % fast Fourier transform
-  nfftmex('trafo',plan);
+  if check_option(varargin,'direct')
+    % direct Fourier transform
+    nfftmex('trafo_direct',plan);
+  else
+    % Fast Fourier transform
+    nfftmex('trafo',plan);
+  end
 
   % get function values from plan
   if SO3F.isReal
@@ -142,6 +168,39 @@ else
   nfftmex('finalize',plan);
 end
 
+% reshape output
 if isscalar(SO3F), f = reshape(f,s); end
+
+end
+
+
+
+function f = directEval(SO3F,rot,varargin)
+
+N = SO3F.bandwidth;
+abg = Euler(rot,'Matthies')';
+if SO3F.isReal
+  for k=1:length(SO3F)
+    ghat = wignerTrafo(SO3F.subSet(k),2^0+2^2+2^4,'bandwidth',N);
+    for i=1:length(rot)
+      f(i,k) = sum(ghat.*exp(-1i*abg(2,i)*(-N:N)-1i*abg(3,i)*(-N:N)'-1i*abg(1,i)*reshape(0:N,1,1,[])),"all");
+    end
+  end
+  f = 2*real(f);
+else
+  for k=1:length(SO3F)
+    ghat = wignerTrafo(SO3F.subSet(k),2^0+2^4,'bandwidth',N);
+    for i=1:length(rot)
+      f(i,k) = sum(ghat.*exp(-1i*abg(2,i)*(-N:N)-1i*abg(3,i)*(-N:N)'-1i*abg(1,i)*reshape(-N:N,1,1,[])),"all");
+    end
+  end
+end
+  
+% reshape output
+if isscalar(SO3F)
+  f = reshape(f,size(rot)); 
+else
+  f = reshape(f,[numel(rot) size(SO3F)]);
+end
 
 end

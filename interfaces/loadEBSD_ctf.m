@@ -38,7 +38,7 @@ try
   nphase = sscanf(hl{phase_line},'%s\t%u');
   nphase = nphase(end);
   
-  % Crystallogaphic Parameters of all phases
+  % Crystallographic Parameters of all phases
   Laue = {'-1','2/m','mmm','4/m','4/mmm',...
     '-3','-3m','6/m','6/mmm','m3','m3m'};
   
@@ -52,6 +52,8 @@ try
     abc = sscanf( strrep(mpara{1},',','.'),'%f;%f;%f'); % Lattice ABC
     abg = sscanf( strrep(mpara{2},',','.'),'%f;%f;%f'); % Lattice alpha beta gamma
     
+    if isempty(mpara{3}), mpara(3) = []; end
+
     % Phase name
     mineral = mpara{3};
     
@@ -63,11 +65,11 @@ try
   try
     ebsd = loadEBSD_generic(fname,'cs',cs,'bunge','degree',...
       'ColumnNames',{'Phase' 'X' 'Y' 'Bands' 'Error' 'Euler 1' 'Euler 2' 'Euler 3' 'MAD' 'BC' 'BS'}, ...
-      'Columns',1:11,'phaseMap',0:nphase,varargin{:});
+      'Columns',1:11,varargin{:});
   catch
     ebsd = loadEBSD_generic(fname,'cs',cs,'bunge','degree',...
       'ColumnNames',{'Phase' 'X' 'Y' 'Bands' 'Error' 'Euler 1' 'Euler 2' 'Euler 3'}, ...
-      'Columns',1:8,'phaseMap',0:nphase,varargin{:});
+      'Columns',1:8,varargin{:});
   end
   
   

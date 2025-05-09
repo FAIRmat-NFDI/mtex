@@ -62,7 +62,7 @@ if nnz(job.ebsdPrior.phaseId==job.parentPhaseId) > 0.01 * length(job.ebsdPrior) 
   
   if check_option(varargin,'peakFitting')    
     mdf = calcDensity(p2c(ind),'halfwidth',1*degree);
-    p2c0 = steepestDescent(mdf,p2c0);
+    p2c0 = steepestDescent(-mdf,p2c0);
   end
   
   p2cData = p2c0;
@@ -76,7 +76,7 @@ end
 % consider also child to child 
 if (noOpt && angle(p2c0)>5*degree) || check_option(varargin,'c2c') 
 
-  % get neighbouring grain pairs
+  % get neighboring grain pairs
   [c2cPairs, oriChild] = getC2CPairs(job, varargin{:});
   
   % compute c2c misorientation

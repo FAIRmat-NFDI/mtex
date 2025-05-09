@@ -8,20 +8,21 @@ function h = plotSection(sF,sec,varargin)
 %   theta = pi/3;   % polar angle 
 %   plotSection(sF,N,theta) % plot small circle at 30 degree from the north pole
 %
-%   rho = linspace(0,pi); % azimuthal angle
+%   rho = linspace(0,pi); % azimuth angle
 %   plotSection(sF,N,theta,rho) % plot half small circle at 30 degree
 %
 % Input
 %  sF - @S2Fun
 %  N  - normal direction of the intersection plane
 %  theta - polar angle of the intersection plane
-%  rho   - azimuthal angle of the points to be plotted  
+%  rho   - azimuth angle of the points to be plotted  
 %
 % Output
-%
+%  h - handle to the axes
 %
 
 [mtexFig,isNew] = newMtexFigure(varargin{:});
+pC = getClass(varargin,'plottingConvention',sF.how2plot);
  
 % extract polar angle of section
 eta = pi/2; omega = linspace(0,2*pi,361);
@@ -44,7 +45,7 @@ if isempty(delta)
 end
 delta = delta * get_option(varargin,'linewidth',1);
 
-
+h = cell(length(sF));
 for j = 1:length(sF)
   if j > 1, mtexFig.nextAxis; end
 
@@ -60,17 +61,28 @@ for j = 1:length(sF)
     
     h{j} = surface(x,y,z,[d,d],'parent',mtexFig.gca,'edgecolor','none','facecolor','interp');
     
+  elseif check_option(varargin,'polarplot')
+    h{j} = polarplot(omega,d(1:end-1,j));
   else
-    x = d(:, j).*S2.x;
-    y = d(:, j).*S2.y;
-    z = d(:, j).*S2.z;
+    x = d(:, j) .* S2.x;
+    y = d(:, j) .* S2.y;
+    z = d(:, j) .* S2.z;
     
     h{j} = plot3(x,y,z,'parent',mtexFig.gca);
   end
-  view(mtexFig.gca,squeeze(double(sec)));
-  set(mtexFig.gca,'dataAspectRatio',[1 1 1]);
-  axis(mtexFig.gca,'off');
+
+  if angle(pC.outOfScreen,sec,'antipodal','noSymmetry')>1*degree
+    pC.outOfScreen = sec;
+  end
+
+  if isa(mtexFig.gca,'matlab.graphics.axis.Axes')
+    mtexFig.gca.DataAspectRatio = [1 1 1];
+    axis(mtexFig.gca,'off');
+  end
+  pC.setView(mtexFig.gca);
+  
   optiondraw(h{j},varargin{:});
+  
 end
 
 if isNew, mtexFig.drawNow('figSize',getMTEXpref('figSize'),varargin{:}); end

@@ -64,9 +64,8 @@ for i = 1:length(h)
 
   % plot annotations
   pfAnnotations('parent',cax,'doNotDraw','add2all');
-  set(cax,'tag','pdf');
-  setappdata(cax,'h',h{i});
-  setappdata(cax,'SS',SO3F.SS);
+  [cax.Tag] = deal('pdf');
+  setAllAppdata(cax,'h',h{i},'SS',SO3F.SS);
 
 end
 
@@ -112,7 +111,7 @@ end
     [r_local,~,~,ax] = getDataCursorPos(mtexFig);
 
     f = orientation(fibre(h{mtexFig.children==ax},r_local,SO3F.CS,SO3F.SS));
-    f = eval(SO3F,f);
+    f = eval(SO3F,f); %#ok<EV2IN>
 
     [v,vpos] = max(f); %#ok<ASGLU>
 

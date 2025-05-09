@@ -27,7 +27,8 @@ if nargin >= 2 && isa(varargin{1},'vector3d')
 else
   if check_option(varargin,'harmonic')
     M = get_option(varargin,'bandwidth',48);
-    [x, W] = quadratureS2Grid(2*M);
+    x = quadratureS2Grid(M);
+    W = x.weights(:); x =  x(:);
     generateFun = 1;
   else
     x = equispacedS2Grid('resolution',1.5*degree);
@@ -53,11 +54,11 @@ E = ChristoffelTensor(S,x);
 % compute eigenvalues
 [V,D] = eig3(E.M(1,1,:),E.M(1,2,:),E.M(1,3,:),E.M(2,2,:),E.M(2,3,:),E.M(3,3,:));
   
-% compute wavespeeds
+% compute wave velocities
 D = sqrt(D./rho);
 vp = D(3,:); vs1 = D(2,:); vs2 = D(1,:);
   
-% the polarisation axes
+% the polarization axes
 pp = V(3,:); ps1 = V(2,:); ps2 = V(1,:);
 
 if generateFun == 1

@@ -1,4 +1,22 @@
 function h = histogram(v,varargin)
+% polar histogram 
+%
+% Syntax
+%   h = histogram(v)
+%
+%   h = histogram(v,'weights',w)
+%
+% Input
+%  v - @vector3d
+%  w - double
+%
+% Output
+%  h - graphics handle
+%
+% Options
+%  antipodal - include antipodal symmetry
+%
+
 
 weights = get_option(varargin,'weights');
 varargin = delete_option(varargin,'weights',1);
@@ -33,26 +51,8 @@ end
     
   
 % set plotting convention such that the plot coincides with a map
-x = getMTEXpref('xAxisDirection');
-switch x
-  case 'east'
-    h.Parent.ThetaZeroLocation='right';
-  case 'north'
-    h.Parent.ThetaZeroLocation='top';
-  case 'west'
-    h.Parent.ThetaZeroLocation='left';
-  case 'south'
-    h.Parent.ThetaZeroLocation='bottom';
-end
-
-z  = getMTEXpref('zAxisDirection');
-switch z
-  case 'intoPlane'
-    h.Parent.ThetaDir='clockwise';
-  case 'outOfPlane'
-    h.Parent.ThetaDir='counterclockwise';
-end
-
+how2plot = getClass(varargin,'plottingConvention',plottingConvention.default);
+how2plot.setView(h.Parent);
 
 if nargout == 0, clear h; end
 

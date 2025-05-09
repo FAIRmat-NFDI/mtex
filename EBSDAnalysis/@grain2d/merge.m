@@ -45,12 +45,12 @@ function [grainsMerged,parentId] = merge(grains,varargin)
 % Example:
 %
 %   mtexdata small
-%   grains = smooth(calcGrains(ebsd))
+%   grains = smooth(calcGrains(ebsd,'minPixel',5))
 %
-%   % merge all neigbouring Diopside grains
+%   % merge all neighboring Diopside grains
 %   gB = grains.boundary('Diopside','Diopside')
 %   [grains_m,parentId] = merge(grains,gB)
-
+%
 
 % 1. set up merge matrix
 maxId = max(grains.id); % initial, empty merge matrix
@@ -90,7 +90,7 @@ for k = 1:length(varargin)
   elseif ischar(varargin{k}) && strcmpi(varargin{k},'inclusions')
     
     [isIncl, hostId] = grains.isInclusion;
-    isIncl = isIncl & grains.grainSize < get_option(varargin,'maxSize',inf);
+    isIncl = isIncl & grains.numPixel < get_option(varargin,'maxSize',inf);
     
     % additional condition on the inclusion
     cond = get_option(varargin,'inclusions');
@@ -180,7 +180,7 @@ grainsMerged = grains;
 grainsMerged.id = (1:numNewGrains).';
 grainsMerged.poly = cell(numNewGrains,1);
 grainsMerged.phaseId = zeros(numNewGrains,1);
-grainsMerged.grainSize = zeros(numNewGrains,1);
+grainsMerged.numPixel = zeros(numNewGrains,1);
 grainsMerged.inclusionId = zeros(numNewGrains,1);
 
 % set up properties
@@ -206,7 +206,7 @@ grainsMerged.boundary(inner) = [];
 newInd = old2newId(keepId);
 grainsMerged.poly(newInd) = grains.poly(keepInd);
 grainsMerged.phaseId(newInd) = grains.phaseId(keepInd);
-grainsMerged.grainSize(newInd) = grains.grainSize(keepInd);
+grainsMerged.numPixel(newInd) = grains.numPixel(keepInd);
 grainsMerged.inclusionId(newInd) = grains.inclusionId(keepInd);
 
 % copy properties
@@ -220,13 +220,13 @@ I_FG(:,1:numel(keepId)) = [];
 
 newInd = numel(keepId)+(1:size(I_FG,2));
 [grainsMerged.poly(newInd), grainsMerged.inclusionId(newInd)] = ...
-  calcPolygons(I_FG,grainsMerged.boundary.F,grainsMerged.boundary.V);
+  calcPolygons(I_FG,grainsMerged.boundary.F,grainsMerged.allV);
 
 % 9. update properties
 
 % new grain size is sum of old grain sizes
-gS = sparse(old2newId(grains.id),grains.id,grains.grainSize);
-grainsMerged.grainSize= full(sum(gS,2));
+gS = sparse(old2newId(grains.id),grains.id,grains.numPixel);
+grainsMerged.numPixel= full(sum(gS,2));
   
 % new phase id is max of old phase ids
 phaseId = sparse(old2newId(grains.id),grains.id,grains.phaseId);
@@ -259,7 +259,7 @@ if check_option(varargin,'calcMeanOrientation')
       
       ind = parentId == i;
       cs = grains.CSList{max(grains.phaseId(ind))};
-      oriNew = mean(orientation(grains.prop.meanRotation(ind),cs),'weights',grains.grainSize(ind));
+      oriNew = mean(orientation(grains.prop.meanRotation(ind),cs),'weights',grains.numPixel(ind));
             
     end
   

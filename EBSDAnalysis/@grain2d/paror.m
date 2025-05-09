@@ -1,5 +1,5 @@
 function cumpl = paror(grains,varargin)
-% Returns the cummulative particle projection function.
+% Returns the cumulative particle projection function.
 % based on Panozzo, R., 1983. "Two-dimensional analysis of shape
 % fabric using projections of digitized lines in a plane". 
 % Tectonophysics 95, 279-294.
@@ -8,7 +8,7 @@ function cumpl = paror(grains,varargin)
 %  grains - @grain2d
 %
 % Output:
-%  cumpl  - cummulative projection length
+%  cumpl  - cumulative projection length
 %
 % Options:
 %  omega  - list of angles used in the projection function (default [0:1:180]*degree)  
@@ -20,7 +20,11 @@ else
   omega = get_option(varargin,'omega',linspace(0,pi,181));
 end
 
-V = grains.V;
+% get the coordinates
+scaling = 10000 ;
+V = grains.rot2Plane .* grains.allV;
+V = round(scaling * [V.x(:),V.y(:)]);
+
 poly = grains.poly;
 cumpl = zeros(length(grains),length(omega));
 
@@ -39,7 +43,7 @@ end
 % test
 % mtexdata forsterite
 % [grains,ebsd.grainId] =ebsd.calcGrains;
-% ebsd(grains(grains.grainSize<50))=[];
+% ebsd(grains(grains.numPixel<50))=[];
 % [grains,ebsd.grainId] =ebsd.calcGrains;
 % outerBoundary_id = any(grains.boundary.grainId==0,2);
 % grain_id = grains.boundary(outerBoundary_id).grainId;

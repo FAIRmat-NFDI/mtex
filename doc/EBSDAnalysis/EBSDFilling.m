@@ -15,19 +15,13 @@
 % orientation map of deformed Magnesium 
 
 % import the data
-mtexdata ferrite
+mtexdata ferrite 
 
 % consider only indexed data
 ebsd = ebsd('indexed');
 
 % reconstruct the grain structure
-[grains,ebsd.grainId,ebsd.mis2mean] = calcGrains(ebsd,'angle',10*degree);
-
-% remove some very small grains
-ebsd(grains(grains.grainSize<5)) = [];
-
-% redo grain segmentation
-[grains,ebsd.grainId] = calcGrains(ebsd,'angle',10*degree);
+[grains,ebsd.grainId] = calcGrains(ebsd,'angle',10*degree,'minPixel',5);
 
 % smooth grain boundaries
 grains = smooth(grains,5);
@@ -51,11 +45,11 @@ ebsdSub = ebsd(discretesample(length(ebsd),round(length(ebsd)*25/100)));
 plot(ebsdSub,ebsdSub.orientations)
 
 %%
-% Our aim is now to recover the orginal orientation map. In a first step we
+% Our aim is now to recover the original orientation map. In a first step we
 % reconstruct the grain structure from the remaining 25 percent of pixels.
 
 % reconstruct the grain structure
-[grainsSub,ebsdSub.grainId] = calcGrains(ebsdSub,'angle',10*degree);
+[grainsSub,ebsdSub.grainId] = calcGrains(ebsdSub('indexed'),'angle',10*degree,'minPixel',2);
 
 grainsSub = smooth(grainsSub,5);
 
@@ -65,12 +59,12 @@ hold off
 
 %%
 % The easiest way to reconstruct missing data is to use the command
-% <EBSD.fill.html fill> which interpolates missing data using the method of
-% nearest neighbor. It is very recommended to pass the grain structure
+% <EBSD.fill.html |fill|> which interpolates missing data using the method
+% of nearest neighbor. It is recommended to pass the grain structure
 % |grainsSub| as an additional argument to the |fill| function. In this
-% case the nearest neighbors are choosen within the grains.
+% case the nearest neighbors are chosen within the grains.
 
-ebsdSub_filled = fill(ebsdSub,grainsSub);
+ebsdSub_filled = fill(ebsdSub('indexed'),grainsSub);
 
 plot(ebsdSub_filled('indexed'),ebsdSub_filled('indexed').orientations);
 
@@ -80,21 +74,19 @@ hold off
 
 %%
 % A much more powerful method is to use any denoising method and set the
-% option |fill|.
+% option |'fill'|.
 
 F = halfQuadraticFilter; 
 F.alpha = 0.25;
 
 % interpolate the missing data 
-ebsdSub_filled = smooth(ebsdSub,F,'fill',grainsSub);
-ebsdSub_filled = ebsdSub_filled('indexed');
+ebsdSub_filled = smooth(ebsdSub('indexed'),F,'fill',grainsSub);
 
 plot(ebsdSub_filled('indexed'),ebsdSub_filled('indexed').orientations);
 
 hold on
 plot(grainsSub.boundary,'linewidth',1.5)
 hold off
-
 
 %% An Example from Geoscience
 %
@@ -103,25 +95,16 @@ hold off
 % 25 percent missing pixels. Lets start by importing the data and
 % reconstructing the grain structure.
 
-close all; plotx2east
-mtexdata forsterite
+close all;
+mtexdata forsterite silent
 ebsd = ebsd(inpolygon(ebsd,[10 4 5 3]*10^3));
 plot(ebsd('Fo'),ebsd('Fo').orientations)
 hold on
 plot(ebsd('En'),ebsd('En').orientations)
 plot(ebsd('Di'),ebsd('Di').orientations)
 
-% compute grains
-[grains,ebsd.grainId] = calcGrains(ebsd('indexed'),'angle',10*degree);
-
-
-% remove small grains
-ebsd(grains(grains.grainSize < 3)) = [];
-
-% and repeat the grain computation
-[grains,ebsd.grainId] = calcGrains(ebsd('indexed'),'angle',10*degree);
-
-%
+% compute and smooth grains 
+[grains,ebsd.grainId] = calcGrains(ebsd('indexed'),'angle',10*degree,'minPixel',3);
 grains = smooth(grains,5);
 
 % plot the boundary of all grains
@@ -129,10 +112,10 @@ plot(grains.boundary,'linewidth',2)
 hold off
 
 %%
-% Using the option |fill| the command |smooth| fills the holes inside the
+% Using the option |'fill'| the command |smooth| fills the holes inside the
 % grains. Note that the nonindexed pixels at the grain boundaries are kept
 % untouched. In order to allow MTEX to decide whether a pixel is inside a
-% grain or not, the |grain| variable has to be passed as an additional
+% grain or not, the |grains| variable has to be passed as an additional
 % argument.
 
 F = halfQuadraticFilter;
@@ -148,7 +131,7 @@ plot(ebsdS('Di'),ebsdS('Di').orientations)
 % plot the boundary of all grains
 plot(grains.boundary,'linewidth',1.5)
 
-% stop overide mode
+% stop override mode
 hold off
 
 %%
@@ -169,8 +152,7 @@ ipfKey.oriRef = grains(ebsdS('En').grainId).meanOrientation;
 
 plot(ebsdS('En'),ipfKey.orientation2color(ebsdS('En').orientations))
 
-
-% plot boundary
+% plot boundaries
 plot(grains.boundary,'linewidth',4)
 plot(grains('En').boundary,'lineWidth',4,'lineColor','r')
 hold off
@@ -189,10 +171,7 @@ ipfKey.oriRef = grains(ebsd('En').grainId).meanOrientation;
 
 plot(ebsd('En'),ipfKey.orientation2color(ebsd('En').orientations))
 
-
-% plot boundary
+% plot boundaries
 plot(grains.boundary,'linewidth',4)
 plot(grains('En').boundary,'lineWidth',4,'lineColor','r')
 hold off
-
-

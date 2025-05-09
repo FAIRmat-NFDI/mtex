@@ -10,7 +10,8 @@ function selectInteractive(job,varargin)
 %   job.calcGBVotes('p2c', 'threshold', 3*degree, 'tol', 1.5*degree)
 %
 % Input
-%  job - @parentGrainReconstructor
+%  job  - @parentGrainReconstructor
+%  cKey - @orientationColorKey
 %
 % Output
 %  job.votes - table of votes
@@ -23,24 +24,25 @@ function selectInteractive(job,varargin)
 %  numFit - number of fits to be computed
 %
 
+cKey = getClass(varargin,'orientationColorKey',ipfHSVKey(job.csParent));
 
-% datacursormode does not work with grains due to a Matlab bug
+% datacursormode does not work with grains due to a MATLAB bug
 datacursormode off
 
 % define a hand written selector
-set(gcf,'WindowButtonDownFcn',{@doSelection,job});
+set(gcf,'WindowButtonDownFcn',{@doSelection,job,cKey});
 
 end
 
-function doSelection(~,~,job)
+function doSelection(~,~,job,cKey)
 
 % remove old selection
 ax = gca;
 handleSelected = getappdata(ax,'handleSelected');
 try delete(handleSelected); end %#ok<TRYNC>
 
-% new grainid
-pos = get(ax,'CurrentPoint');
+% new grain id
+pos = ax.CurrentPoint;
 localId = findByLocation(job.grains,[pos(1,1) pos(1,2)]);
 
 if isempty(localId), return; end
@@ -53,38 +55,48 @@ hold off
 setappdata(ax,'handleSelected',handleSelected);
 
 votesFit = job.calcGBVotes(grain.id,'bestFit','reconsiderAll');
-votesProb = job.calcGBVotes(grain.id,'reconsiderAll','numFit',24,'tolerance',5*degree,'curvatureFactor',1);
+%votesProb = job.calcGBVotes(grain.id,'reconsiderAll','numFit',24,'tolerance',5*degree,'curvatureFactor',1);
 
-fig = figure(100);
+persistent fig
+try 
+figure(fig)
+catch
+  fig = figure(100); 
+end
+
+%profile on
 clf(fig)
 set(fig,'name',['grain: ' xnum2str(grain.id)])
 numV = size(votesFit.parentId,2);
-cKey = ipfHSVKey(job.csParent);
 
 oriPV = variants(job.p2c,job.grainsPrior(localId).meanOrientation,votesFit.parentId);
 
 bgColor = cKey.orientation2color(oriPV);
 fgColor = bgColor .* sum(bgColor,2) < 1.5;
 
-for n=1:numV
-    
+numVRed = min(numV,5);
+for n=1:numVRed
+ 
+  %s = [' - ' xnum2str(votesProb.prob(votesProb.parentId==votesFit.parentId(n)))];
+  s = [];
   handles.b{n} = uicontrol('Style','PushButton','Units','normalized',...
-    'Position',[0.1 (n-1)/numV 0.8 0.9*1/numV],...
+    'Position',[0.1 (n-1)/numVRed 0.8 0.9*1/numVRed],...
     'backGroundColor',bgColor(n,:),'ForegroundColor',fgColor(n,:),...
-    'String',[xnum2str(votesFit.fit(n)./degree) ' - ' ...
-    xnum2str(votesProb.prob(votesProb.parentId==votesFit.parentId(n))) ],...
-    'Callback',{@setOri,job,localId,oriPV(n),ax}); %#ok<STRNU>
+    'String',[xnum2str(votesFit.fit(n)./degree) s],...
+    'Callback',{@setOri,job,localId,oriPV(n),bgColor(n,:),ax},'FontSize',16,'FontWeight','bold'); %#ok<STRNU>
+
 end
+%profile viewer
 
 end
 
-function setOri(~,~,job,id,pOri,ax)
+function setOri(~,~,job,id,pOri,color,ax)
 
 job.grains(id).meanOrientation = pOri;
 job.grains.update;
 
 hold(ax,'on')
-plot(job.grains(id),pOri,'parent',ax);
+plot(job.grains(id),color,'parent',ax);
 hold(ax,'off')
 
 end

@@ -9,15 +9,13 @@
 %
 % As usual, we start by importing some EBSD data and computing grains
 
-close all; plotx2east
+close all
 
 % import the data
 mtexdata ferrite silent
 
 % compute grains
-[grains, ebsd.grainId] = calcGrains(ebsd('indexed'));
-ebsd(grains(grains.grainSize < 5)) = [];
-[grains, ebsd.grainId] = calcGrains(ebsd('indexed'),'threshold',7.5*degree);
+[grains, ebsd.grainId] = calcGrains(ebsd('indexed'),'threshold',7.5*degree,'minPixel',5);
 ebsd = ebsd.project2FundamentalRegion;
 grains = smooth(grains,5);
 
@@ -173,14 +171,15 @@ hold off
 % output argument |fit|, which is the mean misorientation angle of the
 % orientations to the fitted fibre.
 
-lambda
+lambda 
 
 fit./degree
 
 %%
 % Lets perform the above analysis for all large grains
 
-grainsLarge = grains(grains.grainSize > 50);
+grainsLarge = grains(grains.numPixel > 50);
+lambda = nan(length(grainsLarge),4);
 
 % loop through all grains
 for k = 1:length(grainsLarge)
@@ -305,4 +304,5 @@ hold off
 
 %[T_spherical T_prolate T_oblate]
 
-%#ok<*NASGU>
+%#ok<*NASGU> 
+%#ok<*NOPTS>

@@ -25,21 +25,18 @@ plot(cS,'colored')
 % rotated crystal. This is done by the following commands
 
 % 1. reconstruct the grains
-[grains,ebsd.grainId] = calcGrains(ebsd('indexed'));
+[grains,ebsd.grainId] = calcGrains(ebsd('indexed'),'minPixel',5);
 
-% 2. remove all very small grains
-ebsd(grains(grains.grainSize < 5)) = [];
+% 2. smooth the grain boundaries a bit
+grains = smooth(grains,10);
 
-% 3. redo grain reconstruction
-[grains,ebsd.grainId] = calcGrains(ebsd('indexed'));
-
-% 4. plot the grain boundaries
+% 3. plot the grain boundaries
 plot(grains.boundary,'lineWidth',1.5,'micronbar','off')
 
-% 5. select only very large grains
-big_grains = grains(grains.grainSize > 150);
+% 4. select only very large grains
+big_grains = grains(grains.numPixel > 150);
 
-% 6.  plot the crystals
+% 5.  plot the crystals
 hold on
 plot(big_grains('olivine'),0.8*cS,'linewidth',2,'colored')
 hold off
@@ -58,7 +55,7 @@ plot(ipfKey,'3d')
 
 %%
 % Next we proceed as with the crystal habitus and place a colored ball at
-% each posiotion of the big grains and rotate it according to the
+% each position of the big grains and rotate it according to the
 % meanorientation of the grain.
 
 plot(grains.boundary,'lineWidth',1.5,'micronbar','off')
@@ -70,7 +67,7 @@ legend off
 
 %%
 % Finally, we take the color in the center of the ball as the color
-% representing the orientation of the grain. This tranformation from a list
+% representing the orientation of the grain. This transformation from a list
 % of orientations into a list colors given as RGB values  is the central
 % purpose of the color key |ipfKey| we have defined above and is done by
 % the command |ipfKey.orientation2color|.
@@ -83,7 +80,7 @@ plot(big_grains('o'),colors)
 
 %% Basic Properties
 %
-% The interpetation of the colors becomes more simple if we plot the
+% The interpretation of the colors becomes more simple if we plot the
 % colored ball in stereographic projection and mark the crystallographic
 % axes.
 
@@ -106,11 +103,11 @@ plotIPDF(big_grains('olivine').meanOrientation,colors,vector3d.Z,...
 %%
 % Instead of colorizing which crystal axis is pointing out of the specimen
 % surface we may also colorizing which crystal axis is pointing towards the
-% rolling or folliation direction or any other specimen fixed direction.
+% rolling or foliation direction or any other specimen fixed direction.
 % This reference direction is stored as the property
 % |inversePoleFigureDirection| in the color key.
 
-% set the referece direction to X
+% set the reference direction to X
 ipfKey.inversePoleFigureDirection = vector3d.X;
 
 % compute the colors
@@ -146,12 +143,12 @@ plot(ipfKey)
 % operation. For this reason it is entirely justified to consider for the
 % ipf map proper symmetries only. Lets define the corresponding color key
 
-% the colore key corresponding to the purely enantiomorphic symmetry group
+% the color key corresponding to the purely enantiomorphic symmetry group
 ipfKey = ipfHSVKey(ebsd('olivine').CS.properGroup);
 plot(ipfKey)
 
 %%
-% We oberseve that the key is twice as large and hence allows for a better
+% We obverse that the key is twice as large and hence allows for a better
 % distinction between different orientations.
 
 close all

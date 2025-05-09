@@ -1,5 +1,8 @@
 function psi = conv(psi1, psi2, varargin)
-% spherical convolution of S2Kernel psi1 with psi2 
+% spherical convolution of S2Kernels psi1 with psi2 
+%
+% For detailed information about the definition of the convolution take a 
+% look in the <SO3FunConvolution.html documentation>.
 %
 % Syntax
 %   psi = conv(psi1, psi2)

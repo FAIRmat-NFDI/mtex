@@ -12,7 +12,7 @@ function out = mtexdata(name,varargin)
 % read list of all available sample data
 list = readtable(fullfile(mtexDataPath,'summary.txt'),'ReadRowNames',true);
 
-type2var = containers.Map({'PoleFigure', 'EBSD', 'grain2d','SO3Fun'}, {'pf','ebsd','grains','odf'});
+type2var = containers.Map({'PoleFigure', 'EBSD', 'EBSD3','grain2d','SO3Fun','grain3d'}, {'pf','ebsd','ebsd3','grains','odf','grains'});
 
 if nargin < 1
 
@@ -48,10 +48,9 @@ type = char(list(name,:).type);
 % change warning to error to make it catchable
 w = warning('error','MATLAB:load:cannotInstantiateLoadedVariable');
 try
-  
   matFile = fullfile(mtexDataPath,[ lower(name) '.mat']);
+  assert(~check_option(varargin,'force'));
   load(matFile,'out');
-
 catch
  
   fName = fullfile(mtexDataPath,type,char(list(name,:).files));
@@ -59,7 +58,12 @@ catch
   % load from internet when required
   if isempty(dir(fName))
     
-    url = ['https://raw.githubusercontent.com/mtex-toolbox/mtex/develop/data/' type '/' char(list(name,:).files)];
+    if strcmpi(name,'trueEbsdWCCo')
+      url = 'https://zenodo.org/records/13870131/files/trueEbsdWCCo.mat';
+    else
+      url = ['https://raw.githubusercontent.com/mtex-toolbox/mtex/develop/data/' type '/' char(list(name,:).files)];
+    end
+
     disp('  downloading data from ')
     disp(' ');
     disp(['   <a href="' url '">' url '</a>'])
@@ -81,6 +85,30 @@ catch
   end
   
   switch type
+
+
+    case 'EBSD3'
+      switch name
+        case 'xnovo'
+          out = loadEBSD_xnovo(fName);
+      end
+
+
+    case 'grain3d'
+      switch name
+        case 'NeperGrain3d'
+          job = neperInstance;
+
+          job.cubeSize = [100 100 100];
+
+          job.morpho = 'diameq:lognormal(1,0.35),1-sphericity:lognormal(0.145,0.03)';
+
+          odf = SO3Fun.dubna;
+          numGrains = 1000;
+
+          out = job.simulateGrains(odf,numGrains,'silent');
+      end
+
     case 'SO3Fun'
       switch name
         case 'dubnaODF'
@@ -88,6 +116,7 @@ catch
           out = calcODF(pf);
       end
     case 'PoleFigure'
+      pC = plottingConvention(zvector,xvector);
       switch name
         case 'dubna'
           CS = loadCIF('quartz');
@@ -106,7 +135,7 @@ catch
           out = PoleFigure.load(fName,h,'interface','rw1');
           out = rotate(out,90*degree);
       end
-      
+      out.how2plot = pC;
     case 'EBSD'
       switch lower(name)
         
@@ -141,11 +170,12 @@ catch
             crystalSymmetry('2/m11',[5.339,9.249,20.196],[95.06,90,90]*degree,'mineral','Biotite'),...
             crystalSymmetry('12/m1',[8.5632,12.963,7.2099],[90,116.07,90]*degree,'mineral','Orthoclase')};
 
-          plotx2east;
-          plotzOutOfPlane
           out = loadEBSD_generic(fName,'CS',CS, ...
             'ColumnNames', { 'Phase' 'x' 'y' 'Euler 1' 'Euler 2' 'Euler 3'});
           
+          out.how2plot.east = xvector;
+          out.how2plot.outOfScreen = zvector;
+
         case 'olivine'
           
           out = EBSD.load(fName);
@@ -157,20 +187,24 @@ catch
           out = rotate(out,rot);
 
           % plotting conventions
-          plotx2east; plotzOutOfPlane;
+          out.how2plot.east = xvector;
+          out.how2plot.outOfScreen = zvector;
           
           % rotate only the spatial data about the y-axis
           % ebsd = rotate(ebsd,rotation('axis',xvector,'angle',180*degree),'keepEuler');
           
         case 'twins'
           
-          plotx2east; plotzOutOfPlane
+          pC = plottingConvention;
           out = EBSD.load(fName,'convertEuler2spatialReferenceFrame');
-        
+          out.how2plot = pC;
+
         case 'copper'
 
-          plotx2east; plotzOutOfPlane
           out = EBSD.load(fName,'convertEuler2spatialReferenceFrame');
+
+          out.how2plot.east = xvector;
+          out.how2plot.outOfScreen = zvector;
 
         case 'single'
 
@@ -204,14 +238,16 @@ catch
           
         case 'forsterite'
 
-          plotx2east; plotzOutOfPlane
           out = EBSD.load(fName,'convertEuler2spatialReferenceFrame');
+          out.how2plot.east = xvector;
+          out.how2plot.outOfScreen = zvector;
 
         case 'small'
 
-          plotx2east; plotzOutOfPlane
           out = EBSD.load(fName,'convertEuler2spatialReferenceFrame');
           out = out(out.inpolygon([33 4.5 3 3]*10^3));
+          out.how2plot.east = xvector;
+          out.how2plot.outOfScreen = zvector;
 
         case lower('alphaBetaTitanium')
 
@@ -228,7 +264,18 @@ catch
         case 'emsland'
 
           out = EBSD.load(fName,'convertEuler2SpatialReferenceFrame');
+          out.how2plot.east = xvector;
+          out.how2plot.outOfScreen = zvector;
+
+        case 'trueebsdwcco'
           
+          load(fName,'out');
+          
+        case '3d'
+          
+          warning('TO BE IMPLEMENTED');
+          out = EBSD3;
+
       end
       
   end    

@@ -49,7 +49,7 @@ if isempty(weights)
 
   psi = get_option(varargin,'kernel');
   if ~isempty(psi)
-    weights = psi(sqrt(ebsd.dy^2 * i.^2 + ebsd.dx^2 * j.^2));
+    weights = psi(sqrt(norm(ebsd.d1)^2 * i.^2 + norm(ebsd.d2)^2 * j.^2));
   end
 else
   
@@ -70,7 +70,7 @@ kam = zeros(size(ebsd));
 count = zeros(size(kam));
 
 % extract grainIds and make them a bit larger
-if isfield(ebsd.prop,'grainId')
+if ebsd.hasGrainId
   grainId = nan(size(ebsd)+2*order);
   grainId(order+1:end-order,order+1:end-order) = ebsd.grainId;
 end
@@ -99,7 +99,7 @@ for id = ebsd.indexedPhasesId
       omega(omega > threshold) = NaN;
       
       % avoid grain boundaries
-      if isfield(ebsd.prop,'grainId')
+      if ebsd.hasGrainId
         omega( grainId(order+1:end-order,order+1:end-order) ~= ...
           grainId((order+1:end-order)+i,(order+1:end-order)+j) ) = NaN;
       end

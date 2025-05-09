@@ -5,13 +5,13 @@ function ind = subsind(ebsd,subs)
 if numel(subs)==2 && all(cellfun(@isnumeric, subs))
   ind = ebsd.findByLocation([subs{:}]);
   return
-elseif numel(subs)==2 && ischar(subs{1}) && strcmpi(subs{1},'id')
+elseif numel(subs)==2 && (ischar(subs{1}) || isstring(subs{1})) && strcmpi(subs{1},'id')
   ind = ebsd.id2ind(subs{2});
   if any(ind(:)==0)
     error('No data with the specified ids in the data set');
   end
   return
-elseif numel(subs)==3 && ischar(subs{1}) && strcmpi(subs{1},'xy')
+elseif numel(subs)==3 && (ischar(subs{1}) || isstring(subs{1})) && strcmpi(subs{1},'xy')
   ind = ebsd.findByLocation(subs{2},subs{3});
   if any(ind(:)==0)
     error('No data with the specified coordinates in the data set');
@@ -29,7 +29,7 @@ for i = 1:length(subs)
     ind = ind & ebsd.isIndexed;
   
   % ebsd('mineralname') or ebsd({'mineralname1','mineralname2'})
-  elseif ischar(subs{i}) || iscellstr(subs{i})
+  elseif ischar(subs{i}) || iscellstr(subs{i}) || isstring(subs{i})
     
     mineralsSubs = ensurecell(subs{i});
     phaseNumbers = cellfun(@num2str,num2cell(ebsd.phaseMap(:)),'Uniformoutput',false);
@@ -53,7 +53,7 @@ for i = 1:length(subs)
     if ~any(phases)
       disp(' ');
       warning off backtrace
-      warning(['There is no such phase "' mineralsSubs{1} '". Maybe you mispelled it?']);
+      warning("There is no such phase " + mineralsSubs{1} + ". Maybe you mispelled it?");
       warning on backtrace
     end
     
@@ -69,12 +69,13 @@ for i = 1:length(subs)
     ind = ind(:) & ebsd.phaseId == phaseId;
     
   elseif isa(subs{i},'grain2d')
+
+    assert(ebsd.hasGrainId,...
+      "There is no grainId stored within your EBSD data." + newline +...
+      "You should compute grains by the command" + newline + newline + ...
+      "  [grains,ebsd.grainId] = calcGrains(ebsd)" + newline + newline +...
+      "before you can select EBSD data by grains." + newline);
     
-    if ~ebsd.isProp('grainId')
-      error('%s\n\n%s\n',['There is no grainId stored within your EBSD data. ' ...
-        'You should compute grains by the command'],...
-        '  [grains,ebsd.grainId] = calcGrains(ebsd)');
-    end
     ind = ind(:) & ismember(ebsd.prop.grainId(:),subs{i}.id);
     
   elseif isa(subs{i},'logical')

@@ -1,19 +1,8 @@
 function psi = conv(psi1,psi2,varargin)
 % convolution of an SO3Kernel function with a function or a kernel on SO(3)
 %
-% We convolute an SO3Kernel $f$ with another SO3Kernel or an SO3Fun $g$
-% by the convolution
-%
-% $$ (f {*}_L g)(R) = \frac1{8\pi^2} \int_{SO(3)} f(q) \cdot g(q^{-1}\,R) \, dq $$
-%
-% which in this case is similar to the so caled right sided convolution,
-% see SO3FunHarmonic/conv.
-%
-% The convolution of an SO3Kernel with an S2Kernel or an S2Fun $h$ is
-% defined by
-%
-% $$ (f * h)(\xi) =  \frac1{8\pi^2} \int_{SO(3)} f(q) \cdot h(q^{-1}\,\xi) \, dq $$.
-% 
+% For detailed information about the definition of the convolution take a 
+% look in the <SO3FunConvolution.html documentation>.
 %
 % Syntax
 %   psi = conv(psi1,psi2)
@@ -35,7 +24,7 @@ function psi = conv(psi1,psi2,varargin)
 %  phi2  - @S2Kernel
 %
 % See also
-% SO3FunHarmonic/conv SO3FunRBF/conv S2FunHarmonic/conv S2Kernel/conv
+% SO3FunHarmonic/conv SO3FunRBF/conv SO3FunCBF/conv S2FunHarmonic/conv S2Kernel/conv
 
 if nargin == 1, psi2 = psi1; end
 
@@ -95,7 +84,7 @@ else
 end
 
 % multiplication in harmonic domain
-L = min(psi1.bandwidth,psi2.bandwidth);     
+L = min(psi1.bandwidth,length(A2)-1);     
 psi = SO3Kernel(A1(1:L+1) .* A2(1:L+1));
 
 

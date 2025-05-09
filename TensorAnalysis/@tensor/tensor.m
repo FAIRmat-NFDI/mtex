@@ -10,6 +10,7 @@ classdef tensor < dynOption
   properties (Dependent = true)
     isSymmetric
     isSkewSymmetric
+    how2plot % plotting convention
   end
 
   methods
@@ -64,7 +65,7 @@ classdef tensor < dynOption
       T.doubleConvention = check_option(varargin,'doubleConvention');
       
       if isa(M,'vector3d') % conversion from vector3d
-        T.M = shiftdim(double(M),ndims(M));
+        T.M = shiftdim(fullDouble(M),ndims(M));
         T.rank = 1;
         if isa(M,'Miller'), T.CS = M.CS; end
       
@@ -149,20 +150,20 @@ classdef tensor < dynOption
     end
 
     function isSym = get.isSymmetric(T)
-
       if T.rank == 2 || T.rank == 4
-
         isSym = norm(T - ctranspose(T,'skipCorrection')) ./ (1e-12+norm(T)) < 1e-6;
-      
       else
-        
         error('not yet implemented');
-        
-      end
-      
-
+      end     
     end
 
+    function pC = get.how2plot(T)
+      pC = T.CS.how2plot;
+    end
+
+    function T = set.how2plot(T,pC)
+      T.CS.how2plot = pC;
+    end
 
   end
   

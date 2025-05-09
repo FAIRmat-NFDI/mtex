@@ -3,7 +3,7 @@ classdef sphericalRegion
 % The class *sphericalRegion* describes a region on the sphere that is
 % bounded by small circles. For a list of normal vectors $N_i$ and
 % coefficients $\alpha_i$ the region is defined as all vectors $v$ on the
-% sphere that satify for all $i$ the condition
+% sphere that satisfy for all $i$ the condition
 %
 % $$v \cdot N_i \le \alpha_i$$
 % 
@@ -30,7 +30,11 @@ classdef sphericalRegion
     antipodal = false  % used for check_inside
   end
 
-  
+  properties (Dependent = true)
+    how2plot
+  end
+
+
   methods
         
     function sR = sphericalRegion(varargin)
@@ -90,24 +94,38 @@ classdef sphericalRegion
       
     end
             
+    function h2p = get.how2plot(sR)
+      h2p = sR.N.how2plot;
+    end
+
+    function sR = set.how2plot(sR,how2plot)
+      sR.N.how2plot = how2plot;
+    end
+
+    function out = ne(sR1,sR2)
+      out = ~eq(sR1,sR2);
+    end
+
+    function sR = horzcat(varargin) 
+      sR = varargin{1};
+      for n=2:numel(varargin)
+        sR.N = [sR.N(:);varargin{n}.N(:)];
+        sR.alpha = [sR.alpha(:);varargin{n}.alpha(:)];
+      end
+    end
+
+
     function th = thetaMin(sR)
-      
       th = thetaRange(sR);
-      
     end
     
-    function th = thetaMax(sR)
-      
-      [~,th] = thetaRange(sR);
-      
+    function th = thetaMax(sR)      
+      [~,th] = thetaRange(sR);      
     end
       
     function rh = rhoMax(sR)
-
       [~,rh] = rhoRange(sR);
       if length(rh) ~=1, rh = 2*pi; end
-      
-      
     end
     
     function rh = rhoMin(sR)
@@ -153,7 +171,7 @@ classdef sphericalRegion
       
       if nargin == 2
         
-        theta = linspace(0,pi,10000);
+        theta = linspace(0,pi,10001);
         
         srho = size(rho);
         [rho,theta] = meshgrid(rho,theta);

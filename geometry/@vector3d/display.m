@@ -9,7 +9,7 @@ if check_option(varargin,'onlyShowVectors')
   return
 end
 
-displayClass(v,inputname(1),varargin{:});
+displayClass(v,inputname(1),'moreInfo',char(v.how2plot,'compact'),varargin{:});
 
 if length(v) ~= 1, disp([' size: ' size2str(v)]);end
 
@@ -34,7 +34,7 @@ elseif check_option(varargin,'all') || (length(v) < 20)
 elseif ~getMTEXpref('generatingHelpMode')
 
   disp(' ')
-  s = setappdata(0,'data2beDisplayed',v);
+  s = setAllAppdata(0,'data2beDisplayed',v);
   disp(['  <a href="matlab:display(getappdata(0,''',s,'''),''onlyShowVectors'')">show vectors</a>'])
   disp(' ')
 

@@ -12,12 +12,14 @@
 % At first we need some example vertices
 nodes = equispacedS2Grid('points', 1e5);
 nodes = nodes(:);
+
 %%
 % Next, we define function values for the vertices
 y = vector3d.byPolar(sin(3*nodes.theta), nodes.rho+pi/2);
+
 %%
 % Now the actual command to get |sVF1| of type |S2VectorFieldHarmonic|
-sVF1 = S2VectorFieldHarmonic.approximation(nodes, y)
+sVF1 = S2VectorFieldHarmonic.interpolate(nodes, y)
 
 %%
 % *Definition via function handle*
@@ -28,10 +30,13 @@ sVF1 = S2VectorFieldHarmonic.approximation(nodes, y)
 % returns again <vector3d.vector3d.html |vector3d|>:
 
 f = @(v) vector3d(v.x, v.y, 0*v.x);
+
 %% 
 % Now we can call the quadrature command to get |sVF2| of type
 % |S2VectorFieldHarmonic|
-sVF2 = S2VectorFieldHarmonic.quadrature(@(v) f(v))
+sVF2 = S2VectorFieldHarmonic(@(v) f(v))
+% sVF2 = S2VectorFieldHarmonic.quadrature(@(v) f(v))
+
 
 %%
 % *Definition via <S2FunHarmonic.S2FunHarmonic |S2FunHarmonic|>*

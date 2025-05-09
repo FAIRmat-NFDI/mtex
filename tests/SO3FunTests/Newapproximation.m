@@ -10,7 +10,7 @@ q = orientation.rand(1e5,G.CS);
 % q = G.discreteSample(6e4);
 f = G.eval(q);
 
-F2 = SO3FunHarmonic.approximation(q,f,'tol',1e-6,'maxit',50,'bandwidth',25)
+F2 = SO3FunHarmonic.interpolate(q,f,'tol',1e-6,'maxit',50,'bandwidth',25)
 figure(2)
 plot(F2)
 
@@ -77,7 +77,7 @@ G = sparse((2*N+1)^3,deg2dim(N+1));
 dd={};
 for n=0:N
 
-  d = Wigner_D(n,pi/2);
+  d = WignerD(pi/2,n);
   dd{n+1} = sqrt(2*n+1)*d.*reshape(d,2*n+1,1,2*n+1);
   dim(n+1)=deg2dim(n);
 end
@@ -151,7 +151,7 @@ N=10;
 G = sparse((2*N+1)^3,deg2dim(N+1));
 dd={};
 for n=0:N
-  d = Wigner_D(n,pi/2);
+  d = WignerD(pi/2,n);
   dd{n+1} = sqrt(2*n+1)*d.*reshape(d,2*n+1,1,2*n+1);%.*(1i.^(reshape(-n:n,1,1,[])-(-n:n)));
   dim(n+1)=deg2dim(n);
 end
@@ -204,7 +204,7 @@ fhat = rand(deg2dim(N+1),1);
 
 dd={};
 for n=0:N
-  d = Wigner_D(n,pi/2);
+  d = WignerD(pi/2,n);
   dd{n+1} = sqrt(2*n+1)*d.*reshape(d,2*n+1,1,2*n+1);%.*(1i.^(reshape(-n:n,1,1,[])-(-n:n)));
 end
 
@@ -262,7 +262,7 @@ N=5;
 
 dd={};
 for n=0:N
-  d = Wigner_D(n,pi/2);
+  d = WignerD(pi/2,n);
   dd{n+1} = sqrt(2*n+1)*d.*reshape(d,2*n+1,1,2*n+1);%.*(1i.^(reshape(-n:n,1,1,[])-(-n:n)));
 end
 
@@ -310,7 +310,7 @@ tic
 
 dd={};    % 285MB for N=64
 for n=0:N
-  d = Wigner_D(n,pi/2);
+  d = WignerD(pi/2,n);
   dd{n+1} = sqrt(2*n+1)*d.*reshape(d,2*n+1,1,2*n+1);%.*(1i.^(reshape(-n:n,1,1,[])-(-n:n)));
 end
 
@@ -365,7 +365,7 @@ tic
 
 dd={};    % 285MB for N=64
 for n=0:N
-  d = Wigner_D(n,pi/2);
+  d = WignerD(pi/2,n);
   dd{n+1} = sqrt(2*n+1)*d.*reshape(d,2*n+1,1,2*n+1);%.*(1i.^(reshape(-n:n,1,1,[])-(-n:n)));
 end
 
@@ -421,7 +421,7 @@ for m=1:M
   rot = rotation.rand;
   b=[];
   for k=0:N
-    a = Wigner_D(k,rot);
+    a = WignerD(rot,k);
     b = [b;a(:)];
   end
   D(m,:) = b.';

@@ -9,22 +9,24 @@ function kappa = curvature(gB,n)
 %
 % Input
 %  gB - @grainBoundary
-%   n - number of neighbours that are considered
+%   n - number of neighbors that are considered
 %
 % Output
 %  kappa - 1/fitting Radius in EBSD units
 %
 
-mp = gB.midPoint;
+% TODO: this can be done better, as the segments are now ordered
 
-% adjecents matrix segments - segments
+mp = gB.midPoint.xy;
+
+% adjacent matrix segments - segments
 A_F = gB.A_F;
 
-% consider only those with exactly two neighbours
+% consider only those with exactly two neighbors
 has2n = (full(sum(A_F)) == 2).';
 
-% find for each segments the two neigbouring segments
-% u - is a 2n list of segment ids neighbouring 
+% find for each segments the two neighboring segments
+% u - is a 2n list of segment ids neighboring 
 [u,~] = find(A_F(:,has2n));
 
 % try to reorder them nicely
@@ -41,7 +43,7 @@ mpR = mp(u(:,2),:);
 
 % try to make the order compatible 
 % the sign of the curvature should correlate with the order of the vertices
-%distL = gB.V(gB.F(has2n,1),:) - m
+%distL = gB.allV(gB.F(has2n,1),:) - m
 %switchLR = 
 
 
