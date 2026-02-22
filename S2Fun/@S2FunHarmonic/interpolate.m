@@ -66,7 +66,7 @@ regularize = lambda > 0;
 What = get_option(varargin,'fourier_weights');
 if isempty(What) && regularize 
   SobolevIndex = get_option(varargin,'SobolevIndex',2);
-  What = (2*(0:bw)+1).^(2*SobolevIndex);
+  What = (1+(0:bw).*((0:bw)+1)).^(SobolevIndex);
   What = repelem(What,1:2:(2*bw+1))';
 end
 
@@ -80,6 +80,7 @@ else
   W = W(ind);
 end
 W = sqrt(W(:));
+varargin = delete_option(varargin,'weights',1);
 
 b = W.*y;
 if regularize
@@ -92,13 +93,13 @@ maxit = get_option(varargin, 'maxit', 40);
 
 % create plan
 xi = S2FunHarmonic(0); xi.bandwidth=bw;
-xi.eval(nodes,'createPlan');
-S2FunHarmonic.adjoint(nodes,y(:,1),'createPlan','bandwidth',bw);
+xi.eval(nodes,'createPlan',varargin{:});
+S2FunHarmonic.adjoint(nodes,y(:,1),'createPlan','bandwidth',bw,varargin{:});
 
 % least squares solution
 for index = 1:size(y,2)
   [fhat(:, index), flag(index)] = lsqr(...
-    @(x, transp_flag) afun(transp_flag, x, nodes, W, bw, mask, regularize, lambda, What, varargin), ...
+    @(x, transp_flag) afun(transp_flag, x, nodes, W, bw, mask, regularize, lambda, What, varargin{:}), ...
     b(:, index), tol, maxit);
   fhat(:, index) = mask*fhat(:, index);
 end
@@ -107,8 +108,8 @@ if any(flag == 1)
 end
 
 % kill plan
-S2FunHarmonic.adjoint(1,1,'killPlan');
-S2FunHarmonic(1).eval(1,'killPlan');
+S2FunHarmonic.adjoint(1,1,'killPlan',varargin{:});
+S2FunHarmonic(1).eval(1,'killPlan',varargin{:});
 
 sF = S2FunHarmonic(fhat);
 sF.how2plot = getClass(varargin,'plottingConvention',nodes.how2plot);
@@ -130,7 +131,7 @@ if strcmp(transp_flag, 'transp')
   end
   x = x .* W;
   % F = S2FunHarmonic.adjoint(nodes,x,'bandwidth',bw);
-  F = S2FunHarmonic.adjoint(nodes,x,'keepPlan','bandwidth',bw);
+  F = S2FunHarmonic.adjoint(nodes,x,'keepPlan','bandwidth',bw,varargin{:});
   y = mask * F.fhat;
   if regularize
     y = y + u .* (sqrt(lambda)*sqrt(What));
@@ -140,7 +141,7 @@ elseif strcmp(transp_flag, 'notransp')
 
   F = S2FunHarmonic(mask * x);
   F.bandwidth = bw;
-  y = F.eval(nodes,'keepPlan');
+  y = F.eval(nodes,'keepPlan',varargin{:});
   y = y .* W;
   if regularize
     y = [y;F.fhat .* (sqrt(lambda)*sqrt(What))];
