@@ -36,6 +36,10 @@ function W = weightedBurgersVec(ebsd,varargin)
 % through crystalline materials>, J. Microscopy, 2009.
 %
 
+if ~(isa(ebsd,'EBSDsquare') | isa(ebsd,'EBSDhex'))
+    mtexError(['This function requires an input of type EBSSDsquare' newline ...
+               'run "ebsd=ebsd.gridify" first'])
+end
 
 if check_option(varargin,'gradient') % use the gradient method
   
@@ -78,7 +82,7 @@ else % use the integral method
   W = ebsd.orientations .* W;
   
   %normalize to area
-  d = min(norm(ebsd.unitCell(1) - ebsd.unitCell(2:end)))
+  d = min(norm(ebsd.unitCell(1) - ebsd.unitCell(2:end)));
   W = W/(4 * wS^2 * d);
 
 end
