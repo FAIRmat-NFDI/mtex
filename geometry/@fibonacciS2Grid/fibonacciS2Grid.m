@@ -1,15 +1,11 @@
 classdef fibonacciS2Grid < vector3d
   % The class fibonacciS2Grid creates equispaced grids on the sphere by
-  % placing points around a spiral around the sphere. The class also
-  % provides a method to find grid points around a given center with
-  % specified radius.
+  % placing points around a spiral around the sphere. 
   %
   % Syntax
   %   fibgrid = fibonacciS2Grid(N)
   %   fibgrid = fibonacciS2Grid('points', N)
   %   fibgrid = fibonacciS2Grid('resolution', res*degree)
-  %   % saves the precise rho angles in the options
-  %   fibgrid = fibonacciS2Grid('points', N, 'saverho') 
   %
   % Input
   %  N - number of points
@@ -25,7 +21,6 @@ classdef fibonacciS2Grid < vector3d
   properties (Dependent = true)
     filldist    % fill distance (radius of biggest hole)
     sepdist     % separation distance (half of smallest distance between nodes)
-    maxsep      % maximal separation between two nodes
   end
 
   methods
@@ -60,29 +55,34 @@ classdef fibonacciS2Grid < vector3d
 
     % getters
     function filldist = get.filldist(fibgrid)
-      randvec = vector3d.rand(100000);
-      [~, d] = fibgrid.find(randvec);
-      filldist = max(d);
+      filldist = fibgrid.compute_filldist();
     end
 
     function sepdist = get.sepdist(fibgrid)
-      % this guarantees that at least one neighbor is in the delta
-      % region around v
-      delta = acos(1 - 3.5 * 2 / numel(fibgrid.x));
-      % the smallest separation always occurs at the first and last
-      % grid point (closest to pole)
-      [~, dist] = fibgrid.find(fibgrid.subSet(numel(fibgrid.x)), delta);
-      sortdist = sort(nonzeros(dist));
-      sepdist = sortdist(2) / 2;
+      sepdist = fibgrid.compute_sepdist();
     end
 
-    function maxsep = get.maxsep(fibgrid)
-      % the biggest separation always occurs on the (n+1)-th grid
-      % point (one the equator at (1,0,0))
-      delta = acos(1 - 3.5 * 2 / numel(fibgrid.x));
-      [~, dist] = fibgrid.find(vector3d.X, delta);
-      sortdist = sort(nonzeros(dist));
-      maxsep = sortdist(2);
+    % compute functions for the getters
+    function filldist = compute_filldist(fibgrid, varargin)
+      randvec = vector3d.rand(1e4);
+      [~, d] = fibgrid.find(randvec);
+      if check_option(varargin, 'mean')
+        filldist = mean(d);
+      else
+        filldist = max(d);
+      end
     end
+
+    function sepdist = compute_sepdist(fibgrid, varargin)
+      [~, dist] = fibgrid.find(fibgrid, 2);
+      if check_option(varargin, 'mean')
+        sepdist = mean(dist(:,2));
+      elseif check_option(varargin, 'max')
+        sepdist = max(dist(:,2));
+      else
+        sepdist = min(dist(:,2));
+      end
+    end
+
   end
 end

@@ -2,7 +2,7 @@ classdef Miller < vector3d
   %
   % The class *Miller* describes crystal directions, i.e., directions
   % relative to the crystal coordinate system. Internally, these are stored
-  % with respect to an Eucledean reference system.
+  % with respect to an Euclidean reference system.
   %
   % Syntax
   %   m = Miller(h,k,l,cs)
@@ -93,9 +93,11 @@ classdef Miller < vector3d
 
       if isa(varargin{1},'symmetry')
 
-        m.x = varargin{2};
-        m.y = varargin{3};
-        m.z = varargin{4};
+        if nargin > 1
+          m.x = varargin{2};
+          m.y = varargin{3};
+          m.z = varargin{4};
+        end
       
       elseif ischar(varargin{1})
         
