@@ -6,4 +6,4 @@
 	url = https://github.com/joe-of-all-trades/struct2xml.git
 [submodule "extern/matGeom"]
 	path = extern/matGeom
-	url = git@github.com:mattools/matGeom.git
+	url = https://github.com/mattools/matGeom.git
